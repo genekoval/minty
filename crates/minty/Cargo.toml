@@ -2,3 +2,12 @@
 name = "minty"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies]
+chrono = { workspace = true }
+serde = { workspace = true, features = ["derive"], optional = true }
+url = { workspace = true }
+uuid = { workspace = true }
+
+[features]
+serde = ["dep:serde", "chrono/serde", "url/serde", "uuid/serde"]
