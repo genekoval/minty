@@ -2,3 +2,7 @@
 name = "minty-core"
 version = "0.5.3"
 edition = "2021"
+
+[dependencies]
+minty = { path = "../minty" }
+thiserror = { workspace = true }

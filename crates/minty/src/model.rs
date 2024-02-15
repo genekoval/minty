@@ -50,6 +50,13 @@ pub struct Object {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct ObjectError {
+    id: Uuid,
+    message: String,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ObjectPreview {
     id: Uuid,
     preview_id: Option<Uuid>,
