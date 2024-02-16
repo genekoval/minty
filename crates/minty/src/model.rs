@@ -11,101 +11,101 @@ pub type DateTime = chrono::DateTime<Local>;
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Comment {
-    id: Uuid,
-    post_id: Uuid,
-    parent_id: Option<Uuid>,
-    level: u8,
-    content: String,
-    created: DateTime,
+    pub id: Uuid,
+    pub post_id: Uuid,
+    pub parent_id: Option<Uuid>,
+    pub level: u16,
+    pub content: String,
+    pub created: DateTime,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CommentData {
-    id: Uuid,
-    content: String,
-    level: u8,
-    created: DateTime,
+    pub id: Uuid,
+    pub content: String,
+    pub level: u8,
+    pub created: DateTime,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Modification<T> {
-    date_modified: DateTime,
-    new_value: T,
+    pub date_modified: DateTime,
+    pub new_value: T,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Object {
-    id: Uuid,
-    hash: String,
-    size: u64,
-    r#type: String,
-    subtype: String,
-    added: DateTime,
-    preview_id: Option<Uuid>,
-    posts: Vec<PostPreview>,
+    pub id: Uuid,
+    pub hash: String,
+    pub size: u64,
+    pub r#type: String,
+    pub subtype: String,
+    pub added: DateTime,
+    pub preview_id: Option<Uuid>,
+    pub posts: Vec<PostPreview>,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ObjectError {
-    id: Uuid,
-    message: String,
+    pub id: Uuid,
+    pub message: String,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ObjectPreview {
-    id: Uuid,
-    preview_id: Option<Uuid>,
-    r#type: String,
-    subtype: String,
+    pub id: Uuid,
+    pub preview_id: Option<Uuid>,
+    pub r#type: String,
+    pub subtype: String,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Post {
-    id: Uuid,
-    title: String,
-    description: String,
-    visibility: Visibility,
-    created: DateTime,
-    modified: DateTime,
-    objects: Vec<ObjectPreview>,
-    posts: Vec<PostPreview>,
-    tags: Vec<TagPreview>,
-    comment_count: u32,
+    pub id: Uuid,
+    pub title: String,
+    pub description: String,
+    pub visibility: Visibility,
+    pub created: DateTime,
+    pub modified: DateTime,
+    pub objects: Vec<ObjectPreview>,
+    pub posts: Vec<PostPreview>,
+    pub tags: Vec<TagPreview>,
+    pub comment_count: u32,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostPreview {
-    id: Uuid,
-    title: String,
-    preview: Option<ObjectPreview>,
-    comment_count: u32,
-    object_count: u32,
-    created: DateTime,
+    pub id: Uuid,
+    pub title: String,
+    pub preview: Option<ObjectPreview>,
+    pub comment_count: u32,
+    pub object_count: u32,
+    pub created: DateTime,
 }
 
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostQuery {
-    from: u32,
-    size: u32,
-    text: Option<String>,
-    tags: Vec<Uuid>,
-    visibility: Visibility,
-    sort: PostSort,
+    pub from: u32,
+    pub size: u32,
+    pub text: Option<String>,
+    pub tags: Vec<Uuid>,
+    pub visibility: Visibility,
+    pub sort: PostSort,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostSort {
-    value: PostSortValue,
-    order: SortOrder,
+    pub value: PostSortValue,
+    pub order: SortOrder,
 }
 
 impl PostSort {
@@ -148,8 +148,8 @@ pub enum PostSortValue {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct SearchResult<T> {
-    total: u32,
-    hits: Vec<T>,
+    pub total: u32,
+    pub hits: Vec<T>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -162,50 +162,50 @@ pub enum SortOrder {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Source {
-    id: i64,
-    url: Url,
-    icon: Option<Uuid>,
+    pub id: i64,
+    pub url: Url,
+    pub icon: Option<Uuid>,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Tag {
-    id: Uuid,
-    name: String,
-    aliases: Vec<String>,
-    description: String,
-    avatar: Option<Uuid>,
-    banner: Option<Uuid>,
-    sources: Vec<Source>,
-    post_count: u32,
-    created: DateTime,
+    pub id: Uuid,
+    pub name: String,
+    pub aliases: Vec<String>,
+    pub description: String,
+    pub avatar: Option<Uuid>,
+    pub banner: Option<Uuid>,
+    pub sources: Vec<Source>,
+    pub post_count: u32,
+    pub created: DateTime,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct TagName {
-    name: String,
-    aliases: Vec<String>,
+    pub name: String,
+    pub aliases: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct TagPreview {
-    id: Uuid,
-    name: String,
-    avatar: Option<Uuid>,
+    pub id: Uuid,
+    pub name: String,
+    pub avatar: Option<Uuid>,
 }
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct TagQuery {
-    from: u32,
-    size: u32,
-    name: String,
-    exclude: Vec<Uuid>,
+    pub from: u32,
+    pub size: u32,
+    pub name: String,
+    pub exclude: Vec<Uuid>,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum Visibility {
     Draft,

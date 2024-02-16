@@ -4,5 +4,10 @@ version = "0.5.3"
 edition = "2021"
 
 [dependencies]
+futures = { workspace = true }
 minty = { path = "../minty" }
+pgtools = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+sqlx = { workspace = true }
+sqlx-helper-macros = { workspace = true }
 thiserror = { workspace = true }
