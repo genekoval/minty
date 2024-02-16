@@ -5,7 +5,9 @@ members = ["crates/*"]
 [workspace.dependencies]
 chrono = "0.4"
 futures = "0.3"
+log = "0.4"
 serde = "1"
+serde_yaml = "0.9"
 sqlx = { version = "0.7", features = [
     "chrono",
     "macros",
@@ -17,8 +19,14 @@ thiserror = "1"
 url = "2"
 uuid = "1"
 
+[workspace.dependencies.axum-unix]
+git = "https://git.aurora.aur/genya/axum-unix.git"
+
 [workspace.dependencies.pgtools]
 git = "https://git.aurora.aur/genya/pgtools.git"
 
 [workspace.dependencies.sqlx-helper-macros]
 git = "https://git.aurora.aur/genya/sqlx-helper-macros.git"
+
+[workspace.dependencies.timber]
+git = "https://git.aurora.aur/genya/timber-rs.git"

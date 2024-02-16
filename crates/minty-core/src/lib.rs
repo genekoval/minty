@@ -1,4 +1,5 @@
-mod conf;
+pub mod conf;
+
 mod db;
 mod error;
 mod model;

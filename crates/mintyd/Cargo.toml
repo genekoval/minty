@@ -2,3 +2,11 @@
 name = "mintyd"
 version = "0.5.3"
 edition = "2021"
+
+[dependencies]
+axum-unix = { workspace = true, features = ["serde"] }
+log = { workspace = true, features = ["serde"] }
+minty-core = { path = "../minty-core" }
+serde = { workspace = true, features = ["derive"] }
+timber = { workspace = true, features = ["serde"] }
+serde_yaml = { workspace = true }
