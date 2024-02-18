@@ -16,6 +16,25 @@ pub struct Config {
     pub log: Log,
 }
 
+impl Config {
+    pub fn read(path: &Path) -> Result<Self, String> {
+        let file = File::open(path).map_err(|err| {
+            format!("failed to open config file '{}': {err}", path.display())
+        })?;
+
+        yaml::from_reader(file).map_err(|err| {
+            format!(
+                "failed to deserialize config file '{}': {err}",
+                path.display()
+            )
+        })?
+    }
+
+    pub fn set_logger(&self) -> Result<(), String> {
+        self.log.set_logger()
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Http {
     pub listen: Endpoint,
@@ -33,6 +52,14 @@ impl Log {
     fn default_level() -> LevelFilter {
         LevelFilter::Info
     }
+
+    fn set_logger(&self) -> Result<(), String> {
+        timber::new()
+            .max_level(self.level)
+            .sink(self.sink.clone())
+            .init()
+            .map_err(|err| format!("failed to initialize logger: {err}"))
+    }
 }
 
 impl Default for Log {
@@ -42,17 +69,4 @@ impl Default for Log {
             sink: Default::default(),
         }
     }
-}
-
-pub fn read(path: &Path) -> Result<Config, String> {
-    let file = File::open(path).map_err(|err| {
-        format!("failed to open config file '{}': {err}", path.display())
-    })?;
-
-    yaml::from_reader(file).map_err(|err| {
-        format!(
-            "failed to deserialize config file '{}': {err}",
-            path.display()
-        )
-    })?
 }

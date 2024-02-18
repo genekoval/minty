@@ -1,7 +1,7 @@
 use crate::{conf::RepoConfig, db, error::Result, About};
 
 use minty::model::*;
-use std::result;
+use std::{path::Path, result};
 
 pub struct Repo {
     about: About,
@@ -40,6 +40,34 @@ impl Repo {
                 },
             )?,
         })
+    }
+
+    pub async fn shutdown(&self) {
+        self.database.close().await;
+    }
+
+    pub async fn dump(&self, path: &Path) -> result::Result<(), String> {
+        self.db_support.dump(path).await
+    }
+
+    pub async fn init(&self) -> result::Result<(), String> {
+        self.db_support.init().await
+    }
+
+    pub async fn migrate(&self) -> result::Result<(), String> {
+        self.db_support.migrate().await
+    }
+
+    pub async fn prune(&self) -> Result<()> {
+        todo!()
+    }
+
+    pub async fn reset(&self) -> result::Result<(), String> {
+        self.db_support.reset().await
+    }
+
+    pub async fn restore(&self, path: &Path) -> result::Result<(), String> {
+        self.db_support.restore(path).await
     }
 
     pub async fn about(&self) -> &About {
@@ -209,18 +237,6 @@ impl Repo {
         &self,
         query: &TagQuery,
     ) -> Result<SearchResult<TagPreview>> {
-        todo!()
-    }
-
-    pub async fn init(&self) -> result::Result<(), String> {
-        self.db_support.init().await
-    }
-
-    pub async fn migrate(&self) -> result::Result<(), String> {
-        self.db_support.migrate().await
-    }
-
-    pub async fn prune(&self) -> Result<()> {
         todo!()
     }
 
