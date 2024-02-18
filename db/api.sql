@@ -12,26 +12,13 @@ CREATE TYPE tag_name_update AS (
 
 --}}}
 
-CREATE FUNCTION read_objects(objects uuid[])
-RETURNS object[] AS $$
-DECLARE result object[];
-BEGIN
-    SELECT INTO result
-        array_agg(
-            ROW(object_id, preview_id)::object
-            ORDER BY ordinality
-        ) AS objects
-    FROM (
-        SELECT unnest as object_id, ordinality
-        FROM unnest(objects) WITH ORDINALITY
-    ) obj
-    JOIN data.object USING (object_id);
-
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql;
-
 --{{{( Views )
+
+CREATE VIEW object AS
+SELECT
+    object_id,
+    preview_id
+FROM data.object;
 
 CREATE VIEW object_preview_error AS
 SELECT
@@ -122,10 +109,28 @@ LEFT JOIN (
     WHERE main = true
 ) AS main USING (tag_id);
 
-CREATE FUNCTION read_related_posts(a_post_id uuid) RETURNS post_preview[] AS $$
+CREATE FUNCTION read_objects(objects uuid[]) RETURNS object[] AS $$
+DECLARE result object[];
 BEGIN
-    RETURN QUERY
-    SELECT preview.*
+    SELECT INTO result
+        array_agg(
+            ROW(object_id, preview_id)::object
+            ORDER BY ordinality
+        ) AS objects
+    FROM (
+        SELECT unnest as object_id, ordinality
+        FROM unnest(objects) WITH ORDINALITY
+    ) obj
+    JOIN data.object USING (object_id);
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION read_related_posts(a_post_id uuid) RETURNS post_preview[] AS $$
+DECLARE result post_preview[];
+BEGIN
+    SELECT INTO result preview.*
     FROM post_preview preview
     JOIN data.related_post post ON post.related = preview.post_id
     WHERE post.post_id = a_post_id
@@ -134,9 +139,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION read_post_tags(a_post_id uuid) RETURNS tag_preview[] AS $$
+DECLARE result tag_preview[];
 BEGIN
-    RETURN QUERY
-    SELECT tag_preview.*
+    SELECT INTO result tag_preview.*
     FROM tag_preview
     JOIN data.post_tag USING (tag_id)
     WHERE post_id = a_post_id
@@ -151,7 +156,7 @@ SELECT
     description,
     read_objects(objects) AS objects,
     read_related_posts(post_id) AS posts,
-    read_tags(post_id) AS tags,
+    read_post_tags(post_id) AS tags,
     coalesce(comment_count, 0)::int4 AS comment_count,
     visibility,
     date_created,
@@ -262,12 +267,6 @@ FROM data.tag
 LEFT JOIN tag_name_view USING (tag_id)
 LEFT JOIN data.post_tag USING (tag_id)
 GROUP BY tag_id, name, aliases;
-
-CREATE VIEW object AS
-SELECT
-    object_id,
-    preview_id
-FROM data.object;
 
 --}}}
 
