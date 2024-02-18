@@ -5,15 +5,17 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
+axum = { workspace = true }
 axum-unix = { workspace = true, features = ["serde"] }
 clap = { workspace = true, features = ["derive", "env"] }
+dmon = { workspace = true }
 log = { workspace = true, features = ["serde"] }
 minty-core = { path = "../minty-core" }
 serde = { workspace = true, features = ["derive"] }
+serde_yaml = { workspace = true }
 shadow-rs = { workspace = true }
 timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
-serde_yaml = { workspace = true }
 
 [build-dependencies]
 shadow-rs = { workspace = true }

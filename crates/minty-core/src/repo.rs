@@ -42,6 +42,14 @@ impl Repo {
         })
     }
 
+    pub fn about(&self) -> &About {
+        &self.about
+    }
+
+    pub async fn prepare(&self) -> result::Result<(), String> {
+        self.db_support.check_schema_version().await
+    }
+
     pub async fn shutdown(&self) {
         self.database.close().await;
     }
@@ -68,10 +76,6 @@ impl Repo {
 
     pub async fn restore(&self, path: &Path) -> result::Result<(), String> {
         self.db_support.restore(path).await
-    }
-
-    pub async fn about(&self) -> &About {
-        &self.about
     }
 
     pub async fn add_comment(

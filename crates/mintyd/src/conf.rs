@@ -3,7 +3,7 @@ use log::LevelFilter;
 use minty_core::conf::DatabaseConfig;
 use serde::{Deserialize, Serialize};
 use serde_yaml as yaml;
-use std::{fs::File, path::Path};
+use std::{fs, path::Path};
 use timber::Sink;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -14,20 +14,22 @@ pub struct Config {
 
     #[serde(default)]
     pub log: Log,
+
+    pub user: Option<String>,
 }
 
 impl Config {
     pub fn read(path: &Path) -> Result<Self, String> {
-        let file = File::open(path).map_err(|err| {
-            format!("failed to open config file '{}': {err}", path.display())
+        let data = fs::read_to_string(path).map_err(|err| {
+            format!("failed to read config file '{}': {err}", path.display())
         })?;
 
-        yaml::from_reader(file).map_err(|err| {
+        yaml::from_str(&data).map_err(|err| {
             format!(
                 "failed to deserialize config file '{}': {err}",
                 path.display()
             )
-        })?
+        })
     }
 
     pub fn set_logger(&self) -> Result<(), String> {

@@ -1,11 +1,14 @@
-use mintyd::{conf::Config, Result};
+use mintyd::{conf::Config, server, Result};
 
 use clap::{Parser, Subcommand};
 use log::error;
 use minty_core::{conf::RepoConfig, Repo, Version};
 use shadow_rs::shadow;
 use std::{path::PathBuf, process::ExitCode, result, sync::Arc};
-use timber::{syslog::LogOption, Sink::Syslog};
+use timber::{
+    syslog::{self, Facility, LogOption},
+    Sink::Syslog,
+};
 
 shadow!(build);
 
@@ -61,6 +64,17 @@ enum Command {
         /// Location of the archive file
         filename: PathBuf,
     },
+
+    /// Start the web server
+    Serve {
+        #[arg(short, long)]
+        /// Run the server as a daemon process
+        daemon: bool,
+
+        #[arg(short, long, requires = "daemon")]
+        /// Path to the pidfile
+        pidfile: Option<PathBuf>,
+    },
 }
 
 fn main() -> ExitCode {
@@ -74,18 +88,39 @@ fn main() -> ExitCode {
         }
     };
 
-    if let Syslog(syslog) = &mut config.log.sink {
+    let mut parent = dmon::Parent::default();
+
+    if let Command::Serve { daemon, pidfile } = &args.command {
+        if *daemon {
+            config.log.sink = Syslog(syslog::Config {
+                identifier: SYSLOG_IDENTIFIER.into(),
+                logopt: LogOption::Pid,
+                facility: Facility::Daemon,
+            });
+
+            parent = dmon::options()
+                .pidfile(pidfile.as_deref())
+                .permissions(config.user.as_deref())
+                .daemonize();
+        }
+    } else if let Syslog(syslog) = &mut config.log.sink {
         syslog.identifier = SYSLOG_IDENTIFIER.into();
         syslog.logopt = LogOption::Pid;
     }
 
-    let run = || {
+    let mut run = || {
         config.set_logger()?;
-        run_async(&args, &config)
+        run_async(&args, &config, &mut parent)
     };
 
     if let Err(err) = run() {
         error!("{err}");
+
+        if parent.is_waiting() {
+            if let Err(write_error) = parent.write(&format!("{err}")) {
+                error!("Failed to write to parent process: {write_error}");
+            }
+        }
 
         return ExitCode::FAILURE;
     }
@@ -116,11 +151,11 @@ async fn repo(config: &Config) -> result::Result<Arc<Repo>, String> {
     Ok(Arc::new(Repo::new(config).await?))
 }
 
-fn run_async(args: &Cli, config: &Config) -> Result {
+fn run_async(args: &Cli, config: &Config, parent: &mut dmon::Parent) -> Result {
     let body = async {
         let repo = repo(config).await?;
 
-        let result = run_command(args, &repo).await;
+        let result = run_command(args, config, parent, &repo).await;
 
         repo.shutdown().await;
         result
@@ -133,7 +168,12 @@ fn run_async(args: &Cli, config: &Config) -> Result {
         .block_on(body)
 }
 
-async fn run_command(args: &Cli, repo: &Arc<Repo>) -> Result {
+async fn run_command(
+    args: &Cli,
+    config: &Config,
+    parent: &mut dmon::Parent,
+    repo: &Arc<Repo>,
+) -> Result {
     match &args.command {
         Command::Dump { filename } => repo.dump(filename).await?,
         Command::Init { overwrite } => {
@@ -145,6 +185,9 @@ async fn run_command(args: &Cli, repo: &Arc<Repo>) -> Result {
         }
         Command::Migrate => repo.migrate().await?,
         Command::Restore { filename } => repo.restore(filename).await?,
+        Command::Serve { .. } => {
+            server::serve(&config.http, repo.clone(), parent).await?
+        }
     };
 
     Ok(())

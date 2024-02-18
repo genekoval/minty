@@ -3,6 +3,7 @@ resolver = "2"
 members = ["crates/*"]
 
 [workspace.dependencies]
+axum = "0.7"
 chrono = "0.4"
 clap = "4"
 futures = "0.3"
@@ -24,6 +25,9 @@ uuid = "1"
 
 [workspace.dependencies.axum-unix]
 git = "https://git.aurora.aur/genya/axum-unix.git"
+
+[workspace.dependencies.dmon]
+git = "https://git.aurora.aur/genya/dmon-rs.git"
 
 [workspace.dependencies.pgtools]
 git = "https://git.aurora.aur/genya/pgtools.git"

@@ -473,6 +473,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dmon"
+version = "0.1.0"
+source = "git+https://git.aurora.aur/genya/dmon-rs.git#c1fe99a13dced0e84dc9c208014917686dc52892"
+dependencies = [
+ "nix",
+]
+
+[[package]]
 name = "dotenvy"
 version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1098,8 +1106,10 @@ dependencies = [
 name = "mintyd"
 version = "0.5.3"
 dependencies = [
+ "axum",
  "axum-unix",
  "clap",
+ "dmon",
  "log",
  "minty-core",
  "serde",
