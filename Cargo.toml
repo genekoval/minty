@@ -4,6 +4,7 @@ members = ["crates/*"]
 
 [workspace.dependencies]
 axum = "0.7"
+axum-extra = "0.9"
 chrono = "0.4"
 clap = "4"
 futures = "0.3"

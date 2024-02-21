@@ -1,3 +1,4 @@
+mod error;
 mod router;
 
 use crate::{conf::Http, Result};

@@ -111,38 +111,53 @@ pub struct PostSort {
 impl PostSort {
     pub const CREATED: Self = Self {
         value: PostSortValue::Created,
-        order: SortOrder::Descending,
+        order: PostSortValue::Created.default_order(),
     };
 
     pub const MODIFIED: Self = Self {
         value: PostSortValue::Modified,
-        order: SortOrder::Descending,
+        order: PostSortValue::Modified.default_order(),
     };
 
     pub const RELEVANCE: Self = Self {
         value: PostSortValue::Relevance,
-        order: SortOrder::Descending,
+        order: PostSortValue::Relevance.default_order(),
     };
 
     pub const TITLE: Self = Self {
         value: PostSortValue::Title,
-        order: SortOrder::Ascending,
+        order: PostSortValue::Title.default_order(),
     };
 }
 
 impl Default for PostSort {
     fn default() -> Self {
-        Self::CREATED
+        let value = PostSortValue::default();
+        let order = value.default_order();
+
+        Self { value, order }
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum PostSortValue {
+    #[default]
     Created,
     Modified,
     Relevance,
     Title,
+}
+
+impl PostSortValue {
+    pub const fn default_order(&self) -> SortOrder {
+        use SortOrder::*;
+
+        match self {
+            Self::Title => Ascending,
+            _ => Descending,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
