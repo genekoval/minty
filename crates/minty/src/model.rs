@@ -10,6 +10,12 @@ pub type DateTime = chrono::DateTime<Local>;
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct About {
+    pub version: Version,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Comment {
     pub id: Uuid,
     pub post_id: Uuid,
@@ -64,6 +70,31 @@ pub struct ObjectPreview {
     pub subtype: String,
 }
 
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct Pagination {
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub from: u32,
+
+    #[cfg_attr(feature = "serde", serde(default = "Pagination::default_size"))]
+    pub size: u32,
+}
+
+impl Pagination {
+    pub fn default_size() -> u32 {
+        10
+    }
+}
+
+impl Default for Pagination {
+    fn default() -> Self {
+        Self {
+            from: 0,
+            size: Self::default_size(),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Post {
@@ -93,11 +124,19 @@ pub struct PostPreview {
 #[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostQuery {
-    pub from: u32,
-    pub size: u32,
-    pub text: Option<String>,
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    pub pagination: Pagination,
+
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub text: String,
+
+    #[cfg_attr(feature = "serde", serde(default))]
     pub tags: Vec<Uuid>,
+
+    #[cfg_attr(feature = "serde", serde(default, alias = "vis"))]
     pub visibility: Visibility,
+
+    #[cfg_attr(feature = "serde", serde(default))]
     pub sort: PostSort,
 }
 
@@ -141,6 +180,7 @@ impl Default for PostSort {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum PostSortValue {
     #[default]
     Created,
@@ -169,8 +209,11 @@ pub struct SearchResult<T> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum SortOrder {
+    #[cfg_attr(feature = "serde", serde(rename = "asc"))]
     Ascending,
+    #[cfg_attr(feature = "serde", serde(rename = "desc"))]
     Descending,
 }
 
@@ -214,14 +257,32 @@ pub struct TagPreview {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct TagQuery {
-    pub from: u32,
-    pub size: u32,
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    pub pagination: Pagination,
+
     pub name: String,
+
+    #[cfg_attr(feature = "serde", serde(default))]
     pub exclude: Vec<Uuid>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct Version {
+    pub number: String,
+    pub branch: String,
+    pub build_time: String,
+    pub build_os: String,
+    pub build_type: String,
+    pub commit_hash: String,
+    pub commit_date: String,
+    pub rust_version: String,
+    pub rust_channel: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum Visibility {
     Draft,
     #[default]

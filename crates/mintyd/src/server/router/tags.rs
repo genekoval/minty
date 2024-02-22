@@ -5,38 +5,11 @@ use axum::{
     routing::get,
     Json,
 };
-use minty::{SearchResult, TagPreview, TagQuery, Uuid};
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-struct Params {
-    from: Option<u32>,
-    size: Option<u32>,
-    name: String,
-    exclude: Option<Vec<Uuid>>,
-}
-
-impl From<Params> for TagQuery {
-    fn from(
-        Params {
-            from,
-            size,
-            name,
-            exclude,
-        }: Params,
-    ) -> Self {
-        Self {
-            from: from.unwrap_or(0),
-            size: size.unwrap_or(10),
-            name,
-            exclude: exclude.unwrap_or_default(),
-        }
-    }
-}
+use minty::{http::query::TagQuery, SearchResult, TagPreview};
 
 async fn get_tags(
     State(AppState { repo }): State<AppState>,
-    Query(query): Query<Params>,
+    Query(query): Query<TagQuery>,
 ) -> Result<Json<SearchResult<TagPreview>>> {
     Ok(Json(repo.get_tags(&query.into()).await?))
 }

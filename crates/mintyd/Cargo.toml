@@ -11,7 +11,7 @@ axum-unix = { workspace = true, features = ["serde"] }
 clap = { workspace = true, features = ["derive", "env"] }
 dmon = { workspace = true }
 log = { workspace = true, features = ["serde"] }
-minty = { path = "../minty", features = ["serde"] }
+minty = { path = "../minty", features = ["http"] }
 minty-core = { path = "../minty-core" }
 serde = { workspace = true, features = ["derive"] }
 serde_yaml = { workspace = true }

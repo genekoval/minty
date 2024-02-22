@@ -7,6 +7,14 @@ use axum::{
 };
 use minty::{CommentData, Uuid};
 
+async fn add_comment(
+    State(AppState { repo }): State<AppState>,
+    Path(post): Path<Uuid>,
+    content: String,
+) -> Result<Json<CommentData>> {
+    Ok(Json(repo.add_comment(post, &content).await?))
+}
+
 async fn get_comments(
     State(AppState { repo }): State<AppState>,
     Path(post): Path<Uuid>,
@@ -15,5 +23,5 @@ async fn get_comments(
 }
 
 pub fn routes() -> Router {
-    Router::new().route("/:post", get(get_comments))
+    Router::new().route("/:post", get(get_comments).post(add_comment))
 }
