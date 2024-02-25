@@ -1,0 +1,42 @@
+mod about;
+
+pub use about::About;
+
+use serde::Serialize;
+use serde_json as json;
+use std::io::{stderr, stdout, IsTerminal, Write};
+
+pub trait HumanReadable {
+    fn human_readable<W: Write>(&self, write: W);
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Output {
+    pub human_readable: bool,
+    pub json: bool,
+}
+
+pub trait Print {
+    fn print(&self, output: Output);
+}
+
+impl<T> Print for T
+where
+    T: Sized + Serialize + HumanReadable,
+{
+    fn print(&self, output: Output) {
+        let print_json = || println!("{}", json::to_string(self).unwrap());
+
+        if output.json {
+            print_json();
+
+            if output.human_readable {
+                self.human_readable(stderr());
+            }
+        } else if output.human_readable || stdout().is_terminal() {
+            self.human_readable(stdout());
+        } else {
+            print_json();
+        }
+    }
+}
