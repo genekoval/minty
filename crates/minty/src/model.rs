@@ -2,6 +2,7 @@ pub use url::Url;
 pub use uuid::Uuid;
 
 use chrono::Local;
+use std::fmt::{self, Display};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -223,6 +224,12 @@ pub struct Source {
     pub id: i64,
     pub url: Url,
     pub icon: Option<Uuid>,
+}
+
+impl Display for Source {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.url.fmt(f)
+    }
 }
 
 #[derive(Clone, Debug)]

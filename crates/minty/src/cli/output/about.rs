@@ -2,7 +2,7 @@ use super::HumanReadable;
 
 use minty::{Url, Version};
 use serde::Serialize;
-use std::io::Write;
+use std::io::{Result, Write};
 
 #[derive(Serialize)]
 pub struct About<'a> {
@@ -13,7 +13,7 @@ pub struct About<'a> {
 }
 
 impl<'a> HumanReadable for About<'a> {
-    fn human_readable<W: Write>(&self, mut write: W) {
+    fn human_readable<W: Write>(&self, mut write: W) -> Result<()> {
         let alias = self.server;
         let url = self.url;
         let Version {
@@ -44,6 +44,5 @@ impl<'a> HumanReadable for About<'a> {
         Version: {rust_version}
         Channel: {rust_channel}"#
         )
-        .unwrap();
     }
 }

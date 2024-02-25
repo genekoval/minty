@@ -1,6 +1,6 @@
 mod cli;
 
-use cli::{Cli, Client, Command, Error, Output};
+use cli::*;
 
 use clap::Parser;
 use std::process::ExitCode;
@@ -52,8 +52,11 @@ fn async_main(args: Cli, client: Client) -> Result {
 
 async fn run_command(args: Cli, client: Client) -> Result {
     match args.command {
-        Command::About => client.about().await?,
-    };
+        Command::About => client.about().await,
+        Command::Tag(args) => tag(args, client).await,
+    }
+}
 
-    Ok(())
+async fn tag(args: TagArgs, client: Client) -> Result {
+    client.get_tag(args.id).await
 }

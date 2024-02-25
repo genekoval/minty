@@ -15,9 +15,16 @@ impl From<minty_core::Error> for Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
+        use minty_core::Error::*;
+
         let error = self.0;
 
-        error!("{error}");
+        match &error {
+            NotFound(err) => {
+                return (StatusCode::NOT_FOUND, err.clone()).into_response()
+            }
+            _ => error!("{error}"),
+        }
 
         (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong")
             .into_response()

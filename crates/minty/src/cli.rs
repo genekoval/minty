@@ -8,7 +8,8 @@ pub use conf::Config;
 pub use error::*;
 pub use output::Output;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
+use minty::Uuid;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -50,6 +51,16 @@ pub struct Cli {
 pub enum Command {
     /// Get detailed information about the server
     About,
+
+    Tag(TagArgs),
+}
+
+#[derive(Debug, Args)]
+#[command(args_conflicts_with_subcommands = true)]
+/// Get information about a tag
+pub struct TagArgs {
+    /// Tag ID
+    pub id: Uuid,
 }
 
 impl Cli {

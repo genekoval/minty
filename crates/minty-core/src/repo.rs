@@ -1,4 +1,9 @@
-use crate::{conf::RepoConfig, db, error::Result, About};
+use crate::{
+    conf::RepoConfig,
+    db,
+    error::{Error, Result},
+    About,
+};
 
 use minty::model::*;
 use std::{path::Path, result};
@@ -234,7 +239,24 @@ impl Repo {
     }
 
     pub async fn get_tag(&self, id: Uuid) -> Result<Tag> {
-        todo!()
+        let mut tag: Tag = self
+            .database
+            .read_tag(id)
+            .await?
+            .ok_or_else(|| {
+                Error::NotFound(format!("tag with ID '{id}' does not exist"))
+            })?
+            .into();
+
+        tag.sources = self
+            .database
+            .read_tag_sources(id)
+            .await?
+            .into_iter()
+            .map(|source| source.into())
+            .collect();
+
+        Ok(tag)
     }
 
     pub async fn get_tags(

@@ -1,4 +1,4 @@
-pub use minty::{DateTime, Uuid};
+pub use minty::{DateTime, Url, Uuid};
 
 use sqlx::{
     encode::IsNull,
@@ -137,9 +137,27 @@ pub struct Site {
 
 #[derive(Clone, Debug, FromRow)]
 pub struct Source {
+    #[sqlx(rename = "source_id")]
     pub id: i64,
     pub resource: String,
-    pub website: Site,
+    pub site: Site,
+}
+
+impl From<Source> for minty::Source {
+    fn from(value: Source) -> Self {
+        let scheme = value.site.scheme;
+        let host = value.site.host;
+        let resource = value.resource;
+
+        let url = format!("{scheme}://{host}{resource}");
+        let url = Url::parse(&url).unwrap();
+
+        Self {
+            id: value.id,
+            url,
+            icon: value.site.icon,
+        }
+    }
 }
 
 #[derive(Clone, Debug, FromRow)]
@@ -155,6 +173,22 @@ pub struct Tag {
     pub post_count: u32,
     #[sqlx(rename = "date_created")]
     pub created: DateTime,
+}
+
+impl From<Tag> for minty::Tag {
+    fn from(value: Tag) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            aliases: value.aliases,
+            description: value.description,
+            avatar: value.avatar,
+            banner: value.banner,
+            sources: vec![],
+            post_count: value.post_count,
+            created: value.created,
+        }
+    }
 }
 
 #[derive(Clone, Debug, FromRow, Type)]

@@ -229,7 +229,7 @@ CREATE VIEW tag_name_view AS
 SELECT
     tag_id,
     name,
-    aliases
+    coalesce(aliases, '{}') AS aliases
 FROM (
     SELECT
         tag_id,

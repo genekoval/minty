@@ -4,7 +4,7 @@ use crate::cli::{
     output::{About, Output, Print},
 };
 
-use minty::{http, Repo};
+use minty::{http, Repo, Uuid};
 
 pub type Result = cli::Result<()>;
 
@@ -23,8 +23,8 @@ impl Client {
         }
     }
 
-    fn print<T: Print>(&self, t: T) {
-        t.print(self.output)
+    fn print<T: Print>(&self, t: T) -> Result {
+        Ok(t.print(self.output)?)
     }
 
     pub async fn about(&self) -> Result {
@@ -35,7 +35,10 @@ impl Client {
             info,
         };
 
-        self.print(about);
-        Ok(())
+        self.print(about)
+    }
+
+    pub async fn get_tag(&self, id: Uuid) -> Result {
+        self.print(self.repo.get_tag(id).await?)
     }
 }
