@@ -1,4 +1,5 @@
 use super::{
+    time::FormatDate,
     view::{heading, links, list, metadata},
     HumanReadable,
 };
@@ -26,7 +27,7 @@ impl HumanReadable for Tag {
             &mut write,
             ("\u{f0423} ID", &self.id),
             ("\u{f0219} Posts", &self.post_count),
-            ("\u{eab0} Created", &self.created)
+            ("\u{eab0} Created", &self.created.long_date())
         );
 
         Ok(())

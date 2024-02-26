@@ -1,5 +1,6 @@
 mod about;
 mod tag;
+mod time;
 mod view;
 
 pub use about::About;
