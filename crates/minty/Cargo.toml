@@ -13,25 +13,6 @@ uuid = { workspace = true }
 mime = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["json"] }
 
-# minty CLI dependencies
-clap = { workspace = true, features = ["derive", "env"], optional = true }
-owo-colors = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
-serde_yaml = { workspace = true, optional = true }
-tokio = { workspace = true, features = ["rt"], optional = true }
-
 [features]
-cli = [
-    "http",
-    "dep:clap",
-    "dep:owo-colors",
-    "dep:serde_json",
-    "dep:serde_yaml",
-    "dep:tokio",
-]
 http = ["serde", "dep:mime", "dep:reqwest"]
 serde = ["dep:serde", "chrono/serde", "url/serde", "uuid/serde"]
-
-[[bin]]
-name = "minty"
-required-features = ["cli"]

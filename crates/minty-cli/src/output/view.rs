@@ -68,7 +68,7 @@ macro_rules! metadata {
                 }
             })*
 
-            $($crate::cli::output::view::metadata_row(
+            $($crate::output::view::metadata_row(
                 $write,
                 $key,
                 $value,

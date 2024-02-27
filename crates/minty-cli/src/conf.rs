@@ -1,4 +1,4 @@
-use crate::cli::{Error, Result};
+use crate::{Error, Result};
 
 use minty::Url;
 use serde::{Deserialize, Serialize};

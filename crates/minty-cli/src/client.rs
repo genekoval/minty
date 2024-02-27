@@ -1,12 +1,11 @@
-use crate::cli::{
-    self,
+use crate::{
     conf::Server,
     output::{About, Output, Print},
 };
 
 use minty::{http, Repo, Uuid};
 
-pub type Result = cli::Result<()>;
+pub type Result = crate::Result<()>;
 
 pub struct Client {
     server: String,

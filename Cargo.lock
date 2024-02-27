@@ -1224,16 +1224,25 @@ name = "minty"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "clap",
  "mime",
- "owo-colors",
  "reqwest",
+ "serde",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "minty-cli"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "minty",
+ "owo-colors",
  "serde",
  "serde_json",
  "serde_yaml",
  "tokio",
- "url",
- "uuid",
 ]
 
 [[package]]

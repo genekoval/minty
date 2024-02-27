@@ -1,11 +1,9 @@
-mod cli;
-
-use cli::*;
+use minty_cli::{Cli, Client, Command, Error, Output, TagArgs};
 
 use clap::Parser;
 use std::process::ExitCode;
 
-type Result = cli::Result<()>;
+type Result = minty_cli::Result<()>;
 
 fn main() -> ExitCode {
     match real_main() {
