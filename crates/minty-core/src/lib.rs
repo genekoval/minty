@@ -4,6 +4,7 @@ mod db;
 mod error;
 mod model;
 mod repo;
+mod search;
 
 pub use error::{Error, Result};
 pub use model::{About, Version};

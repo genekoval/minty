@@ -4,7 +4,7 @@ pub use model::*;
 
 pub use sqlx::postgres::PgPoolOptions as PoolOptions;
 
-use sqlx_helper_macros::database;
+use sqlx_helper_macros::{database, transaction};
 
 database! {
     create_comment(post_id: Uuid, content: &str) -> Comment;
@@ -17,18 +17,6 @@ database! {
 
     create_object_preview_error(object_id: Uuid, message: &str);
 
-    create_post(post_id: Uuid) -> (DateTime,);
-
-    create_post_draft() -> PostSearch;
-
-    create_post_objects(
-        post_id: Uuid,
-        objects: &[Uuid],
-        destination: Option<Uuid>,
-    ) -> (DateTime,);
-
-    create_post_tag(post_id: Uuid, tag_id: Uuid);
-
     create_related_post(post_id: Uuid, related: Uuid);
 
     create_reply(parent_id: Uuid, content: &str) -> Comment;
@@ -37,27 +25,13 @@ database! {
 
     create_source(site_id: i64, resource: &str) -> Source;
 
-    create_tag(name: &str) -> (Uuid,);
-
-    create_tag_alias(tag_id: Uuid, alias: &str) -> TagName;
-
     create_tag_source(tag_id: Uuid, source_id: i64);
 
     delete_comment(id: Uuid, recursive: bool) -> bool;
 
     delete_object_preview_error(object_id: Uuid);
 
-    delete_post(id: Uuid);
-
-    delete_post_objects(post_id: Uuid, objects: &[Uuid]) -> (DateTime,);
-
-    delete_post_tag(post_id: Uuid, tag_id: Uuid);
-
     delete_related_post(post_id: Uuid, related: Uuid);
-
-    delete_tag(id: Uuid);
-
-    delete_tag_alias(tag_id: Uuid, alias: &str) -> TagName;
 
     delete_tag_source(tag_id: Uuid, source_id: i64);
 
@@ -97,16 +71,44 @@ database! {
 
     update_object_preview(object_id: Uuid, preview_id: Option<Uuid>);
 
+    update_tag_description(tag_id: Uuid, description: &str) -> bool;
+
+    stream_objects() -> Stream<Object>;
+}
+
+transaction! {
+    create_post_objects(
+        post_id: Uuid,
+        objects: &[Uuid],
+        destination: Option<Uuid>,
+    ) -> (DateTime,);
+
+    create_post(post_id: Uuid) -> (DateTime,);
+
+    create_post_draft() -> PostSearch;
+
+    create_post_tag(post_id: Uuid, tag_id: Uuid);
+
+    create_tag(name: &str) -> (Uuid,);
+
+    create_tag_alias(tag_id: Uuid, alias: &str) -> TagName;
+
+    delete_post(id: Uuid);
+
+    delete_post_objects(post_id: Uuid, objects: &[Uuid]) -> (DateTime,);
+
+    delete_post_tag(post_id: Uuid, tag_id: Uuid);
+
+    delete_tag(id: Uuid);
+
+    delete_tag_alias(tag_id: Uuid, alias: &str) -> TagName;
+
+    update_tag_name(tag_id: Uuid, name: &str) -> TagNameUpdate;
+
     update_post_description(
         post_id: Uuid,
         description: &str,
     ) -> Option<(DateTime,)>;
 
     update_post_title(post_id: Uuid, title: &str) -> Option<(DateTime,)>;
-
-    update_tag_description(tag_id: Uuid, description: &str) -> bool;
-
-    update_tag_name(tag_id: Uuid, name: &str) -> TagNameUpdate;
-
-    stream_objects() -> Stream<Object>;
 }

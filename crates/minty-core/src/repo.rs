@@ -2,6 +2,7 @@ use crate::{
     conf::RepoConfig,
     db,
     error::{Error, Result},
+    search::Search,
     About,
 };
 
@@ -12,11 +13,16 @@ pub struct Repo {
     about: About,
     database: db::Database,
     db_support: pgtools::Database,
+    search: Search,
 }
 
 impl Repo {
     pub async fn new(
-        RepoConfig { version, database }: RepoConfig<'_>,
+        RepoConfig {
+            version,
+            database,
+            search,
+        }: RepoConfig<'_>,
     ) -> result::Result<Self, String> {
         let mut pool = db::PoolOptions::new();
 
@@ -44,6 +50,7 @@ impl Repo {
                     sql_directory: &database.sql_directory,
                 },
             )?,
+            search: Search::new(search)?,
         })
     }
 
@@ -83,12 +90,17 @@ impl Repo {
         self.db_support.restore(path).await
     }
 
+    pub async fn create_indices(&self) -> Result<()> {
+        self.search.delete_indices().await?;
+        self.search.create_indices().await
+    }
+
     pub async fn add_comment(
         &self,
         post_id: Uuid,
         content: &str,
     ) -> Result<CommentData> {
-        todo!()
+        Ok(self.database.create_comment(post_id, content).await?.into())
     }
 
     pub async fn add_post_objects(
@@ -97,7 +109,16 @@ impl Repo {
         objects: &[Uuid],
         destination: Option<Uuid>,
     ) -> Result<DateTime> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let modified = tx
+            .create_post_objects(post_id, objects, destination)
+            .await?
+            .0;
+        self.search.update_post_modified(post_id, modified).await?;
+
+        tx.commit().await?;
+        Ok(modified)
     }
 
     pub async fn add_post_tag(
@@ -105,7 +126,13 @@ impl Repo {
         post_id: Uuid,
         tag_id: Uuid,
     ) -> Result<()> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        tx.create_post_tag(post_id, tag_id).await?;
+        self.search.add_post_tag(post_id, tag_id).await?;
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn add_related_post(
@@ -113,7 +140,8 @@ impl Repo {
         post_id: Uuid,
         related: Uuid,
     ) -> Result<()> {
-        todo!()
+        self.database.create_related_post(post_id, related).await?;
+        Ok(())
     }
 
     pub async fn add_reply(
@@ -121,11 +149,55 @@ impl Repo {
         parent_id: Uuid,
         content: &str,
     ) -> Result<CommentData> {
-        todo!()
+        Ok(self.database.create_reply(parent_id, content).await?.into())
     }
 
     pub async fn add_tag(&self, name: &str) -> Result<Uuid> {
+        let mut tx = self.database.begin().await?;
+
+        let id = tx.create_tag(name).await?.0;
+        self.search.add_tag_alias(id, name).await?;
+
+        tx.commit().await?;
+        Ok(id)
+    }
+
+    async fn add_site(&self, scheme: &str, host: &str) -> Result<i64> {
         todo!()
+    }
+
+    async fn add_source(&self, url: &Url) -> Result<Source> {
+        const HOST_PREFIX: &str = "www.";
+
+        let Some(host) = url.host_str() else {
+            return Err(Error::InvalidInput(
+                "expected a host in the source URL".into(),
+            ));
+        };
+
+        let host = host.strip_prefix(HOST_PREFIX).unwrap_or(host);
+        let scheme = url.scheme();
+
+        let site = match self.database.read_site(scheme, host).await? {
+            Some((site,)) => site,
+            None => self.add_site(scheme, host).await?,
+        };
+
+        let mut resource = String::from(url.path());
+
+        if let Some(query) = url.query() {
+            if !query.is_empty() {
+                resource = format!("{resource}?{query}");
+            }
+        }
+
+        if let Some(fragment) = url.fragment() {
+            if !fragment.is_empty() {
+                resource = format!("{resource}#{fragment}");
+            }
+        }
+
+        Ok(self.database.create_source(site, &resource).await?.into())
     }
 
     pub async fn add_tag_alias(
@@ -133,7 +205,13 @@ impl Repo {
         tag_id: Uuid,
         alias: &str,
     ) -> Result<TagName> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let names = tx.create_tag_alias(tag_id, alias).await?;
+        self.search.add_tag_alias(tag_id, alias).await?;
+
+        tx.commit().await?;
+        Ok(names.into())
     }
 
     pub async fn add_tag_source(
@@ -141,15 +219,30 @@ impl Repo {
         tag_id: Uuid,
         url: &Url,
     ) -> Result<Source> {
-        todo!()
+        let source = self.add_source(url).await?;
+        self.database.create_tag_source(tag_id, source.id).await?;
+
+        Ok(source)
     }
 
     pub async fn create_post(&self, post_id: Uuid) -> Result<()> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let timestamp = tx.create_post(post_id).await?.0;
+        self.search.publish_post(post_id, timestamp).await?;
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn create_post_draft(&self) -> Result<Uuid> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let post = tx.create_post_draft().await?;
+        self.search.add_post(&post).await?;
+
+        tx.commit().await?;
+        Ok(post.id)
     }
 
     pub async fn delete_comment(
@@ -157,11 +250,17 @@ impl Repo {
         id: Uuid,
         recursive: bool,
     ) -> Result<bool> {
-        todo!()
+        Ok(self.database.delete_comment(id, recursive).await?)
     }
 
     pub async fn delete_post(&self, id: Uuid) -> Result<()> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        tx.delete_post(id).await?;
+        self.search.delete_post(id).await?;
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn delete_post_objects(
@@ -169,7 +268,13 @@ impl Repo {
         post_id: Uuid,
         objects: &[Uuid],
     ) -> Result<DateTime> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let modified = tx.delete_post_objects(post_id, objects).await?.0;
+        self.search.update_post_modified(post_id, modified).await?;
+
+        tx.commit().await?;
+        Ok(modified)
     }
 
     pub async fn delete_post_tag(
@@ -177,7 +282,13 @@ impl Repo {
         post_id: Uuid,
         tag_id: Uuid,
     ) -> Result<()> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        tx.delete_post_tag(post_id, tag_id).await?;
+        self.search.remove_post_tag(post_id, tag_id).await?;
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn delete_related_post(
@@ -185,11 +296,18 @@ impl Repo {
         post_id: Uuid,
         related: Uuid,
     ) -> Result<()> {
-        todo!()
+        self.database.delete_related_post(post_id, related).await?;
+        Ok(())
     }
 
     pub async fn delete_tag(&self, id: Uuid) -> Result<()> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        tx.delete_tag(id).await?;
+        self.search.delete_tag(id).await?;
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn delete_tag_alias(
@@ -197,7 +315,13 @@ impl Repo {
         tag_id: Uuid,
         alias: &str,
     ) -> Result<TagName> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let names = tx.delete_tag_alias(tag_id, alias).await?;
+        self.search.delete_tag_alias(tag_id, alias).await?;
+
+        tx.commit().await?;
+        Ok(names.into())
     }
 
     pub async fn delete_tag_source(
@@ -205,11 +329,21 @@ impl Repo {
         tag_id: Uuid,
         source_id: i64,
     ) -> Result<()> {
-        todo!()
+        self.database.delete_tag_source(tag_id, source_id).await?;
+        Ok(())
     }
 
     pub async fn get_comment(&self, id: Uuid) -> Result<Comment> {
-        todo!()
+        Ok(self
+            .database
+            .read_comment(id)
+            .await?
+            .ok_or_else(|| {
+                Error::NotFound(format!(
+                    "comment with ID '{id}' does not exist"
+                ))
+            })?
+            .into())
     }
 
     pub async fn get_comments(
@@ -228,13 +362,42 @@ impl Repo {
     }
 
     pub async fn get_post(&self, id: Uuid) -> Result<Post> {
-        todo!()
+        let post = self.database.read_post(id).await?.ok_or_else(|| {
+            Error::NotFound(format!("post with ID '{id}' does not exist"))
+        })?;
+
+        Ok(Post {
+            id: post.id,
+            title: post.title,
+            description: post.description,
+            visibility: post.visibility.into(),
+            created: post.created,
+            modified: post.modified,
+            objects: todo!(),
+            posts: self.build_posts(post.posts).await?,
+            tags: post.tags.into_iter().map(|tag| tag.into()).collect(),
+            comment_count: post.comment_count,
+        })
     }
 
     pub async fn get_posts(
         &self,
         query: &PostQuery,
     ) -> Result<SearchResult<PostPreview>> {
+        let results = self.search.find_posts(query).await?;
+        let posts = self.database.read_posts(&results.hits).await?;
+        let posts = self.build_posts(posts).await?;
+
+        Ok(SearchResult {
+            total: results.total,
+            hits: posts,
+        })
+    }
+
+    async fn build_posts(
+        &self,
+        posts: Vec<db::PostPreview>,
+    ) -> Result<Vec<PostPreview>> {
         todo!()
     }
 
@@ -263,7 +426,19 @@ impl Repo {
         &self,
         query: &TagQuery,
     ) -> Result<SearchResult<TagPreview>> {
-        todo!()
+        let results = self.search.find_tags(query).await?;
+        let tags = self
+            .database
+            .read_tag_previews(&results.hits)
+            .await?
+            .into_iter()
+            .map(|tag| tag.into())
+            .collect();
+
+        Ok(SearchResult {
+            total: results.total,
+            hits: tags,
+        })
     }
 
     pub async fn regenerate_preview(
@@ -278,7 +453,8 @@ impl Repo {
         comment_id: Uuid,
         content: &str,
     ) -> Result<String> {
-        todo!()
+        self.database.update_comment(comment_id, content).await?;
+        Ok(content.into())
     }
 
     pub async fn set_post_description(
@@ -286,7 +462,27 @@ impl Repo {
         post_id: Uuid,
         description: &str,
     ) -> Result<Modification<String>> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let modified = tx
+            .update_post_description(post_id, description)
+            .await?
+            .ok_or_else(|| {
+                Error::NotFound(format!(
+                    "post with ID '{post_id}' does not exist"
+                ))
+            })?
+            .0;
+
+        self.search
+            .update_post_description(post_id, description, modified)
+            .await?;
+
+        tx.commit().await?;
+        Ok(Modification {
+            date_modified: modified,
+            new_value: description.into(),
+        })
     }
 
     pub async fn set_post_title(
@@ -294,7 +490,27 @@ impl Repo {
         post_id: Uuid,
         title: &str,
     ) -> Result<Modification<String>> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let modified = tx
+            .update_post_title(post_id, title)
+            .await?
+            .ok_or_else(|| {
+                Error::NotFound(format!(
+                    "post with ID '{post_id}' does not exist"
+                ))
+            })?
+            .0;
+
+        self.search
+            .update_post_title(post_id, title, modified)
+            .await?;
+
+        tx.commit().await?;
+        Ok(Modification {
+            date_modified: modified,
+            new_value: title.into(),
+        })
     }
 
     pub async fn set_tag_description(
@@ -302,7 +518,18 @@ impl Repo {
         tag_id: Uuid,
         description: &str,
     ) -> Result<String> {
-        todo!()
+        let found = self
+            .database
+            .update_tag_description(tag_id, description)
+            .await?;
+
+        if found {
+            Ok(description.into())
+        } else {
+            Err(Error::NotFound(format!(
+                "tag with ID '{tag_id}' does not exist"
+            )))
+        }
     }
 
     pub async fn set_tag_name(
@@ -310,6 +537,17 @@ impl Repo {
         tag_id: Uuid,
         new_name: &str,
     ) -> Result<TagName> {
-        todo!()
+        let mut tx = self.database.begin().await?;
+
+        let update = tx.update_tag_name(tag_id, new_name).await?;
+
+        if let Some(old_name) = update.old_name {
+            self.search
+                .update_tag_name(tag_id, &old_name, new_name)
+                .await?;
+        }
+
+        tx.commit().await?;
+        Ok(update.names.into())
     }
 }

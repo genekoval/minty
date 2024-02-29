@@ -1,5 +1,6 @@
 pub use minty::{DateTime, Url, Uuid};
 
+use serde::Serialize;
 use sqlx::{
     encode::IsNull,
     error::BoxDynError,
@@ -31,6 +32,17 @@ impl From<Comment> for minty::Comment {
             parent_id: value.parent_id,
             level: value.level,
             content: value.content,
+            created: value.created,
+        }
+    }
+}
+
+impl From<Comment> for minty::CommentData {
+    fn from(value: Comment) -> Self {
+        Self {
+            id: value.id,
+            content: value.content,
+            level: value.level.try_into().unwrap(),
             created: value.created,
         }
     }
@@ -92,7 +104,10 @@ pub struct Post {
     pub title: String,
     pub description: String,
     pub objects: Vec<Object>,
-    pub comment_count: i32,
+    pub posts: Vec<PostPreview>,
+    pub tags: Vec<TagPreview>,
+    #[sqlx(try_from = "i32")]
+    pub comment_count: u32,
     pub visibility: Visibility,
     #[sqlx(rename = "date_created")]
     pub created: DateTime,
@@ -106,13 +121,65 @@ pub struct PostPreview {
     pub id: Uuid,
     pub title: String,
     pub preview: Option<Object>,
-    pub comment_count: i32,
-    pub object_count: i32,
+    #[sqlx(try_from = "i32")]
+    pub comment_count: u32,
+    #[sqlx(try_from = "i32")]
+    pub object_count: u32,
     #[sqlx(rename = "date_created")]
     pub created: DateTime,
 }
 
-#[derive(Clone, Debug, FromRow)]
+impl<'r> Decode<'r, Postgres> for PostPreview {
+    fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
+        let mut decoder = PgRecordDecoder::new(value)?;
+
+        let id: Uuid = decoder.try_decode()?;
+        let title: String = decoder.try_decode()?;
+        let preview: Option<Object> = decoder.try_decode()?;
+        let comment_count: i32 = decoder.try_decode()?;
+        let object_count: i32 = decoder.try_decode()?;
+        let created: DateTime = decoder.try_decode()?;
+
+        Ok(Self {
+            id,
+            title,
+            preview,
+            comment_count: comment_count.try_into()?,
+            object_count: object_count.try_into()?,
+            created,
+        })
+    }
+}
+
+impl Encode<'_, Postgres> for PostPreview {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+        let mut encoder = PgRecordEncoder::new(buf);
+
+        encoder.encode(self.id);
+        encoder.encode(&self.title);
+        encoder.encode(&self.preview);
+        encoder.encode(self.comment_count as i32);
+        encoder.encode(self.object_count as i32);
+        encoder.encode(self.created);
+
+        encoder.finish();
+        IsNull::No
+    }
+}
+
+impl Type<Postgres> for PostPreview {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("post_preview")
+    }
+}
+
+impl PgHasArrayType for PostPreview {
+    fn array_type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_post_preview")
+    }
+}
+
+#[derive(Clone, Debug, FromRow, Serialize)]
 pub struct PostSearch {
     #[sqlx(rename = "post_id")]
     pub id: Uuid,
@@ -198,6 +265,15 @@ pub struct TagName {
     pub aliases: Vec<String>,
 }
 
+impl From<TagName> for minty::TagName {
+    fn from(value: TagName) -> Self {
+        Self {
+            name: value.name,
+            aliases: value.aliases,
+        }
+    }
+}
+
 #[derive(Clone, Debug, FromRow)]
 pub struct TagNameUpdate {
     pub names: TagName,
@@ -212,6 +288,53 @@ pub struct TagPreview {
     pub avatar: Option<Uuid>,
 }
 
+impl<'r> Decode<'r, Postgres> for TagPreview {
+    fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
+        let mut decoder = PgRecordDecoder::new(value)?;
+
+        let id: Uuid = decoder.try_decode()?;
+        let name: String = decoder.try_decode()?;
+        let avatar: Option<Uuid> = decoder.try_decode()?;
+
+        Ok(Self { id, name, avatar })
+    }
+}
+
+impl Encode<'_, Postgres> for TagPreview {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+        let mut encoder = PgRecordEncoder::new(buf);
+
+        encoder.encode(self.id);
+        encoder.encode(&self.name);
+        encoder.encode(self.avatar);
+
+        encoder.finish();
+        IsNull::No
+    }
+}
+
+impl Type<Postgres> for TagPreview {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("tag_preview")
+    }
+}
+
+impl PgHasArrayType for TagPreview {
+    fn array_type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_tag_preview")
+    }
+}
+
+impl From<TagPreview> for minty::TagPreview {
+    fn from(value: TagPreview) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            avatar: value.avatar,
+        }
+    }
+}
+
 #[derive(Clone, Debug, FromRow)]
 pub struct TagSearch {
     #[sqlx(rename = "tag_id")]
@@ -219,7 +342,8 @@ pub struct TagSearch {
     pub names: Vec<String>,
 }
 
-#[derive(Clone, Copy, Debug, Type)]
+#[derive(Clone, Copy, Debug, Serialize, Type)]
+#[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "visibility", rename_all = "lowercase")]
 pub enum Visibility {
     Draft,

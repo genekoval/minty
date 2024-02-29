@@ -146,6 +146,7 @@ async fn repo(config: &Config) -> result::Result<Arc<Repo>, String> {
     let config = RepoConfig {
         version: version(),
         database: &config.database,
+        search: &config.search,
     };
 
     Ok(Arc::new(Repo::new(config).await?))

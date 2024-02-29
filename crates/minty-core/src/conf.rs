@@ -4,6 +4,7 @@ pub use pgtools::{
 
 use crate::Version;
 
+use minty::Url;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -25,8 +26,16 @@ pub struct DatabaseConfig {
     pub sql_directory: PathBuf,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SearchConfig {
+    pub node: Url,
+    pub auth: String,
+    pub namespace: String,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct RepoConfig<'a> {
     pub version: Version,
     pub database: &'a DatabaseConfig,
+    pub search: &'a SearchConfig,
 }

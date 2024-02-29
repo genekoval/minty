@@ -20,6 +20,9 @@ impl IntoResponse for Error {
         let error = self.0;
 
         match &error {
+            InvalidInput(err) => {
+                return (StatusCode::BAD_REQUEST, err.clone()).into_response()
+            }
             NotFound(err) => {
                 return (StatusCode::NOT_FOUND, err.clone()).into_response()
             }
