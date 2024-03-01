@@ -380,7 +380,13 @@ impl Repo {
         &self,
         post_id: Uuid,
     ) -> Result<Vec<CommentData>> {
-        todo!()
+        Ok(self
+            .database
+            .read_comments(post_id)
+            .await?
+            .into_iter()
+            .map(|comment| comment.into())
+            .collect())
     }
 
     pub async fn get_object(&self, id: Uuid) -> Result<Object> {
