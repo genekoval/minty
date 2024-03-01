@@ -37,8 +37,6 @@ database! {
 
     prune();
 
-    prune_objects() -> Vec<(Uuid,)>;
-
     read_comment(id: Uuid) -> Option<Comment>;
 
     read_comments(post_id: Uuid) -> Vec<Comment>;
@@ -102,6 +100,8 @@ transaction! {
     delete_tag(id: Uuid);
 
     delete_tag_alias(tag_id: Uuid, alias: &str) -> TagName;
+
+    prune_objects() -> Vec<(Uuid,)>;
 
     update_tag_name(tag_id: Uuid, name: &str) -> TagNameUpdate;
 

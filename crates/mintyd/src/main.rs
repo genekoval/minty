@@ -145,6 +145,7 @@ fn version() -> Version {
 async fn repo(config: &Config) -> result::Result<Arc<Repo>, String> {
     let config = RepoConfig {
         version: version(),
+        objects: &config.objects,
         database: &config.database,
         search: &config.search,
     };

@@ -2,15 +2,18 @@ use crate::{
     conf::RepoConfig,
     db,
     error::{Error, Result},
+    obj::Bucket,
     search::Search,
     About,
 };
 
+use log::info;
 use minty::model::*;
 use std::{path::Path, result};
 
 pub struct Repo {
     about: About,
+    bucket: Bucket,
     database: db::Database,
     db_support: pgtools::Database,
     search: Search,
@@ -20,6 +23,7 @@ impl Repo {
     pub async fn new(
         RepoConfig {
             version,
+            objects,
             database,
             search,
         }: RepoConfig<'_>,
@@ -39,6 +43,7 @@ impl Repo {
 
         Ok(Self {
             about: About { version },
+            bucket: Bucket::new(objects).await?,
             database: db::Database::new(pool),
             db_support: pgtools::Database::new(
                 version.number,
@@ -79,7 +84,32 @@ impl Repo {
     }
 
     pub async fn prune(&self) -> Result<()> {
-        todo!()
+        self.database.prune().await?;
+
+        let mut tx = self.database.begin().await?;
+
+        let objects: Vec<Uuid> = tx
+            .prune_objects()
+            .await?
+            .into_iter()
+            .map(|row| row.0)
+            .collect();
+
+        let result = self.bucket.remove_objects(&objects).await?;
+
+        tx.commit().await?;
+
+        info!(
+            "Removed {} {} freeing {}",
+            result.objects_removed,
+            match result.objects_removed {
+                1 => "object",
+                _ => "objects",
+            },
+            bytesize::to_string(result.space_freed, true),
+        );
+
+        Ok(())
     }
 
     pub async fn reset(&self) -> result::Result<(), String> {
@@ -354,11 +384,33 @@ impl Repo {
     }
 
     pub async fn get_object(&self, id: Uuid) -> Result<Object> {
-        todo!()
+        let object = self.database.read_object(id).await?.ok_or_else(|| {
+            Error::NotFound(format!("object with ID '{id}' does not exist"))
+        })?;
+
+        let posts = self.database.read_object_posts(id).await?;
+        let metadata = self.bucket.get_object(id).await?;
+
+        Ok(Object {
+            id,
+            hash: metadata.hash,
+            size: metadata.size,
+            r#type: metadata.r#type,
+            subtype: metadata.subtype,
+            added: metadata.added,
+            preview_id: object.preview_id,
+            posts: self.build_posts(posts).await?,
+        })
     }
 
-    pub async fn get_object_preview_errors(&self) -> Vec<ObjectError> {
-        todo!()
+    pub async fn get_object_preview_errors(&self) -> Result<Vec<ObjectError>> {
+        Ok(self
+            .database
+            .read_object_preview_errors()
+            .await?
+            .into_iter()
+            .map(|e| e.into())
+            .collect())
     }
 
     pub async fn get_post(&self, id: Uuid) -> Result<Post> {
@@ -373,7 +425,7 @@ impl Repo {
             visibility: post.visibility.into(),
             created: post.created,
             modified: post.modified,
-            objects: todo!(),
+            objects: self.bucket.get_objects(post.objects).await?,
             posts: self.build_posts(post.posts).await?,
             tags: post.tags.into_iter().map(|tag| tag.into()).collect(),
             comment_count: post.comment_count,
@@ -398,7 +450,30 @@ impl Repo {
         &self,
         posts: Vec<db::PostPreview>,
     ) -> Result<Vec<PostPreview>> {
-        todo!()
+        let objects = posts
+            .iter()
+            .filter_map(|post| post.preview.clone())
+            .collect();
+
+        let mut objects = self.bucket.get_objects(objects).await?.into_iter();
+
+        let posts = posts
+            .into_iter()
+            .map(|post| PostPreview {
+                id: post.id,
+                title: post.title,
+                preview: if post.preview.is_some() {
+                    objects.next()
+                } else {
+                    None
+                },
+                comment_count: post.comment_count,
+                object_count: post.object_count,
+                created: post.created,
+            })
+            .collect();
+
+        Ok(posts)
     }
 
     pub async fn get_tag(&self, id: Uuid) -> Result<Tag> {

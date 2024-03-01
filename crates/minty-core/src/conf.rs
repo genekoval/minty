@@ -27,6 +27,12 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BucketConfig {
+    pub url: Url,
+    pub bucket: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SearchConfig {
     pub node: Url,
     pub auth: String,
@@ -36,6 +42,7 @@ pub struct SearchConfig {
 #[derive(Clone, Copy, Debug)]
 pub struct RepoConfig<'a> {
     pub version: Version,
+    pub objects: &'a BucketConfig,
     pub database: &'a DatabaseConfig,
     pub search: &'a SearchConfig,
 }

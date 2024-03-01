@@ -4,8 +4,11 @@ version = "0.5.3"
 edition = "2021"
 
 [dependencies]
+bytesize = { workspace = true }
 elasticsearch = { workspace = true }
+fstore = { workspace = true, features = ["http"] }
 futures = { workspace = true }
+log = { workspace = true }
 minty = { path = "../minty" }
 pgtools = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

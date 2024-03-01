@@ -3,6 +3,7 @@ pub mod conf;
 mod db;
 mod error;
 mod model;
+mod obj;
 mod repo;
 mod search;
 

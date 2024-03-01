@@ -12,6 +12,9 @@ pub enum Error {
     #[error("Elasticsearch client error: {0}")]
     Elasticsearch(#[from] elasticsearch::Error),
 
+    #[error("fstore error: {0}")]
+    Fstore(#[from] fstore::Error),
+
     #[error("{0}")]
     Internal(String),
 }

@@ -97,6 +97,15 @@ pub struct ObjectError {
     pub message: String,
 }
 
+impl From<ObjectError> for minty::ObjectError {
+    fn from(value: ObjectError) -> Self {
+        Self {
+            id: value.id,
+            message: value.message,
+        }
+    }
+}
+
 #[derive(Clone, Debug, FromRow)]
 pub struct Post {
     #[sqlx(rename = "post_id")]
