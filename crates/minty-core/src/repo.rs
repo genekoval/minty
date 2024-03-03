@@ -8,9 +8,11 @@ use crate::{
     About,
 };
 
+use bytes::Bytes;
+use futures::TryStream;
 use log::info;
 use minty::model::*;
-use std::{path::Path, result};
+use std::{error, path::Path, result};
 
 pub struct Repo {
     about: About,
@@ -137,6 +139,27 @@ impl Repo {
         content: &str,
     ) -> Result<CommentData> {
         Ok(self.database.create_comment(post_id, content).await?.into())
+    }
+
+    pub async fn add_object<S>(&self, stream: S) -> Result<ObjectPreview>
+    where
+        S: TryStream + Send + 'static,
+        S::Error: Into<Box<dyn error::Error + Send + Sync>>,
+        Bytes: From<S::Ok>,
+    {
+        let object = self.bucket.add_object_stream(stream).await?;
+        let preview = self.generate_preview(&object).await;
+
+        self.database
+            .create_object(object.id, preview, None)
+            .await?;
+
+        Ok(ObjectPreview {
+            id: object.id,
+            preview_id: preview,
+            r#type: object.r#type,
+            subtype: object.subtype,
+        })
     }
 
     pub async fn add_post_objects(
@@ -639,5 +662,9 @@ impl Repo {
 
         tx.commit().await?;
         Ok(update.names.into())
+    }
+
+    async fn generate_preview(&self, object: &fstore::Object) -> Option<Uuid> {
+        todo!()
     }
 }

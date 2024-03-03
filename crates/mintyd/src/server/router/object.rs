@@ -1,7 +1,7 @@
 use super::{AppState, Result, Router};
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Request, State},
     routing::{get, post},
     Json,
 };
@@ -9,8 +9,12 @@ use minty::{Object, ObjectPreview, Uuid};
 
 async fn add_object(
     State(AppState { repo }): State<AppState>,
+    request: Request,
 ) -> Result<Json<ObjectPreview>> {
-    todo!()
+    let stream = request.into_body().into_data_stream();
+    let object = repo.add_object(stream).await?;
+
+    Ok(Json(object))
 }
 
 async fn get_object(
