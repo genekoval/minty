@@ -1,7 +1,8 @@
 use crate::{
     conf::RepoConfig,
-    db,
+    db::{self, Database},
     error::{Error, Result},
+    ico::Favicons,
     obj::Bucket,
     search::Search,
     About,
@@ -14,8 +15,9 @@ use std::{path::Path, result};
 pub struct Repo {
     about: About,
     bucket: Bucket,
-    database: db::Database,
+    database: Database,
     db_support: pgtools::Database,
+    favicons: Favicons,
     search: Search,
 }
 
@@ -41,10 +43,13 @@ impl Repo {
                 format!("failed to establish database connection: {err}")
             })?;
 
+        let bucket = Bucket::new(objects).await?;
+        let favicons = Favicons::new(bucket.clone());
+
         Ok(Self {
             about: About { version },
-            bucket: Bucket::new(objects).await?,
-            database: db::Database::new(pool),
+            bucket,
+            database: Database::new(pool),
             db_support: pgtools::Database::new(
                 version.number,
                 pgtools::Options {
@@ -55,6 +60,7 @@ impl Repo {
                     sql_directory: &database.sql_directory,
                 },
             )?,
+            favicons,
             search: Search::new(search)?,
         })
     }
@@ -193,7 +199,10 @@ impl Repo {
     }
 
     async fn add_site(&self, scheme: &str, host: &str) -> Result<i64> {
-        todo!()
+        let icon = self.favicons.download_icon(scheme, host).await;
+        let site = self.database.create_site(scheme, host, icon).await?;
+
+        Ok(site.site_id)
     }
 
     async fn add_source(&self, url: &Url) -> Result<Source> {

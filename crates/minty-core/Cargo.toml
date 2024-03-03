@@ -4,13 +4,17 @@ version = "0.5.3"
 edition = "2021"
 
 [dependencies]
+bytes = { workspace = true }
 bytesize = { workspace = true }
 elasticsearch = { workspace = true }
 fstore = { workspace = true, features = ["http"] }
 futures = { workspace = true }
+futures-core = { workspace = true }
 log = { workspace = true }
 minty = { path = "../minty" }
 pgtools = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
+scraper = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sqlx = { workspace = true }

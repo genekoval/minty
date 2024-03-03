@@ -2,6 +2,7 @@ pub mod conf;
 
 mod db;
 mod error;
+mod ico;
 mod model;
 mod obj;
 mod repo;
