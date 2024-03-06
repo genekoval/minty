@@ -22,7 +22,7 @@ impl crate::Repo for Repo {
     }
 
     async fn about(&self) -> Result<About> {
-        self.client.get("/").send().await
+        self.client.get("/").send().await?.deserialize().await
     }
 
     async fn add_comment(
@@ -34,6 +34,8 @@ impl crate::Repo for Repo {
             .post(format!("comments/{post_id}"))
             .text(content)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
@@ -41,7 +43,9 @@ impl crate::Repo for Repo {
         self.client
             .put(format!("post/{post_id}/tag/{tag_id}"))
             .send()
-            .await
+            .await?;
+
+        Ok(())
     }
 
     async fn add_related_post(
@@ -52,7 +56,9 @@ impl crate::Repo for Repo {
         self.client
             .put(format!("post/{post_id}/related/{related}"))
             .send()
-            .await
+            .await?;
+
+        Ok(())
     }
 
     async fn add_reply(
@@ -64,11 +70,18 @@ impl crate::Repo for Repo {
             .post(format!("comment/{parent_id}"))
             .text(content)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
     async fn add_tag(&self, name: &str) -> Result<Uuid> {
-        self.client.post(format!("tag/{name}")).send().await
+        self.client
+            .post(format!("tag/{name}"))
+            .send()
+            .await?
+            .uuid()
+            .await
     }
 
     async fn add_tag_alias(
@@ -79,6 +92,8 @@ impl crate::Repo for Repo {
         self.client
             .put(format!("tag/{tag_id}/name/{alias}"))
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
@@ -87,6 +102,8 @@ impl crate::Repo for Repo {
             .post(format!("tag/{tag_id}/source"))
             .serialize(url)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
@@ -99,15 +116,18 @@ impl crate::Repo for Repo {
             .post(format!("post/{post_id}/objects"))
             .serialize(objects)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
     async fn create_post(&self, post_id: Uuid) -> Result<()> {
-        self.client.put(format!("post/{post_id}")).send().await
+        self.client.put(format!("post/{post_id}")).send().await?;
+        Ok(())
     }
 
     async fn create_post_draft(&self) -> Result<Uuid> {
-        self.client.post("post").send().await
+        self.client.post("post").send().await?.uuid().await
     }
 
     async fn delete_comment(&self, id: Uuid, recursive: bool) -> Result<()> {
@@ -115,11 +135,14 @@ impl crate::Repo for Repo {
             .delete(format!("comment/{id}"))
             .query(&[("recursive", recursive)])
             .send()
-            .await
+            .await?;
+
+        Ok(())
     }
 
     async fn delete_post(&self, id: Uuid) -> Result<()> {
-        self.client.delete(format!("post/{id}")).send().await
+        self.client.delete(format!("post/{id}")).send().await?;
+        Ok(())
     }
 
     async fn delete_post_objects(
@@ -131,6 +154,8 @@ impl crate::Repo for Repo {
             .delete(format!("post/{post_id}/objects"))
             .serialize(objects)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
@@ -138,7 +163,9 @@ impl crate::Repo for Repo {
         self.client
             .delete(format!("post/{post_id}/tag/{tag_id}"))
             .send()
-            .await
+            .await?;
+
+        Ok(())
     }
 
     async fn delete_related_post(
@@ -149,11 +176,14 @@ impl crate::Repo for Repo {
         self.client
             .delete(format!("post/{post_id}/related/{related}"))
             .send()
-            .await
+            .await?;
+
+        Ok(())
     }
 
     async fn delete_tag(&self, id: Uuid) -> Result<()> {
-        self.client.delete(format!("tag/{id}")).send().await
+        self.client.delete(format!("tag/{id}")).send().await?;
+        Ok(())
     }
 
     async fn delete_tag_alias(
@@ -164,6 +194,8 @@ impl crate::Repo for Repo {
         self.client
             .delete(format!("tag/{tag_id}/name/{alias}"))
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
@@ -175,23 +207,59 @@ impl crate::Repo for Repo {
         self.client
             .delete(format!("tag/{tag_id}/source/{source_id}"))
             .send()
-            .await
+            .await?;
+
+        Ok(())
+    }
+
+    async fn delete_tag_sources(
+        &self,
+        tag_id: Uuid,
+        sources: &[String],
+    ) -> Result<()> {
+        self.client
+            .delete(format!("tag/{tag_id}/source"))
+            .serialize(sources)
+            .send()
+            .await?;
+
+        Ok(())
     }
 
     async fn get_comment(&self, id: Uuid) -> Result<Comment> {
-        self.client.get(format!("comment/{id}")).send().await
+        self.client
+            .get(format!("comment/{id}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
     }
 
     async fn get_comments(&self, post_id: Uuid) -> Result<Vec<CommentData>> {
-        self.client.get(format!("comments/{post_id}")).send().await
+        self.client
+            .get(format!("comments/{post_id}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
     }
 
     async fn get_object(&self, id: Uuid) -> Result<Object> {
-        self.client.get(format!("object/{id}")).send().await
+        self.client
+            .get(format!("object/{id}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
     }
 
     async fn get_post(&self, id: Uuid) -> Result<Post> {
-        self.client.get(format!("post/{id}")).send().await
+        self.client
+            .get(format!("post/{id}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
     }
 
     async fn get_posts(
@@ -199,11 +267,22 @@ impl crate::Repo for Repo {
         query: &PostQuery,
     ) -> Result<SearchResult<PostPreview>> {
         let query: query::PostQuery = query.clone().into();
-        self.client.get("posts").query(&query).send().await
+        self.client
+            .get("posts")
+            .query(&query)
+            .send()
+            .await?
+            .deserialize()
+            .await
     }
 
     async fn get_tag(&self, id: Uuid) -> Result<Tag> {
-        self.client.get(format!("tag/{id}")).send().await
+        self.client
+            .get(format!("tag/{id}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
     }
 
     async fn get_tags(
@@ -211,7 +290,13 @@ impl crate::Repo for Repo {
         query: &TagQuery,
     ) -> Result<SearchResult<TagPreview>> {
         let query: query::TagQuery = query.clone().into();
-        self.client.get("tags").query(&query).send().await
+        self.client
+            .get("tags")
+            .query(&query)
+            .send()
+            .await?
+            .deserialize()
+            .await
     }
 
     async fn insert_post_objects(
@@ -224,6 +309,8 @@ impl crate::Repo for Repo {
             .post(format!("post/{post_id}/objects/{destination}"))
             .serialize(objects)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
@@ -236,6 +323,8 @@ impl crate::Repo for Repo {
             .put(format!("comment/{comment_id}"))
             .text(content)
             .send()
+            .await?
+            .text()
             .await
     }
 
@@ -248,6 +337,8 @@ impl crate::Repo for Repo {
             .put(format!("post/{post_id}/description"))
             .text(description)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
@@ -260,6 +351,8 @@ impl crate::Repo for Repo {
             .put(format!("post/{post_id}/title"))
             .text(title)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 
@@ -272,6 +365,8 @@ impl crate::Repo for Repo {
             .put(format!("tag/{tag_id}/description"))
             .text(description)
             .send()
+            .await?
+            .text()
             .await
     }
 
@@ -280,10 +375,14 @@ impl crate::Repo for Repo {
         tag_id: Uuid,
         new_name: &str,
     ) -> Result<TagName> {
+        let query = query::SetTagName::main(true);
+
         self.client
             .put(format!("tag/{tag_id}/name/{new_name}"))
-            .query(&[("main", true)])
+            .query(&query)
             .send()
+            .await?
+            .deserialize()
             .await
     }
 }

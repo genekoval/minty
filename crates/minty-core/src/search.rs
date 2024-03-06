@@ -7,7 +7,6 @@ use response::ResponseExt;
 use crate::{conf::SearchConfig, db::PostSearch, Result};
 
 use elasticsearch::{
-    auth::Credentials,
     http::transport::{SingleNodeConnectionPool, TransportBuilder},
     Elasticsearch,
 };
@@ -25,7 +24,7 @@ impl Search {
         let pool = SingleNodeConnectionPool::new(config.node.clone());
 
         let transport = TransportBuilder::new(pool)
-            .auth(Credentials::Bearer(config.auth.clone()))
+            .auth(config.auth.clone().into())
             .build()
             .map_err(|err| {
                 format!(
@@ -85,8 +84,8 @@ impl Search {
                         "lang": "painless",
                         "params": { "alias": alias },
                         "source": script,
-                        "upsert": { "names": [alias] }
-                    }
+                    },
+                    "upsert": { "names": [alias] }
                 }),
             )
             .await

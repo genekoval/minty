@@ -395,6 +395,52 @@ impl Repo {
         Ok(())
     }
 
+    pub async fn delete_tag_sources<S>(
+        &self,
+        tag_id: Uuid,
+        sources: &[S],
+    ) -> Result<()>
+    where
+        S: AsRef<str>,
+    {
+        let ids: Vec<i64> = self
+            .database
+            .read_tag_sources(tag_id)
+            .await?
+            .into_iter()
+            .filter(|existing| {
+                let existing_host = &existing.site.host;
+                let existing_url = existing.url();
+
+                for source in sources {
+                    let source = source.as_ref();
+
+                    match Url::parse(source).ok() {
+                        Some(url) => {
+                            if url == existing_url {
+                                return true;
+                            }
+                        }
+                        None => {
+                            if source == existing_host {
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                false
+            })
+            .map(|source| source.id)
+            .collect();
+
+        for source_id in ids {
+            self.database.delete_tag_source(tag_id, source_id).await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn get_comment(&self, id: Uuid) -> Result<Comment> {
         Ok(self
             .database
@@ -529,7 +575,7 @@ impl Repo {
             .read_tag_sources(id)
             .await?
             .into_iter()
-            .map(|source| source.into())
+            .map(Into::into)
             .collect();
 
         Ok(tag)

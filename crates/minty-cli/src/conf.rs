@@ -1,5 +1,6 @@
 use crate::{Error, Result};
 
+use log::LevelFilter;
 use minty::Url;
 use serde::{Deserialize, Serialize};
 use serde_yaml as yaml;
@@ -8,9 +9,13 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
 };
+use timber::Sink;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
+    #[serde(default)]
+    pub log: Log,
+
     pub servers: HashMap<String, Server>,
 }
 
@@ -33,6 +38,44 @@ impl Config {
                 path.display()
             ))
         })
+    }
+
+    pub fn set_logger(&self) -> Result<()> {
+        self.log.set_logger()
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Log {
+    #[serde(default = "Log::default_level")]
+    pub level: LevelFilter,
+
+    #[serde(default)]
+    pub sink: Sink,
+}
+
+impl Log {
+    fn default_level() -> LevelFilter {
+        LevelFilter::Info
+    }
+
+    fn set_logger(&self) -> Result<()> {
+        timber::new()
+            .max_level(self.level)
+            .sink(self.sink.clone())
+            .init()
+            .map_err(|err| format!("failed to initialize logger: {err}"))?;
+
+        Ok(())
+    }
+}
+
+impl Default for Log {
+    fn default() -> Self {
+        Self {
+            level: Self::default_level(),
+            sink: Default::default(),
+        }
     }
 }
 

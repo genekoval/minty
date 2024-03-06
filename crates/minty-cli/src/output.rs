@@ -1,4 +1,7 @@
 mod about;
+mod badge;
+mod color;
+mod search_result;
 mod tag;
 mod time;
 mod view;
@@ -10,7 +13,7 @@ use serde_json as json;
 use std::io::{stderr, stdout, IsTerminal, Result, Write};
 
 pub trait HumanReadable {
-    fn human_readable<W: Write>(&self, write: W) -> Result<()>;
+    fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()>;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -34,10 +37,10 @@ where
             print_json();
 
             if output.human_readable {
-                self.human_readable(stderr())?;
+                self.human_readable(&mut stderr(), 0)?;
             }
         } else if output.human_readable || stdout().is_terminal() {
-            self.human_readable(stdout())?;
+            self.human_readable(&mut stdout(), 0)?;
         } else {
             print_json();
         }

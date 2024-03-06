@@ -1,13 +1,12 @@
 use super::{AppState, Result, Router};
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     routing::{delete, get, post, put},
     Json,
 };
-use axum_extra::extract::OptionalQuery;
-use minty::{Source, Tag, TagName, Url, Uuid};
+use minty::{http::query::SetTagName, Source, Tag, TagName, Url, Uuid};
 
 async fn add_source(
     State(AppState { repo }): State<AppState>,
@@ -26,18 +25,25 @@ async fn add_tag(
 
 async fn delete_alias(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<Uuid>,
-    Path(name): Path<String>,
+    Path((tag, name)): Path<(Uuid, String)>,
 ) -> Result<Json<TagName>> {
     Ok(Json(repo.delete_tag_alias(tag, &name).await?))
 }
 
 async fn delete_source(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<Uuid>,
-    Path(source): Path<i64>,
+    Path((tag, source)): Path<(Uuid, i64)>,
 ) -> Result<StatusCode> {
     repo.delete_tag_source(tag, source).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn delete_sources(
+    State(AppState { repo }): State<AppState>,
+    Path(tag): Path<Uuid>,
+    Json(sources): Json<Vec<String>>,
+) -> Result<StatusCode> {
+    repo.delete_tag_sources(tag, &sources).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -65,9 +71,8 @@ async fn set_description(
 
 async fn set_name(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<Uuid>,
-    Path(name): Path<String>,
-    OptionalQuery(main): OptionalQuery<bool>,
+    Path((tag, name)): Path<(Uuid, String)>,
+    Query(SetTagName { main }): Query<SetTagName>,
 ) -> Result<Json<TagName>> {
     let main = main.unwrap_or(false);
 
@@ -85,6 +90,6 @@ pub fn routes() -> Router {
         .route("/:tag", get(get_tag).post(add_tag).delete(delete_tag))
         .route("/:tag/name/:name", put(set_name).delete(delete_alias))
         .route("/:tag/description", put(set_description))
-        .route("/:tag/source", post(add_source))
+        .route("/:tag/source", post(add_source).delete(delete_sources))
         .route("/:tag/source/:source", delete(delete_source))
 }

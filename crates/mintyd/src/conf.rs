@@ -51,6 +51,7 @@ pub struct Log {
     #[serde(default = "Log::default_level")]
     pub level: LevelFilter,
 
+    #[serde(default)]
     pub sink: Sink,
 }
 

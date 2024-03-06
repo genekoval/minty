@@ -35,8 +35,20 @@ pub struct BucketConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SearchConfig {
     pub node: Url,
-    pub auth: String,
+    pub auth: SearchAuth,
     pub namespace: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SearchAuth {
+    pub id: String,
+    pub api_key: String,
+}
+
+impl From<SearchAuth> for elasticsearch::auth::Credentials {
+    fn from(value: SearchAuth) -> Self {
+        Self::ApiKey(value.id, value.api_key)
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

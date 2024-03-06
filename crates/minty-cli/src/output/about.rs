@@ -13,7 +13,11 @@ pub struct About<'a> {
 }
 
 impl<'a> HumanReadable for About<'a> {
-    fn human_readable<W: Write>(&self, mut write: W) -> Result<()> {
+    fn human_readable<W: Write>(
+        &self,
+        w: &mut W,
+        _indent: usize,
+    ) -> Result<()> {
         let alias = self.server;
         let url = self.url;
         let Version {
@@ -29,7 +33,7 @@ impl<'a> HumanReadable for About<'a> {
         } = &self.info.version;
 
         writeln!(
-            write,
+            w,
             r#"{alias}: {url}
     Version: {number}
     Branch:  {branch}

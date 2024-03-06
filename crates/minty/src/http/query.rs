@@ -2,8 +2,7 @@ use crate::model::{PostSort, PostSortValue, SortOrder, Uuid, Visibility};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Pagination {
+struct Pagination {
     pub from: Option<u32>,
     pub size: Option<u32>,
 }
@@ -32,8 +31,8 @@ impl From<crate::Pagination> for Pagination {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct PostQuery {
-    #[serde(flatten)]
-    pub pagination: Pagination,
+    pub from: Option<u32>,
+    pub size: Option<u32>,
     pub q: Option<String>,
     pub tags: Option<String>,
     pub vis: Option<Visibility>,
@@ -44,7 +43,8 @@ pub struct PostQuery {
 impl From<PostQuery> for crate::PostQuery {
     fn from(
         PostQuery {
-            pagination,
+            from,
+            size,
             q,
             tags,
             vis,
@@ -55,7 +55,7 @@ impl From<PostQuery> for crate::PostQuery {
         let sort_value = sort.unwrap_or_default();
 
         Self {
-            pagination: pagination.into(),
+            pagination: Pagination { from, size }.into(),
             text: q.unwrap_or_default(),
             tags: tags
                 .map(|tags| {
@@ -83,8 +83,11 @@ impl From<crate::PostQuery> for PostQuery {
             sort,
         }: crate::PostQuery,
     ) -> Self {
+        let Pagination { from, size } = pagination.into();
+
         Self {
-            pagination: pagination.into(),
+            from,
+            size,
             q: {
                 let text = text.trim();
                 if text.is_empty() {
@@ -123,10 +126,21 @@ impl From<crate::PostQuery> for PostQuery {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+pub struct SetTagName {
+    pub main: Option<bool>,
+}
+
+impl SetTagName {
+    pub fn main(value: bool) -> Self {
+        Self { main: Some(value) }
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct TagQuery {
-    #[serde(flatten)]
-    pub pagination: Pagination,
+    pub from: Option<u32>,
+    pub size: Option<u32>,
     pub name: String,
     pub exclude: Option<String>,
 }
@@ -134,13 +148,14 @@ pub struct TagQuery {
 impl From<TagQuery> for crate::TagQuery {
     fn from(
         TagQuery {
-            pagination,
+            from,
+            size,
             name,
             exclude,
         }: TagQuery,
     ) -> Self {
         Self {
-            pagination: pagination.into(),
+            pagination: Pagination { from, size }.into(),
             name,
             exclude: exclude
                 .map(|tags| {
@@ -161,8 +176,11 @@ impl From<crate::TagQuery> for TagQuery {
             exclude,
         }: crate::TagQuery,
     ) -> Self {
+        let Pagination { from, size } = pagination.into();
+
         Self {
-            pagination: pagination.into(),
+            from,
+            size,
             name,
             exclude: if exclude.is_empty() {
                 None

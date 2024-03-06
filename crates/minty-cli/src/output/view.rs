@@ -1,5 +1,7 @@
+use super::color;
+
 use minty::Source;
-use owo_colors::{colors::css::*, OwoColorize, Style};
+use owo_colors::{OwoColorize, Style};
 use std::{
     fmt::Display,
     io::{Result, Write},
@@ -10,15 +12,11 @@ pub fn heading<W: Write>(write: &mut W, text: &str) -> Result<()> {
 }
 
 pub fn links<W: Write>(write: &mut W, links: &[Source]) -> Result<()> {
-    let style = Style::new().fg::<SteelBlue>();
+    let style = Style::new().fg::<color::Link>();
     list(write, links, Some(style))
 }
 
-pub fn list<W, T>(
-    write: &mut W,
-    items: &[T],
-    style: Option<Style>,
-) -> Result<()>
+pub fn list<W, T>(w: &mut W, items: &[T], style: Option<Style>) -> Result<()>
 where
     W: Write,
     T: Display,
@@ -26,7 +24,7 @@ where
     if !items.is_empty() {
         for item in items {
             let item = item.style(style.unwrap_or_default());
-            writeln!(write, "\u{eab6} {item}")?;
+            writeln!(w, "\u{eab6} {item}")?;
         }
     }
 
@@ -34,8 +32,9 @@ where
 }
 
 pub fn metadata_row<W, T>(
-    write: &mut W,
-    key: &str,
+    w: &mut W,
+    title: &str,
+    icon: &str,
     value: T,
     alignment: usize,
 ) -> Result<()>
@@ -43,26 +42,31 @@ where
     W: Write,
     T: Display,
 {
-    write!(write, "{}", key.fg::<Violet>())?;
+    write!(
+        w,
+        "{} {}",
+        icon.fg::<color::Label>(),
+        title.fg::<color::Label>()
+    )?;
 
-    let len = key.chars().count();
+    let len = title.chars().count();
     let spacing = alignment - len + 2;
 
     for _ in 0..spacing {
-        write.write_all(" ".as_bytes())?;
+        w.write_all(" ".as_bytes())?;
     }
 
-    writeln!(write, "{value}")
+    writeln!(w, "{value}")
 }
 
 #[macro_export]
 macro_rules! metadata {
-    ($write:expr, $(($key:literal, $value:expr)),*) => {
+    ($write:expr, $(($title:literal, $icon:expr, $value:expr)),*) => {
         {
             let mut len = 0;
 
             $({
-                let key_len = $key.chars().count();
+                let key_len = $title.chars().count();
                 if key_len > len {
                     len = key_len;
                 }
@@ -70,7 +74,8 @@ macro_rules! metadata {
 
             $($crate::output::view::metadata_row(
                 $write,
-                $key,
+                $title,
+                $icon,
                 $value,
                 len
             )?;)*

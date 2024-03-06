@@ -1,5 +1,6 @@
-use crate::{Error, ErrorKind, Result, Url};
+use crate::{Error, ErrorKind, Result, Url, Uuid};
 
+use log::debug;
 use mime::{Mime, TEXT_PLAIN_UTF_8};
 use reqwest::{header::CONTENT_TYPE, Method, Request};
 use serde::{de::DeserializeOwned, Serialize};
@@ -16,6 +17,27 @@ impl<T> MapReadErr for reqwest::Result<T> {
     fn map_read_err(self) -> Result<Self::Output> {
         self.map_err(|err| {
             Error::other(format!("failed to read response body: {err}"))
+        })
+    }
+}
+
+pub struct Response {
+    inner: reqwest::Response,
+}
+
+impl Response {
+    pub async fn deserialize<T: DeserializeOwned>(self) -> Result<T> {
+        self.inner.json().await.map_read_err()
+    }
+
+    pub async fn text(self) -> Result<String> {
+        self.inner.text().await.map_read_err()
+    }
+
+    pub async fn uuid(self) -> Result<Uuid> {
+        let text = self.text().await?;
+        Uuid::try_parse(&text).map_err(|_| {
+            Error::other("received unexpected server response".into())
         })
     }
 }
@@ -58,17 +80,26 @@ impl RequestBuilder {
         self
     }
 
-    pub async fn send<T: DeserializeOwned>(self) -> Result<T> {
-        let response =
-            self.inner.send().await.map_err(|err| {
-                Error::other(format!("request failed: {err}"))
-            })?;
+    pub async fn send(self) -> Result<Response> {
+        let (client, request) = self.inner.build_split();
+        let request = request.map_err(|err| {
+            Error::other(format!("failed to build request: {err}"))
+        })?;
+
+        let method = request.method().clone();
+
+        let response = client
+            .execute(request)
+            .await
+            .map_err(|err| Error::other(format!("request failed: {err}")))?;
 
         let status = response.status();
+        let url = response.url().clone().to_string();
+
+        debug!("({status}) {method} {url}");
 
         if status.is_success() {
-            let body = response.json().await.map_read_err()?;
-            return Ok(body);
+            return Ok(Response { inner: response });
         }
 
         let kind = if status.is_client_error() {
@@ -79,7 +110,11 @@ impl RequestBuilder {
             ErrorKind::Other
         };
 
-        let message = response.text().await.map_read_err()?;
+        let mut message = response.text().await.map_read_err()?;
+
+        if message.is_empty() {
+            message = format!("{method} {url}: {status}");
+        }
 
         Err(Error::new(kind, message))
     }

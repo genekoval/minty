@@ -219,14 +219,21 @@ pub struct Source {
     pub site: Site,
 }
 
-impl From<Source> for minty::Source {
-    fn from(value: Source) -> Self {
-        let scheme = value.site.scheme;
-        let host = value.site.host;
-        let resource = value.resource;
+impl Source {
+    pub fn url(&self) -> Url {
+        let scheme = &self.site.scheme;
+        let host = &self.site.host;
+        let resource = &self.resource;
 
         let url = format!("{scheme}://{host}{resource}");
-        let url = Url::parse(&url).unwrap();
+
+        Url::parse(&url).unwrap()
+    }
+}
+
+impl From<Source> for minty::Source {
+    fn from(value: Source) -> Self {
+        let url = value.url();
 
         Self {
             id: value.id,

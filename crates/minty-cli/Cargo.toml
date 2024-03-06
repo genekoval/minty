@@ -6,11 +6,13 @@ edition = "2021"
 [dependencies]
 chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
+log = { workspace = true, features = ["serde"] }
 minty = { path = "../minty", features = ["http"] }
 owo-colors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
+timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["rt"] }
 
 [[bin]]

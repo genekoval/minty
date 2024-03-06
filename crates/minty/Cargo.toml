@@ -10,9 +10,10 @@ url = { workspace = true }
 uuid = { workspace = true }
 
 # HTTP dependencies
+log = { workspace = true, optional = true }
 mime = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["json"] }
 
 [features]
-http = ["serde", "dep:mime", "dep:reqwest"]
+http = ["serde", "dep:log", "dep:mime", "dep:reqwest"]
 serde = ["dep:serde", "chrono/serde", "url/serde", "uuid/serde"]

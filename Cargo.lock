@@ -1472,6 +1472,7 @@ name = "minty"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "log",
  "mime",
  "reqwest",
  "serde",
@@ -1485,11 +1486,13 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "clap",
+ "log",
  "minty",
  "owo-colors",
  "serde",
  "serde_json",
  "serde_yaml",
+ "timber",
  "tokio",
 ]
 

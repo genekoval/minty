@@ -77,6 +77,12 @@ pub trait Repo {
         source_id: i64,
     ) -> Result<()>;
 
+    async fn delete_tag_sources(
+        &self,
+        tag_id: Uuid,
+        sources: &[String],
+    ) -> Result<()>;
+
     async fn get_comment(&self, id: Uuid) -> Result<Comment>;
 
     async fn get_comments(&self, post_id: Uuid) -> Result<Vec<CommentData>>;
