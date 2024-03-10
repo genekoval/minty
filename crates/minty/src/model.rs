@@ -2,7 +2,11 @@ pub use url::Url;
 pub use uuid::Uuid;
 
 use chrono::Local;
-use std::fmt::{self, Display};
+use std::{
+    error::Error,
+    fmt::{self, Display},
+    str::FromStr,
+};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -113,6 +117,17 @@ pub struct Post {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct PostParts {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub visibility: Option<Visibility>,
+    pub objects: Option<Vec<Uuid>>,
+    pub posts: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<Uuid>>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostPreview {
     pub id: Uuid,
     pub title: String,
@@ -176,6 +191,71 @@ impl Default for PostSort {
         let order = value.default_order();
 
         Self { value, order }
+    }
+}
+
+#[derive(Debug)]
+pub enum ParsePostSortError {
+    InvalidOrder(String),
+    InvalidValue(String),
+    TrailingText(String),
+}
+
+impl Display for ParsePostSortError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidOrder(order) => {
+                write!(f, "invalid sort order '{order}'")
+            }
+            Self::InvalidValue(value) => {
+                write!(f, "invalid post sort value '{value}'")
+            }
+            Self::TrailingText(text) => {
+                write!(f, "unexpected trailing text '{text}'")
+            }
+        }
+    }
+}
+
+impl Error for ParsePostSortError {}
+
+impl FromStr for PostSort {
+    type Err = ParsePostSortError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use PostSortValue::*;
+        use SortOrder::*;
+
+        let mut tokens = s.split('.');
+
+        let value = match tokens.next().unwrap() {
+            "created" => Created,
+            "modified" => Modified,
+            "relevance" => Relevance,
+            "title" => Title,
+            token => {
+                return Err(ParsePostSortError::InvalidValue(token.into()))
+            }
+        };
+
+        let order = match tokens.next() {
+            Some(token) => {
+                if token == "ascending" || token == "asc" {
+                    Ascending
+                } else if token == "descending" || token == "desc" {
+                    Descending
+                } else {
+                    return Err(ParsePostSortError::InvalidOrder(token.into()));
+                }
+            }
+            None => value.default_order(),
+        };
+
+        if let Some(token) = tokens.next() {
+            return Err(ParsePostSortError::TrailingText(token.into()));
+        }
+
+        Ok(Self { value, order })
     }
 }
 
@@ -294,4 +374,17 @@ pub enum Visibility {
     Draft,
     #[default]
     Public,
+}
+
+impl Display for Visibility {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Visibility::*;
+
+        let string = match self {
+            Draft => "Draft",
+            Public => "Public",
+        };
+
+        f.write_str(string)
+    }
 }

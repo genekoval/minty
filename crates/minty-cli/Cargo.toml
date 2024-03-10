@@ -9,11 +9,14 @@ clap = { workspace = true, features = ["derive", "env"] }
 log = { workspace = true, features = ["serde"] }
 minty = { path = "../minty", features = ["http"] }
 owo-colors = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
+textwrap = { workspace = true, features = ["terminal_size"] }
 timber = { workspace = true, features = ["serde"] }
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["fs", "rt"] }
+tokio-util = { workspace = true }
 
 [[bin]]
 name = "minty"

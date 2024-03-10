@@ -75,15 +75,20 @@ database! {
 }
 
 transaction! {
+    create_post(
+        title: &str,
+        description: &str,
+        visibility: Option<Visibility>,
+        objects: &[Uuid],
+        posts: &[Uuid],
+        tags: &[Uuid]
+    ) -> PostSearch;
+
     create_post_objects(
         post_id: Uuid,
         objects: &[Uuid],
         destination: Option<Uuid>,
     ) -> (DateTime,);
-
-    create_post(post_id: Uuid) -> (DateTime,);
-
-    create_post_draft() -> PostSearch;
 
     create_post_tag(post_id: Uuid, tag_id: Uuid);
 
@@ -102,6 +107,8 @@ transaction! {
     delete_tag_alias(tag_id: Uuid, alias: &str) -> TagName;
 
     prune_objects() -> Vec<(Uuid,)>;
+
+    publish_post(post_id: Uuid) -> (DateTime,);
 
     update_tag_name(tag_id: Uuid, name: &str) -> TagNameUpdate;
 

@@ -1,7 +1,7 @@
 use minty_cli::*;
 
 use clap::Parser;
-use minty::{Pagination, TagQuery, Uuid};
+use minty::{Pagination, PostParts, PostQuery, TagQuery, Uuid, Visibility};
 use std::process::ExitCode;
 
 type Result = minty_cli::Result<()>;
@@ -60,12 +60,33 @@ async fn run_command(args: Cli, client: Client) -> Result {
             size,
         } => find(command, Pagination { from, size }, client).await,
         Command::New { command } => new(command, client).await,
+        Command::Post { id, command } => post(id, command, client).await,
         Command::Tag { id, command } => tag(id, command, client).await,
     }
 }
 
 async fn find(command: Find, pagination: Pagination, client: Client) -> Result {
     match command {
+        Find::Post {
+            drafts,
+            sort_by,
+            tag,
+            text,
+        } => {
+            client
+                .get_posts(PostQuery {
+                    pagination,
+                    text: text.unwrap_or_default(),
+                    tags: tag,
+                    visibility: if drafts {
+                        Visibility::Draft
+                    } else {
+                        Visibility::Public
+                    },
+                    sort: sort_by,
+                })
+                .await
+        }
         Find::Tag { name } => {
             client
                 .get_tags(TagQuery {
@@ -80,7 +101,72 @@ async fn find(command: Find, pagination: Pagination, client: Client) -> Result {
 
 async fn new(command: New, client: Client) -> Result {
     match command {
+        New::Post {
+            title,
+            description,
+            draft,
+            tag,
+            post,
+            objects,
+        } => {
+            let objects = client.add_objects(objects).await?;
+            let objects = if objects.is_empty() {
+                None
+            } else {
+                Some(objects)
+            };
+
+            client
+                .create_post(PostParts {
+                    title,
+                    description,
+                    visibility: if draft {
+                        Some(Visibility::Draft)
+                    } else {
+                        None
+                    },
+                    objects,
+                    posts: post,
+                    tags: tag,
+                })
+                .await
+        }
         New::Tag { name } => client.add_tag(&name).await,
+    }
+}
+
+async fn post(id: Uuid, command: Option<Post>, client: Client) -> Result {
+    let Some(command) = command else {
+        client.get_post(id).await?;
+        return Ok(());
+    };
+
+    match command {
+        Post::Desc { text } => client.set_post_description(id, text).await,
+        Post::Obj {
+            destination,
+            objects,
+        } => client.add_post_objects(id, objects, destination).await,
+        Post::Ln { posts } => client.add_related_posts(id, posts).await,
+        Post::Publish => client.publish_post(id).await,
+        Post::Rm { force, command } => match command {
+            Some(command) => post_rm(id, command, client).await,
+            None => client.delete_post(id, force).await,
+        },
+        Post::Tag { tags } => client.add_post_tags(id, tags).await,
+        Post::Title { text } => client.set_post_title(id, text).await,
+    }
+}
+
+async fn post_rm(id: Uuid, command: PostRm, client: Client) -> Result {
+    match command {
+        PostRm::Obj { objects } => {
+            client.delete_post_objects(id, objects).await
+        }
+        PostRm::Related { posts } => {
+            client.delete_related_posts(id, posts).await
+        }
+        PostRm::Tag { tags } => client.delete_post_tags(id, tags).await,
     }
 }
 

@@ -287,20 +287,20 @@ impl Repo {
         Ok(source)
     }
 
-    pub async fn create_post(&self, post_id: Uuid) -> Result<()> {
+    pub async fn create_post(&self, parts: &PostParts) -> Result<Uuid> {
         let mut tx = self.database.begin().await?;
 
-        let timestamp = tx.create_post(post_id).await?.0;
-        self.search.publish_post(post_id, timestamp).await?;
+        let post = tx
+            .create_post(
+                parts.title.as_deref().unwrap_or(""),
+                parts.description.as_deref().unwrap_or(""),
+                parts.visibility.map(db::Visibility::from_minty),
+                parts.objects.as_deref().unwrap_or(&[]),
+                parts.posts.as_deref().unwrap_or(&[]),
+                parts.tags.as_deref().unwrap_or(&[]),
+            )
+            .await?;
 
-        tx.commit().await?;
-        Ok(())
-    }
-
-    pub async fn create_post_draft(&self) -> Result<Uuid> {
-        let mut tx = self.database.begin().await?;
-
-        let post = tx.create_post_draft().await?;
         self.search.add_post(&post).await?;
 
         tx.commit().await?;
@@ -598,6 +598,16 @@ impl Repo {
             total: results.total,
             hits: tags,
         })
+    }
+
+    pub async fn publish_post(&self, post_id: Uuid) -> Result<()> {
+        let mut tx = self.database.begin().await?;
+
+        let timestamp = tx.publish_post(post_id).await?.0;
+        self.search.publish_post(post_id, timestamp).await?;
+
+        tx.commit().await?;
+        Ok(())
     }
 
     pub async fn regenerate_preview(

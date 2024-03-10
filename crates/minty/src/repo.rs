@@ -1,5 +1,9 @@
 use crate::{model::*, Result};
 
+use bytes::Bytes;
+use futures_core::TryStream;
+use std::error::Error;
+
 #[allow(async_fn_in_trait)]
 pub trait Repo {
     fn new(url: &Url) -> Self;
@@ -13,6 +17,12 @@ pub trait Repo {
         post_id: Uuid,
         content: &str,
     ) -> Result<CommentData>;
+
+    async fn add_object<S>(&self, stream: S) -> Result<ObjectPreview>
+    where
+        S: TryStream + Send + 'static,
+        S::Error: Into<Box<dyn Error + Send + Sync>>,
+        Bytes: From<S::Ok>;
 
     async fn add_post_tag(&self, post_id: Uuid, tag_id: Uuid) -> Result<()>;
 
@@ -41,9 +51,7 @@ pub trait Repo {
         objects: &[Uuid],
     ) -> Result<DateTime>;
 
-    async fn create_post(&self, post_id: Uuid) -> Result<()>;
-
-    async fn create_post_draft(&self) -> Result<Uuid>;
+    async fn create_post(&self, parts: &PostParts) -> Result<Uuid>;
 
     async fn delete_comment(&self, id: Uuid, recursive: bool) -> Result<()>;
 
@@ -109,6 +117,8 @@ pub trait Repo {
         objects: &[Uuid],
         destination: Uuid,
     ) -> Result<DateTime>;
+
+    async fn publish_post(&self, post_id: Uuid) -> Result<()>;
 
     async fn set_comment_content(
         &self,

@@ -5,11 +5,14 @@ use crate::{
     output::{About, Output, Print},
 };
 
-use minty::{http, Repo, Source, TagQuery, Url, Uuid};
+use minty::{http, model::*, Repo};
 use std::{
     fmt::{self, Display},
     io::{stdin, IsTerminal, Read},
+    path::PathBuf,
 };
+use tokio::fs::File;
+use tokio_util::io::ReaderStream;
 
 pub type Result = crate::Result<()>;
 
@@ -43,6 +46,70 @@ impl Client {
         self.print(about)
     }
 
+    pub async fn add_objects(
+        &self,
+        args: Vec<String>,
+    ) -> crate::Result<Vec<Uuid>> {
+        let mut objects = Vec::new();
+
+        for arg in args {
+            if let Ok(uuid) = Uuid::parse_str(&arg) {
+                objects.push(uuid);
+            } else if let Ok(url) = Url::parse(&arg) {
+                objects.push(self.upload_url(url).await?);
+            } else {
+                let path = PathBuf::from(&arg);
+                objects.push(self.upload_file(path).await?);
+            }
+        }
+
+        Ok(objects)
+    }
+
+    pub async fn add_post_objects(
+        &self,
+        post_id: Uuid,
+        objects: Vec<String>,
+        destination: Option<Uuid>,
+    ) -> Result {
+        let objects = self.add_objects(objects).await?;
+
+        match destination {
+            Some(destination) => {
+                self.repo
+                    .insert_post_objects(post_id, &objects, destination)
+                    .await?
+            }
+            None => self.repo.append_post_objects(post_id, &objects).await?,
+        };
+
+        Ok(())
+    }
+
+    pub async fn add_post_tags(
+        &self,
+        post_id: Uuid,
+        tags: Vec<Uuid>,
+    ) -> Result {
+        for tag in tags {
+            self.repo.add_post_tag(post_id, tag).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn add_related_posts(
+        &self,
+        post_id: Uuid,
+        posts: Vec<Uuid>,
+    ) -> Result {
+        for post in posts {
+            self.repo.add_related_post(post_id, post).await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn add_tag(&self, name: &str) -> Result {
         let id = self.repo.add_tag(name).await?;
         println!("{id}");
@@ -58,12 +125,76 @@ impl Client {
         Ok(())
     }
 
+    pub async fn create_post(&self, parts: PostParts) -> Result {
+        let id = self.repo.create_post(&parts).await?;
+        println!("{id}");
+        Ok(())
+    }
+
+    pub async fn delete_post(&self, id: Uuid, force: bool) -> Result {
+        if stdin().is_terminal() && !force {
+            let post = self.repo.get_post(id).await?;
+            let title = post.title.as_str();
+            let ty = match post.visibility {
+                Visibility::Draft => "draft",
+                _ => "post",
+            };
+
+            let prompt = if title.is_empty() {
+                format!("Delete the {ty} with ID {id}?")
+            } else {
+                format!("Delete the {ty} titled '{title}'?")
+            };
+
+            let confirmed = ask::confirm(&prompt)?;
+            if !confirmed {
+                return Ok(());
+            }
+        }
+
+        self.repo.delete_post(id).await?;
+        Ok(())
+    }
+
+    pub async fn delete_post_objects(
+        &self,
+        post_id: Uuid,
+        objects: Vec<Uuid>,
+    ) -> Result {
+        self.repo.delete_post_objects(post_id, &objects).await?;
+        Ok(())
+    }
+
+    pub async fn delete_post_tags(
+        &self,
+        post_id: Uuid,
+        tags: Vec<Uuid>,
+    ) -> Result {
+        for tag in tags {
+            self.repo.delete_post_tag(post_id, tag).await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_related_posts(
+        &self,
+        post_id: Uuid,
+        posts: Vec<Uuid>,
+    ) -> Result {
+        for post in posts {
+            self.repo.delete_related_post(post_id, post).await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn delete_tag(&self, id: Uuid, force: bool) -> Result {
         if stdin().is_terminal() && !force {
             let name = self.repo.get_tag(id).await?.name;
             let prompt = format!("Delete the tag '{name}'?");
-            let confirmed = ask::confirm(&prompt)?;
 
+            let confirmed = ask::confirm(&prompt)?;
             if !confirmed {
                 return Ok(());
             }
@@ -131,12 +262,57 @@ impl Client {
         Ok(())
     }
 
+    pub async fn get_post(&self, id: Uuid) -> Result {
+        self.print(self.repo.get_post(id).await?)
+    }
+
+    pub async fn get_posts(&self, query: PostQuery) -> Result {
+        self.print(self.repo.get_posts(&query).await?)
+    }
+
     pub async fn get_tag(&self, id: Uuid) -> Result {
         self.print(self.repo.get_tag(id).await?)
     }
 
     pub async fn get_tags(&self, query: TagQuery) -> Result {
         self.print(self.repo.get_tags(&query).await?)
+    }
+
+    pub async fn publish_post(&self, id: Uuid) -> Result {
+        self.repo.publish_post(id).await?;
+        Ok(())
+    }
+
+    pub async fn set_post_description(
+        &self,
+        id: Uuid,
+        description: Option<String>,
+    ) -> Result {
+        let description = match description {
+            Some(description) => description,
+            None => read_from_stdin()?,
+        };
+
+        self.repo
+            .set_post_description(id, description.trim())
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn set_post_title(
+        &self,
+        id: Uuid,
+        title: Option<String>,
+    ) -> Result {
+        let title = match title {
+            Some(title) => title,
+            None => read_from_stdin()?,
+        };
+
+        self.repo.set_post_title(id, title.trim()).await?;
+
+        Ok(())
     }
 
     pub async fn set_tag_description(
@@ -158,6 +334,29 @@ impl Client {
 
     pub async fn set_tag_name(&self, id: Uuid, name: &str) -> Result {
         self.print(self.repo.set_tag_name(id, name).await?)
+    }
+
+    async fn upload_file(&self, path: PathBuf) -> crate::Result<Uuid> {
+        let file = File::open(&path).await.map_err(|err| {
+            format!("failed to open file '{}': {err}", path.display())
+        })?;
+        let stream = ReaderStream::new(file);
+        let object = self.repo.add_object(stream).await?;
+
+        Ok(object.id)
+    }
+
+    async fn upload_url(&self, url: Url) -> crate::Result<Uuid> {
+        let stream = reqwest::get(url.as_str())
+            .await
+            .map_err(|err| format!("request to '{url}' failed: {err}"))?
+            .error_for_status()
+            .map_err(|err| format!("({}) {url}", err.status().unwrap()))?
+            .bytes_stream();
+
+        let object = self.repo.add_object(stream).await?;
+
+        Ok(object.id)
     }
 }
 

@@ -1,6 +1,9 @@
 mod about;
-mod badge;
 mod color;
+mod icon;
+mod metadata;
+mod object;
+mod post;
 mod search_result;
 mod tag;
 mod time;

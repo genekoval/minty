@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post, put},
     Json,
 };
-use minty::{Modification, Post, Uuid};
+use minty::{Modification, Post, PostParts, Uuid};
 
 async fn add_objects(
     State(AppState { repo }): State<AppState>,
@@ -46,18 +46,11 @@ async fn add_tag(
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn create_draft(
-    State(AppState { repo }): State<AppState>,
-) -> Result<String> {
-    Ok(repo.create_post_draft().await?.to_string())
-}
-
 async fn create_post(
     State(AppState { repo }): State<AppState>,
-    Path(id): Path<Uuid>,
-) -> Result<StatusCode> {
-    repo.create_post(id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    Json(parts): Json<PostParts>,
+) -> Result<String> {
+    Ok(repo.create_post(&parts).await?.to_string())
 }
 
 async fn delete_objects(
@@ -101,6 +94,14 @@ async fn get_post(
     Ok(Json(repo.get_post(id).await?))
 }
 
+async fn publish_post(
+    State(AppState { repo }): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<StatusCode> {
+    repo.publish_post(id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 async fn set_description(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
@@ -119,8 +120,8 @@ async fn set_title(
 
 pub fn routes() -> Router {
     Router::new()
-        .route("/", post(create_draft))
-        .route("/:id", get(get_post).put(create_post).delete(delete_post))
+        .route("/", post(create_post))
+        .route("/:id", get(get_post).put(publish_post).delete(delete_post))
         .route("/:id/description", put(set_description))
         .route("/:id/objects", post(append_objects).delete(delete_objects))
         .route("/:id/objects/:destination", post(add_objects))

@@ -1,7 +1,8 @@
 use super::{
-    badge, color,
+    color, icon,
+    metadata::Metadata,
     time::FormatDate,
-    view::{heading, links, list, metadata},
+    view::{heading, links, list},
     HumanReadable,
 };
 
@@ -10,11 +11,7 @@ use owo_colors::{OwoColorize, Style};
 use std::io::{Result, Write};
 
 impl HumanReadable for Tag {
-    fn human_readable<W: Write>(
-        &self,
-        w: &mut W,
-        _indent: usize,
-    ) -> Result<()> {
+    fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
         heading(w, &self.name)?;
         list(w, &self.aliases, Some(Style::new().italic()))?;
 
@@ -28,14 +25,12 @@ impl HumanReadable for Tag {
         }
 
         writeln!(w)?;
-        metadata!(
-            w,
-            ("ID", badge::POUND, &self.id),
-            ("Posts", badge::DOCUMENT, &self.post_count),
-            ("Created", badge::CALENDAR, &self.created.long_date())
-        );
 
-        Ok(())
+        Metadata::new()
+            .row("ID", icon::POUND, self.id)
+            .row("Posts", icon::DOCUMENT, self.post_count)
+            .row("Created", icon::CALENDAR, self.created.long_date())
+            .print(indent, w)
     }
 }
 
@@ -63,7 +58,7 @@ impl HumanReadable for TagPreview {
         writeln!(
             w,
             "{} {}",
-            badge::POUND.fg::<color::Label>(),
+            icon::POUND.fg::<color::Label>(),
             self.id.fg::<color::Secodary>()
         )?;
 

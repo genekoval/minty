@@ -358,12 +358,29 @@ pub struct TagSearch {
     pub names: Vec<String>,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Type)]
+#[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "lowercase")]
-#[sqlx(type_name = "visibility", rename_all = "lowercase")]
 pub enum Visibility {
     Draft,
     Public,
+}
+
+impl Visibility {
+    pub fn from_minty(value: minty::Visibility) -> Self {
+        use minty::Visibility::*;
+
+        match value {
+            Draft => Self::Draft,
+            Public => Self::Public,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Draft => "draft",
+            Self::Public => "public",
+        }
+    }
 }
 
 impl From<Visibility> for minty::Visibility {
@@ -372,5 +389,44 @@ impl From<Visibility> for minty::Visibility {
             Visibility::Draft => Self::Draft,
             Visibility::Public => Self::Public,
         }
+    }
+}
+
+impl<'r> Decode<'r, Postgres> for Visibility {
+    fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
+        let value = <&'r str as Decode<'r, Postgres>>::decode(value)?;
+
+        match value {
+            "draft" => Ok(Self::Draft),
+            "public" => Ok(Self::Public),
+            _ => {
+                Err(format!("invalid value {value:?} for enum Visibility")
+                    .into())
+            }
+        }
+    }
+}
+
+impl Encode<'_, Postgres> for Visibility {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+        let val = self.as_str();
+        <&str as Encode<'_, Postgres>>::encode(val, buf)
+    }
+
+    fn size_hint(&self) -> usize {
+        let val = self.as_str();
+        <&str as Encode<'_, Postgres>>::size_hint(&val)
+    }
+}
+
+impl Type<Postgres> for Visibility {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("data.visibility")
+    }
+
+    fn compatible(ty: &PgTypeInfo) -> bool {
+        // Workaround for https://github.com/launchbadge/sqlx/issues/2831
+        // sqlx::Type macro doesn't work with types in schemas outside search_path
+        *ty == PgTypeInfo::with_name("visibility")
     }
 }

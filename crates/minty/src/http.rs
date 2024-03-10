@@ -6,6 +6,10 @@ use client::Client;
 
 use crate::{model::*, Result};
 
+use bytes::Bytes;
+use futures_core::TryStream;
+use std::error::Error;
+
 pub struct Repo {
     client: Client,
 }
@@ -33,6 +37,21 @@ impl crate::Repo for Repo {
         self.client
             .post(format!("comments/{post_id}"))
             .text(content)
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
+    async fn add_object<S>(&self, stream: S) -> Result<ObjectPreview>
+    where
+        S: TryStream + Send + 'static,
+        S::Error: Into<Box<dyn Error + Send + Sync>>,
+        Bytes: From<S::Ok>,
+    {
+        self.client
+            .post("object")
+            .stream(stream)
             .send()
             .await?
             .deserialize()
@@ -121,13 +140,14 @@ impl crate::Repo for Repo {
             .await
     }
 
-    async fn create_post(&self, post_id: Uuid) -> Result<()> {
-        self.client.put(format!("post/{post_id}")).send().await?;
-        Ok(())
-    }
-
-    async fn create_post_draft(&self) -> Result<Uuid> {
-        self.client.post("post").send().await?.uuid().await
+    async fn create_post(&self, parts: &PostParts) -> Result<Uuid> {
+        self.client
+            .post("post")
+            .serialize(parts)
+            .send()
+            .await?
+            .uuid()
+            .await
     }
 
     async fn delete_comment(&self, id: Uuid, recursive: bool) -> Result<()> {
@@ -312,6 +332,11 @@ impl crate::Repo for Repo {
             .await?
             .deserialize()
             .await
+    }
+
+    async fn publish_post(&self, post_id: Uuid) -> Result<()> {
+        self.client.put(format!("post/{post_id}")).send().await?;
+        Ok(())
     }
 
     async fn set_comment_content(

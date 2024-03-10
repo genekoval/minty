@@ -1,9 +1,12 @@
 use crate::{Error, ErrorKind, Result, Url, Uuid};
 
+use bytes::Bytes;
+use futures_core::TryStream;
 use log::debug;
 use mime::{Mime, TEXT_PLAIN_UTF_8};
-use reqwest::{header::CONTENT_TYPE, Method, Request};
+use reqwest::{header::CONTENT_TYPE, Body, Method, Request};
 use serde::{de::DeserializeOwned, Serialize};
+use std::error;
 
 trait MapReadErr {
     type Output;
@@ -77,6 +80,16 @@ impl RequestBuilder {
         T: Serialize + ?Sized,
     {
         self.inner = self.inner.json(body);
+        self
+    }
+
+    pub fn stream<S>(mut self, stream: S) -> Self
+    where
+        S: TryStream + Send + 'static,
+        S::Error: Into<Box<dyn error::Error + Send + Sync>>,
+        Bytes: From<S::Ok>,
+    {
+        self.inner = self.inner.body(Body::wrap_stream(stream));
         self
     }
 

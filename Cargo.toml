@@ -28,8 +28,10 @@ sqlx = { version = "0.7", features = [
     "runtime-tokio",
     "uuid",
 ] }
+textwrap = "0.16"
 thiserror = "1"
 tokio = "1"
+tokio-util = "0.7"
 url = "2"
 uuid = "1"
 

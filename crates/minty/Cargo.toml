@@ -4,7 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bytes = { workspace = true }
 chrono = { workspace = true }
+futures-core = { workspace = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 url = { workspace = true }
 uuid = { workspace = true }

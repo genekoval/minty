@@ -113,10 +113,10 @@ CREATE FUNCTION read_objects(objects uuid[]) RETURNS object[] AS $$
 DECLARE result object[];
 BEGIN
     SELECT INTO result
-        array_agg(
+        coalesce(array_agg(
             ROW(object_id, preview_id)::object
             ORDER BY ordinality
-        ) AS objects
+        ), '{}') AS objects
     FROM (
         SELECT unnest as object_id, ordinality
         FROM unnest(objects) WITH ORDINALITY
@@ -130,22 +130,27 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION read_related_posts(a_post_id uuid) RETURNS post_preview[] AS $$
 DECLARE result post_preview[];
 BEGIN
-    SELECT INTO result preview.*
+    SELECT INTO result coalesce(
+        array_agg(preview.* ORDER BY title ASC, date_created DESC),
+        '{}'
+    )
     FROM post_preview preview
     JOIN data.related_post post ON post.related = preview.post_id
-    WHERE post.post_id = a_post_id
-    ORDER BY title ASC, date_created DESC;
+    WHERE post.post_id = a_post_id;
+
+    RETURN result;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION read_post_tags(a_post_id uuid) RETURNS tag_preview[] AS $$
 DECLARE result tag_preview[];
 BEGIN
-    SELECT INTO result tag_preview.*
+    SELECT INTO result coalesce(array_agg(tag_preview.* ORDER BY name), '{}')
     FROM tag_preview
     JOIN data.post_tag USING (tag_id)
-    WHERE post_id = a_post_id
-    ORDER BY name;
+    WHERE post_id = a_post_id;
+
+    RETURN result;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -367,32 +372,64 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION create_post(draft_id uuid) RETURNS timestamptz AS $$
-DECLARE
-    created CONSTANT timestamptz = now();
+CREATE FUNCTION create_post(
+    title text,
+    description text,
+    visibility data.visibility,
+    objects uuid[],
+    posts uuid[],
+    tags uuid[]
+) RETURNS SETOF post_search AS $$
+DECLARE new_post post_search%ROWTYPE;
 BEGIN
-    UPDATE data.post
-    SET
-        visibility = 'public',
-        date_created = created,
-        date_modified = created
-    WHERE post_id = draft_id AND visibility = 'draft';
+    WITH new AS (
+        INSERT INTO data.post (
+            title,
+            description,
+            objects,
+            visibility
+        ) VALUES (
+            coalesce(title, ''),
+            coalesce(description, ''),
+            coalesce(objects, '{}'),
+            coalesce(visibility, 'public')
+        )
+        RETURNING *
+    )
+    SELECT
+        post_id,
+        new.title,
+        new.description,
+        new.visibility,
+        date_created,
+        date_modified,
+        tags
+    INTO new_post
+    FROM new;
 
-    IF NOT FOUND THEN
-        RAISE 'Draft with ID (%) does not exist', draft_id
-        USING ERRCODE = 'no_data_found';
-    END IF;
+    INSERT INTO data.post_object (post_id, object_id)
+    SELECT new_post.post_id, object_id
+    FROM (
+        SELECT unnest AS object_id
+        FROM unnest(objects)
+    ) obj;
 
-    RETURN created;
-END;
-$$ LANGUAGE plpgsql;
+    INSERT INTO data.related_post (post_id, related)
+    SELECT new_post.post_id, related
+    FROM (
+        SELECT unnest AS related
+        FROM unnest(posts)
+    ) p;
 
-CREATE FUNCTION create_post_draft()
-RETURNS TABLE (id uuid, created timestamptz) AS $$
-BEGIN
+    INSERT INTO data.post_tag (post_id, tag_id)
+    SELECT new_post.post_id, tag_id
+    FROM (
+        SELECT unnest AS tag_id
+        FROM unnest(tags)
+    ) t;
+
     RETURN QUERY
-    INSERT INTO data.post (visibility) VALUES ('draft')
-    RETURNING post_id, date_created;
+    SELECT (new_post).*;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -763,6 +800,26 @@ CREATE FUNCTION prune_sources() RETURNS void AS $$
 BEGIN
     DELETE FROM data.source source USING source_ref_view ref
     WHERE source.source_id = ref.source_id AND ref.reference_count = 0;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION publish_post(draft_id uuid) RETURNS timestamptz AS $$
+DECLARE
+    created CONSTANT timestamptz = now();
+BEGIN
+    UPDATE data.post
+    SET
+        visibility = 'public',
+        date_created = created,
+        date_modified = created
+    WHERE post_id = draft_id AND visibility = 'draft';
+
+    IF NOT FOUND THEN
+        RAISE 'Draft with ID (%) does not exist', draft_id
+        USING ERRCODE = 'no_data_found';
+    END IF;
+
+    RETURN created;
 END;
 $$ LANGUAGE plpgsql;
 
