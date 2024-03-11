@@ -32,3 +32,6 @@ pub const PENCIL: Icon = Icon('\u{f03eb}');
 
 /// nf-md-pound 󰐣
 pub const POUND: Icon = Icon('\u{f0423}');
+
+/// nf-oct-trash 
+pub const TRASH: Icon = Icon('\u{f48e}');

@@ -46,6 +46,22 @@ impl Client {
         self.print(about)
     }
 
+    pub async fn add_comment(
+        &self,
+        post: Uuid,
+        content: Option<String>,
+    ) -> Result {
+        let content = match content {
+            Some(content) => content,
+            None => read_from_stdin()?,
+        };
+
+        let comment = self.repo.add_comment(post, content.trim()).await?;
+        println!("{}", comment.id);
+
+        Ok(())
+    }
+
     pub async fn add_objects(
         &self,
         args: Vec<String>,
@@ -131,6 +147,28 @@ impl Client {
         Ok(())
     }
 
+    pub async fn delete_comment(
+        &self,
+        id: Uuid,
+        force: bool,
+        recursive: bool,
+    ) -> Result {
+        if stdin().is_terminal() && !force {
+            let prompt = if recursive {
+                format!(
+                    "Delete the comment with ID {id} and any child comments?"
+                )
+            } else {
+                format!("Delete the comment with ID {id}?")
+            };
+
+            ask::confirm!(&prompt)?;
+        }
+
+        self.repo.delete_comment(id, recursive).await?;
+        Ok(())
+    }
+
     pub async fn delete_post(&self, id: Uuid, force: bool) -> Result {
         if stdin().is_terminal() && !force {
             let post = self.repo.get_post(id).await?;
@@ -146,10 +184,7 @@ impl Client {
                 format!("Delete the {ty} titled '{title}'?")
             };
 
-            let confirmed = ask::confirm(&prompt)?;
-            if !confirmed {
-                return Ok(());
-            }
+            ask::confirm!(&prompt)?;
         }
 
         self.repo.delete_post(id).await?;
@@ -194,10 +229,7 @@ impl Client {
             let name = self.repo.get_tag(id).await?.name;
             let prompt = format!("Delete the tag '{name}'?");
 
-            let confirmed = ask::confirm(&prompt)?;
-            if !confirmed {
-                return Ok(());
-            }
+            ask::confirm!(&prompt)?;
         }
 
         self.repo.delete_tag(id).await?;
@@ -262,6 +294,14 @@ impl Client {
         Ok(())
     }
 
+    pub async fn get_comment(&self, id: Uuid) -> Result {
+        self.print(self.repo.get_comment(id).await?)
+    }
+
+    pub async fn get_comments(&self, post_id: Uuid) -> Result {
+        self.print(self.repo.get_comments(post_id).await?)
+    }
+
     pub async fn get_post(&self, id: Uuid) -> Result {
         self.print(self.repo.get_post(id).await?)
     }
@@ -280,6 +320,33 @@ impl Client {
 
     pub async fn publish_post(&self, id: Uuid) -> Result {
         self.repo.publish_post(id).await?;
+        Ok(())
+    }
+
+    pub async fn reply(&self, parent: Uuid, content: Option<String>) -> Result {
+        let content = match content {
+            Some(content) => content,
+            None => read_from_stdin()?,
+        };
+
+        let comment = self.repo.add_reply(parent, content.trim()).await?;
+        println!("{}", comment.id);
+
+        Ok(())
+    }
+
+    pub async fn set_comment_content(
+        &self,
+        id: Uuid,
+        content: Option<String>,
+    ) -> Result {
+        let content = match content {
+            Some(content) => content,
+            None => read_from_stdin()?,
+        };
+
+        self.repo.set_comment_content(id, content.trim()).await?;
+
         Ok(())
     }
 

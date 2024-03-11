@@ -54,6 +54,8 @@ fn async_main(args: Cli, client: Client) -> Result {
 async fn run_command(args: Cli, client: Client) -> Result {
     match args.command {
         Command::About => client.about().await,
+        Command::Comment { id, command } => comment(id, command, client).await,
+        Command::Comments { post } => client.get_comments(post).await,
         Command::Find {
             command,
             from,
@@ -61,7 +63,26 @@ async fn run_command(args: Cli, client: Client) -> Result {
         } => find(command, Pagination { from, size }, client).await,
         Command::New { command } => new(command, client).await,
         Command::Post { id, command } => post(id, command, client).await,
+        Command::Reply { comment, content } => {
+            client.reply(comment, content).await
+        }
         Command::Tag { id, command } => tag(id, command, client).await,
+    }
+}
+
+async fn comment(id: Uuid, command: Option<Comment>, client: Client) -> Result {
+    let Some(command) = command else {
+        client.get_comment(id).await?;
+        return Ok(());
+    };
+
+    match command {
+        Comment::Edit { content } => {
+            client.set_comment_content(id, content).await
+        }
+        Comment::Rm { force, recursive } => {
+            client.delete_comment(id, force, recursive).await
+        }
     }
 }
 
@@ -101,6 +122,9 @@ async fn find(command: Find, pagination: Pagination, client: Client) -> Result {
 
 async fn new(command: New, client: Client) -> Result {
     match command {
+        New::Comment { post, content } => {
+            client.add_comment(post, content).await
+        }
         New::Post {
             title,
             description,

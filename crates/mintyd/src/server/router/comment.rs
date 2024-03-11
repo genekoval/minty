@@ -1,13 +1,12 @@
 use super::{AppState, Result, Router};
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     routing::get,
     Json,
 };
-use axum_extra::extract::OptionalQuery;
-use minty::{Comment, CommentData, Uuid};
+use minty::{http::query::DeleteComment, Comment, CommentData, Uuid};
 
 async fn add_reply(
     State(AppState { repo }): State<AppState>,
@@ -20,7 +19,7 @@ async fn add_reply(
 async fn delete_comment(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
-    OptionalQuery(recursive): OptionalQuery<bool>,
+    Query(DeleteComment { recursive }): Query<DeleteComment>,
 ) -> Result<StatusCode> {
     let recursive = recursive.unwrap_or(false);
     let deleted = repo.delete_comment(id, recursive).await?;

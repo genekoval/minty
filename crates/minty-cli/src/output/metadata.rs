@@ -35,6 +35,19 @@ impl Metadata {
         self
     }
 
+    pub fn optional_row<T: Display>(
+        self,
+        title: &'static str,
+        icon: Icon,
+        value: Option<T>,
+    ) -> Self {
+        if let Some(value) = value {
+            self.row(title, icon, value)
+        } else {
+            self
+        }
+    }
+
     pub fn print<W: Write>(self, indent: usize, w: &mut W) -> Result<()> {
         self.rows
             .into_iter()

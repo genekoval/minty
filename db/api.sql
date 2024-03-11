@@ -1021,11 +1021,13 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION update_comment(
     a_comment_id    uuid,
     a_content       text
-) RETURNS void AS $$
+) RETURNS bool AS $$
 BEGIN
     UPDATE data.post_comment
     SET content = a_content
     WHERE comment_id = a_comment_id;
+
+    RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -87,6 +87,32 @@ pub enum Command {
         command: Option<Post>,
     },
 
+    /// Read a single comment
+    Comment {
+        /// Comment ID
+        id: Uuid,
+
+        #[command(subcommand)]
+        command: Option<Comment>,
+    },
+
+    /// Read a post's comments
+    Comments {
+        /// Post ID
+        post: Uuid,
+    },
+
+    /// Reply to a comment
+    Reply {
+        /// Parent comment ID
+        comment: Uuid,
+
+        /// Comment text
+        ///
+        /// If not present, content will be read from STDIN.
+        content: Option<String>,
+    },
+
     /// Read about or modify a tag
     Tag {
         /// Tag ID
@@ -94,6 +120,30 @@ pub enum Command {
 
         #[command(subcommand)]
         command: Option<Tag>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Comment {
+    /// Change a comment's content
+    Edit {
+        /// The comment's new comment
+        ///
+        /// If not present, content will be read from STDIN.
+        content: Option<String>,
+    },
+
+    /// Delete a comment
+    Rm {
+        #[arg(short, long)]
+        /// Do not prompt for confirmation before removal
+        ///
+        /// This is the default behavior if STDIN is not a terminal
+        force: bool,
+
+        #[arg(short, long)]
+        /// Delete all child comments
+        recursive: bool,
     },
 }
 
@@ -152,6 +202,17 @@ pub enum New {
 
         /// Files to attach to the post
         objects: Vec<String>,
+    },
+
+    /// Comment on a post
+    Comment {
+        /// Post ID
+        post: Uuid,
+
+        /// Comment text
+        ///
+        /// If not present, content will be read from STDIN.
+        content: Option<String>,
     },
 
     /// Create a new tag

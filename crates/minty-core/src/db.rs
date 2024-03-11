@@ -65,7 +65,7 @@ database! {
 
     read_total_objects() -> i64;
 
-    update_comment(comment_id: Uuid, content: &str);
+    update_comment(comment_id: Uuid, content: &str) -> bool;
 
     update_object_preview(object_id: Uuid, preview_id: Option<Uuid>);
 

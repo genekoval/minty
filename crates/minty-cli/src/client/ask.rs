@@ -6,21 +6,6 @@ use std::{
     mem,
 };
 
-pub fn confirm(prompt: &str) -> Result<bool> {
-    let line = readline(prompt)?.trim().to_lowercase();
-    if line.is_empty() {
-        return Ok(false);
-    }
-
-    if line == "yes" || line == "y" {
-        Ok(true)
-    } else if line == "no" || line == "n" {
-        Ok(false)
-    } else {
-        Err(Error::Other(format!("unrecognized option: {line}")))
-    }
-}
-
 pub fn multiple_choice<T>(
     mut choices: Vec<T>,
     prompt: &str,
@@ -64,4 +49,37 @@ fn readline(prompt: &str) -> Result<String> {
     stdin().read_line(&mut buffer)?;
 
     Ok(buffer)
+}
+
+macro_rules! confirm {
+    ($e:expr) => {
+        match $crate::client::ask::inner::confirm($e) {
+            Ok(confirmed) => match confirmed {
+                true => Ok(()),
+                false => return Ok(()),
+            },
+            Err(err) => Err(err),
+        }
+    };
+}
+
+pub(crate) use confirm;
+
+pub mod inner {
+    use super::*;
+
+    pub fn confirm(prompt: &str) -> Result<bool> {
+        let line = readline(prompt)?.trim().to_lowercase();
+        if line.is_empty() {
+            return Ok(false);
+        }
+
+        if line == "yes" || line == "y" {
+            Ok(true)
+        } else if line == "no" || line == "n" {
+            Ok(false)
+        } else {
+            Err(Error::Other(format!("unrecognized option: {line}")))
+        }
+    }
 }

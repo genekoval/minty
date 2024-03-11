@@ -1,5 +1,6 @@
 mod about;
 mod color;
+mod comment;
 mod icon;
 mod metadata;
 mod object;
@@ -17,6 +18,16 @@ use std::io::{stderr, stdout, IsTerminal, Result, Write};
 
 pub trait HumanReadable {
     fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()>;
+}
+
+impl<T> HumanReadable for Vec<T>
+where
+    T: HumanReadable,
+{
+    fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
+        self.iter()
+            .try_for_each(|item| item.human_readable(w, indent))
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

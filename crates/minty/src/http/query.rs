@@ -2,6 +2,11 @@ use crate::model::{PostSort, PostSortValue, SortOrder, Uuid, Visibility};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+pub struct DeleteComment {
+    pub recursive: Option<bool>,
+}
+
 struct Pagination {
     pub from: Option<u32>,
     pub size: Option<u32>,

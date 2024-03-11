@@ -622,8 +622,15 @@ impl Repo {
         comment_id: Uuid,
         content: &str,
     ) -> Result<String> {
-        self.database.update_comment(comment_id, content).await?;
-        Ok(content.into())
+        let found = self.database.update_comment(comment_id, content).await?;
+
+        if found {
+            Ok(content.into())
+        } else {
+            Err(Error::NotFound(format!(
+                "comment with ID {comment_id} does not exist"
+            )))
+        }
     }
 
     pub async fn set_post_description(
