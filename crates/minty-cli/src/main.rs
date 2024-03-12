@@ -62,6 +62,7 @@ async fn run_command(args: Cli, client: Client) -> Result {
             size,
         } => find(command, Pagination { from, size }, client).await,
         Command::New { command } => new(command, client).await,
+        Command::Obj { id, command } => object(id, command, client).await,
         Command::Post { id, command } => post(id, command, client).await,
         Command::Reply { comment, content } => {
             client.reply(comment, content).await
@@ -156,6 +157,20 @@ async fn new(command: New, client: Client) -> Result {
                 .await
         }
         New::Tag { name } => client.add_tag(&name).await,
+    }
+}
+
+async fn object(id: Uuid, command: Option<Object>, client: Client) -> Result {
+    let Some(command) = command else {
+        client.get_object(id).await?;
+        return Ok(());
+    };
+
+    match command {
+        Object::Get {
+            no_clobber,
+            destination,
+        } => client.get_object_data(id, no_clobber, destination).await,
     }
 }
 

@@ -15,7 +15,8 @@ uuid = { workspace = true }
 log = { workspace = true, optional = true }
 mime = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["json"] }
+tokio-stream = { workspace = true, optional = true }
 
 [features]
-http = ["serde", "dep:log", "dep:mime", "dep:reqwest"]
+http = ["serde", "dep:log", "dep:mime", "dep:reqwest", "dep:tokio-stream"]
 serde = ["dep:serde", "chrono/serde", "url/serde", "uuid/serde"]

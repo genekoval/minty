@@ -75,6 +75,13 @@ pub struct ObjectPreview {
     pub subtype: String,
 }
 
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct ObjectSummary {
+    pub media_type: String,
+    pub size: u64,
+}
+
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Pagination {

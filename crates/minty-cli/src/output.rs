@@ -1,8 +1,10 @@
 mod about;
+mod bytes;
 mod color;
 mod comment;
 mod icon;
 mod metadata;
+mod num;
 mod object;
 mod post;
 mod search_result;

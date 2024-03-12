@@ -12,7 +12,7 @@ use std::{
     path::PathBuf,
 };
 use tokio::fs::File;
-use tokio_util::io::ReaderStream;
+use tokio_util::io::{ReaderStream, StreamReader};
 
 pub type Result = crate::Result<()>;
 
@@ -300,6 +300,56 @@ impl Client {
 
     pub async fn get_comments(&self, post_id: Uuid) -> Result {
         self.print(self.repo.get_comments(post_id).await?)
+    }
+
+    pub async fn get_object(&self, id: Uuid) -> Result {
+        self.print(self.repo.get_object(id).await?)
+    }
+
+    pub async fn get_object_data(
+        &self,
+        id: Uuid,
+        no_clobber: bool,
+        destination: Option<PathBuf>,
+    ) -> Result {
+        let (_, stream) = self.repo.get_object_data(id).await?;
+        let mut reader = StreamReader::new(stream);
+
+        match destination.as_deref() {
+            Some(path) => {
+                let mut file = File::options()
+                    .create(true)
+                    .create_new(no_clobber)
+                    .write(true)
+                    .truncate(true)
+                    .open(path)
+                    .await
+                    .map_err(|err| {
+                        format!(
+                            "failed to open file '{}': {err}",
+                            path.display()
+                        )
+                    })?;
+
+                tokio::io::copy(&mut reader, &mut file).await.map_err(
+                    |err| {
+                        format!(
+                            "failed to stream data to file '{}': {err}",
+                            path.display()
+                        )
+                    },
+                )?;
+            }
+            None => {
+                let mut stdout = tokio::io::stdout();
+
+                tokio::io::copy(&mut reader, &mut stdout).await.map_err(
+                    |err| format!("failed to stream data to stdout: {err}"),
+                )?;
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn get_post(&self, id: Uuid) -> Result {

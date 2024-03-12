@@ -1,12 +1,13 @@
-use crate::{Error, ErrorKind, Result, Url, Uuid};
+use crate::{Error, ErrorKind, ObjectSummary, Result, Url, Uuid};
 
 use bytes::Bytes;
-use futures_core::TryStream;
+use futures_core::{Stream, TryStream};
 use log::debug;
 use mime::{Mime, TEXT_PLAIN_UTF_8};
 use reqwest::{header::CONTENT_TYPE, Body, Method, Request};
 use serde::{de::DeserializeOwned, Serialize};
-use std::error;
+use std::{error, io};
+use tokio_stream::StreamExt;
 
 trait MapReadErr {
     type Output;
@@ -42,6 +43,41 @@ impl Response {
         Uuid::try_parse(&text).map_err(|_| {
             Error::other("received unexpected server response".into())
         })
+    }
+
+    pub fn object(
+        self,
+    ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)> {
+        let content_length: u64 = self
+            .inner
+            .headers()
+            .get("content-length")
+            .expect("content-length header should be present")
+            .to_str()
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .expect("content-length header should be a valid number");
+
+        let content_type: String = self
+            .inner
+            .headers()
+            .get("content-type")
+            .expect("content-type header should be present")
+            .to_str()
+            .expect("content-type header should be valid ASCII")
+            .into();
+
+        let summary = ObjectSummary {
+            media_type: content_type,
+            size: content_length,
+        };
+
+        let stream = self
+            .inner
+            .bytes_stream()
+            .map(|result| result.map_err(io::Error::other));
+
+        Ok((summary, stream))
     }
 }
 

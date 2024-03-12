@@ -2,9 +2,10 @@ use crate::{conf::BucketConfig, db, Result};
 
 use bytes::Bytes;
 use fstore::{http::Client, Object, RemoveResult};
+use futures::Stream;
 use futures_core::TryStream;
-use minty::{ObjectPreview, Uuid};
-use std::{error, result};
+use minty::{ObjectPreview, ObjectSummary, Uuid};
+use std::{error, io, result};
 
 #[derive(Clone, Debug)]
 pub struct Bucket {
@@ -35,6 +36,19 @@ impl Bucket {
 
     pub async fn get_object(&self, id: Uuid) -> Result<fstore::Object> {
         Ok(self.bucket.get_object(id).await?)
+    }
+
+    pub async fn get_object_data(
+        &self,
+        id: Uuid,
+    ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)> {
+        let (summary, stream) = self.bucket.stream_object(id).await?;
+        let summary = ObjectSummary {
+            media_type: summary.media_type,
+            size: summary.size,
+        };
+
+        Ok((summary, stream))
     }
 
     pub async fn get_objects(

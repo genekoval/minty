@@ -1,8 +1,8 @@
 use crate::{model::*, Result};
 
 use bytes::Bytes;
-use futures_core::TryStream;
-use std::error::Error;
+use futures_core::{Stream, TryStream};
+use std::{error::Error, io};
 
 #[allow(async_fn_in_trait)]
 pub trait Repo {
@@ -96,6 +96,11 @@ pub trait Repo {
     async fn get_comments(&self, post_id: Uuid) -> Result<Vec<CommentData>>;
 
     async fn get_object(&self, id: Uuid) -> Result<Object>;
+
+    async fn get_object_data(
+        &self,
+        id: Uuid,
+    ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)>;
 
     async fn get_post(&self, id: Uuid) -> Result<Post>;
 

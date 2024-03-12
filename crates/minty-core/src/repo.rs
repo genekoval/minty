@@ -9,10 +9,10 @@ use crate::{
 };
 
 use bytes::Bytes;
-use futures::TryStream;
+use futures::{Stream, TryStream};
 use log::info;
 use minty::model::*;
-use std::{error, path::Path, result};
+use std::{error, io, path::Path, result};
 
 pub struct Repo {
     about: About,
@@ -485,6 +485,13 @@ impl Repo {
             preview_id: object.preview_id,
             posts: self.build_posts(posts).await?,
         })
+    }
+
+    pub async fn get_object_data(
+        &self,
+        id: Uuid,
+    ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)> {
+        self.bucket.get_object_data(id).await
     }
 
     pub async fn get_object_preview_errors(&self) -> Result<Vec<ObjectError>> {

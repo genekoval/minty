@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bytesize = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 log = { workspace = true, features = ["serde"] }
 minty = { path = "../minty", features = ["http"] }
+num-format = { workspace = true, features = ["with-system-locale"] }
 owo-colors = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 serde = { workspace = true, features = ["derive"] }
@@ -15,8 +17,8 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 textwrap = { workspace = true, features = ["terminal_size"] }
 timber = { workspace = true, features = ["serde"] }
-tokio = { workspace = true, features = ["fs", "rt"] }
-tokio-util = { workspace = true }
+tokio = { workspace = true, features = ["fs", "io-std", "rt"] }
+tokio-util = { workspace = true, features = ["io"] }
 
 [[bin]]
 name = "minty"

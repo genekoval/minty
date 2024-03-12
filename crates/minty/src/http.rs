@@ -7,8 +7,8 @@ use client::Client;
 use crate::{model::*, Result};
 
 use bytes::Bytes;
-use futures_core::TryStream;
-use std::error::Error;
+use futures_core::{Stream, TryStream};
+use std::{error::Error, io};
 
 pub struct Repo {
     client: Client,
@@ -271,6 +271,17 @@ impl crate::Repo for Repo {
             .await?
             .deserialize()
             .await
+    }
+
+    async fn get_object_data(
+        &self,
+        id: Uuid,
+    ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)> {
+        self.client
+            .get(format!("object/{id}/data"))
+            .send()
+            .await?
+            .object()
     }
 
     async fn get_post(&self, id: Uuid) -> Result<Post> {

@@ -9,6 +9,9 @@ impl Display for Icon {
     }
 }
 
+/// nf-oct-file_binary 
+pub const BINARY: Icon = Icon('\u{f471}');
+
 /// nf-md-calendar 󰃭
 pub const CALENDAR: Icon = Icon('\u{f00ed}');
 
@@ -23,6 +26,9 @@ pub const DOCUMENT: Icon = Icon('\u{f0219}');
 
 /// nf-md-eye 󰈈
 pub const EYE: Icon = Icon('\u{f0208}');
+
+/// nf-md-harddisk 󰋊
+pub const HARDDISK: Icon = Icon('\u{f02ca}');
 
 /// nf-md-file_image 󰈟
 pub const IMAGE: Icon = Icon('\u{f021f}');

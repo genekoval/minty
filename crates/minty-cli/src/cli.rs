@@ -87,6 +87,15 @@ pub enum Command {
         command: Option<Post>,
     },
 
+    /// Get information about an object
+    Obj {
+        /// Object ID
+        id: Uuid,
+
+        #[command(subcommand)]
+        command: Option<Object>,
+    },
+
     /// Read a single comment
     Comment {
         /// Comment ID
@@ -219,6 +228,21 @@ pub enum New {
     Tag {
         /// New tag's name
         name: String,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Object {
+    /// Download an object's data
+    Get {
+        #[arg(short, long)]
+        /// Do not overwrite an existing file
+        no_clobber: bool,
+
+        /// File to save object data to
+        ///
+        /// If not present, data will be streamed to STDOUT
+        destination: Option<PathBuf>,
     },
 }
 
