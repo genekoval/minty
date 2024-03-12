@@ -239,9 +239,7 @@ pub enum Object {
         /// Do not overwrite an existing file
         no_clobber: bool,
 
-        /// File to save object data to
-        ///
-        /// If not present, data will be streamed to STDOUT
+        /// Write output to a file instead of stdout
         destination: Option<PathBuf>,
     },
 }
