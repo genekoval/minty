@@ -136,7 +136,8 @@ where
         let seconds_per_unit = unit as i64;
         let count = self.duration.num_seconds() / seconds_per_unit;
 
-        self.duration -= Duration::seconds(count * seconds_per_unit);
+        self.duration -=
+            Duration::try_seconds(count * seconds_per_unit).unwrap();
 
         Some(DurationPart { count, unit })
     }
@@ -207,7 +208,8 @@ mod tests {
     #[test]
     fn relative() {
         let now = Local::now();
-        let delta = Duration::days(1) + Duration::hours(12);
+        let delta =
+            Duration::try_days(1).unwrap() + Duration::try_hours(12).unwrap();
 
         assert_eq!((now - delta).relative_long(2), "1 day, 12 hours ago");
         assert_eq!((now + delta).relative_long(2), "in 1 day, 11 hours");
