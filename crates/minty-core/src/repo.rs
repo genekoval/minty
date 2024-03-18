@@ -4,13 +4,14 @@ use crate::{
     error::{Error, Result},
     ico::Favicons,
     obj::Bucket,
+    preview,
     search::Search,
     About,
 };
 
 use bytes::Bytes;
 use futures::{Stream, TryStream};
-use log::info;
+use log::{error, info};
 use minty::model::*;
 use std::{error, io, path::Path, result};
 
@@ -24,46 +25,44 @@ pub struct Repo {
 }
 
 impl Repo {
-    pub async fn new(
-        RepoConfig {
-            version,
-            objects,
-            database,
-            search,
-        }: RepoConfig<'_>,
-    ) -> result::Result<Self, String> {
+    pub async fn new(config: RepoConfig<'_>) -> result::Result<Self, String> {
         let mut pool = db::PoolOptions::new();
 
-        if let Some(max_connections) = database.max_connections {
+        if let Some(max_connections) = config.database.max_connections {
             pool = pool.max_connections(max_connections);
         }
 
         let pool = pool
-            .connect(database.connection.as_url().as_str())
+            .connect(config.database.connection.as_url().as_str())
             .await
             .map_err(|err| {
                 format!("failed to establish database connection: {err}")
             })?;
 
-        let bucket = Bucket::new(objects).await?;
+        let db_support = pgtools::Database::new(
+            config.version.number,
+            pgtools::Options {
+                connection: &config.database.connection,
+                psql: &config.database.psql,
+                pg_dump: &config.database.pg_dump,
+                pg_restore: &config.database.pg_restore,
+                sql_directory: &config.database.sql_directory,
+            },
+        )?;
+
+        let database = Database::new(pool);
+        let bucket = Bucket::new(config.objects).await?;
         let favicons = Favicons::new(bucket.clone());
 
         Ok(Self {
-            about: About { version },
+            about: About {
+                version: config.version,
+            },
             bucket,
-            database: Database::new(pool),
-            db_support: pgtools::Database::new(
-                version.number,
-                pgtools::Options {
-                    connection: &database.connection,
-                    psql: &database.psql,
-                    pg_dump: &database.pg_dump,
-                    pg_restore: &database.pg_restore,
-                    sql_directory: &database.sql_directory,
-                },
-            )?,
+            database,
+            db_support,
             favicons,
-            search: Search::new(search)?,
+            search: Search::new(config.search)?,
         })
     }
 
@@ -491,7 +490,7 @@ impl Repo {
         &self,
         id: Uuid,
     ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)> {
-        self.bucket.get_object_data(id).await
+        self.bucket.get_object_stream(id).await
     }
 
     pub async fn get_object_preview_errors(&self) -> Result<Vec<ObjectError>> {
@@ -735,6 +734,23 @@ impl Repo {
     }
 
     async fn generate_preview(&self, object: &fstore::Object) -> Option<Uuid> {
-        todo!()
+        match preview::generate_preview(&self.bucket, object).await {
+            Ok(preview) => preview,
+            Err(message) => {
+                if let Err(err) = self
+                    .database
+                    .create_object_preview_error(object.id, &message)
+                    .await
+                {
+                    error!(
+                        "Failed to write object preview error \
+                        to database: {err}; error for object '{}': {message}",
+                        object.id
+                    );
+                }
+
+                None
+            }
+        }
     }
 }

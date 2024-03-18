@@ -136,7 +136,7 @@ impl crate::Repo for Repo {
             .serialize(objects)
             .send()
             .await?
-            .deserialize()
+            .date_time()
             .await
     }
 
@@ -175,7 +175,7 @@ impl crate::Repo for Repo {
             .serialize(objects)
             .send()
             .await?
-            .deserialize()
+            .date_time()
             .await
     }
 
@@ -341,7 +341,7 @@ impl crate::Repo for Repo {
             .serialize(objects)
             .send()
             .await?
-            .deserialize()
+            .date_time()
             .await
     }
 

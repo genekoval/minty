@@ -25,6 +25,10 @@ impl Bucket {
         Ok(Self { bucket })
     }
 
+    pub async fn add_object(&self, bytes: Bytes) -> Result<Object> {
+        Ok(self.bucket.add_object_bytes(bytes).await?)
+    }
+
     pub async fn add_object_stream<S>(&self, stream: S) -> Result<Object>
     where
         S: TryStream + Send + 'static,
@@ -38,11 +42,24 @@ impl Bucket {
         Ok(self.bucket.get_object(id).await?)
     }
 
-    pub async fn get_object_data(
+    pub async fn get_object_bytes(
+        &self,
+        id: Uuid,
+    ) -> Result<(ObjectSummary, Bytes)> {
+        let (summary, bytes) = self.bucket.get_object_bytes(id).await?;
+        let summary = ObjectSummary {
+            media_type: summary.media_type,
+            size: summary.size,
+        };
+
+        Ok((summary, bytes))
+    }
+
+    pub async fn get_object_stream(
         &self,
         id: Uuid,
     ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)> {
-        let (summary, stream) = self.bucket.stream_object(id).await?;
+        let (summary, stream) = self.bucket.get_object_stream(id).await?;
         let summary = ObjectSummary {
             media_type: summary.media_type,
             size: summary.size,

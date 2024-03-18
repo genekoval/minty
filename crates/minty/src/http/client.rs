@@ -1,4 +1,4 @@
-use crate::{Error, ErrorKind, ObjectSummary, Result, Url, Uuid};
+use crate::{DateTime, Error, ErrorKind, ObjectSummary, Result, Url, Uuid};
 
 use bytes::Bytes;
 use futures_core::{Stream, TryStream};
@@ -38,10 +38,21 @@ impl Response {
         self.inner.text().await.map_read_err()
     }
 
+    pub async fn date_time(self) -> Result<DateTime> {
+        let text = self.text().await?;
+        text.parse().map_err(|err| {
+            Error::other(format!(
+                "received invalid date from server '{text}': {err}"
+            ))
+        })
+    }
+
     pub async fn uuid(self) -> Result<Uuid> {
         let text = self.text().await?;
-        Uuid::try_parse(&text).map_err(|_| {
-            Error::other("received unexpected server response".into())
+        Uuid::try_parse(&text).map_err(|err| {
+            Error::other(format!(
+                "received invalid UUID from server '{text}': {err}"
+            ))
         })
     }
 

@@ -19,6 +19,7 @@ impl HumanReadable for Object {
 
         Metadata::new()
             .row("ID", icon::POUND, self.id)
+            .optional_row("Preview", icon::IMAGE, self.preview_id)
             .row("SHA256", icon::BINARY, self.hash.as_str())
             .row("Size", icon::HARDDISK, self.size.to_bytestring())
             .row(

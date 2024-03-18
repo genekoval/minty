@@ -110,6 +110,7 @@ fn main() -> ExitCode {
 
     let mut run = || {
         config.set_logger()?;
+        let _env = minty_core::initialize();
         run_async(&args, &config, &mut parent)
     };
 

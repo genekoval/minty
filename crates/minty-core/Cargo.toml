@@ -10,6 +10,7 @@ elasticsearch = { workspace = true }
 fstore = { workspace = true, features = ["http"] }
 futures = { workspace = true }
 futures-core = { workspace = true }
+graphicsmagick-sys = { workspace = true }
 log = { workspace = true }
 minty = { path = "../minty" }
 pgtools = { workspace = true }
@@ -20,3 +21,4 @@ serde_json = { workspace = true }
 sqlx = { workspace = true }
 sqlx-helper-macros = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }

@@ -119,3 +119,9 @@ transaction! {
 
     update_post_title(post_id: Uuid, title: &str) -> Option<(DateTime,)>;
 }
+
+impl Clone for Database {
+    fn clone(&self) -> Self {
+        Self::new(self.pool.clone())
+    }
+}
