@@ -29,8 +29,6 @@ database! {
 
     delete_comment(id: Uuid, recursive: bool) -> bool;
 
-    delete_object_preview_error(object_id: Uuid);
-
     delete_related_post(post_id: Uuid, related: Uuid);
 
     delete_tag_source(tag_id: Uuid, source_id: i64);

@@ -2,6 +2,7 @@ use mintyd::{conf::Config, server, Result};
 
 use clap::{Parser, Subcommand};
 use log::error;
+use minty::Uuid;
 use minty_core::{conf::RepoConfig, Repo, Version};
 use shadow_rs::shadow;
 use std::{path::PathBuf, process::ExitCode, result, sync::Arc};
@@ -65,6 +66,12 @@ enum Command {
         filename: PathBuf,
     },
 
+    /// Regenerate assets
+    Regen {
+        #[command(subcommand)]
+        command: Regen,
+    },
+
     /// Start the web server
     Serve {
         #[arg(short, long)]
@@ -74,6 +81,15 @@ enum Command {
         #[arg(short, long, requires = "daemon")]
         /// Path to the pidfile
         pidfile: Option<PathBuf>,
+    },
+}
+
+#[derive(Subcommand)]
+enum Regen {
+    /// Regenerate object previews
+    Previews {
+        /// ID of object for which to regenerate preview
+        object: Uuid,
     },
 }
 
@@ -187,6 +203,15 @@ async fn run_command(
             }
         }
         Command::Migrate => repo.migrate().await?,
+        Command::Regen { command } => match command {
+            Regen::Previews { object } => {
+                let preview = repo.regenerate_preview(*object).await?;
+                match preview {
+                    Some(id) => println!("{id}"),
+                    None => println!("<no preview>"),
+                }
+            }
+        },
         Command::Restore { filename } => repo.restore(filename).await?,
         Command::Serve { .. } => {
             server::serve(&config.http, repo.clone(), parent).await?

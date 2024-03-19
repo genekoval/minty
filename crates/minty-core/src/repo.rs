@@ -140,18 +140,30 @@ impl Repo {
         Ok(self.database.create_comment(post_id, content).await?.into())
     }
 
-    pub async fn add_object<S>(&self, stream: S) -> Result<ObjectPreview>
-    where
-        S: TryStream + Send + 'static,
-        S::Error: Into<Box<dyn error::Error + Send + Sync>>,
-        Bytes: From<S::Ok>,
-    {
-        let object = self.bucket.add_object_stream(stream).await?;
-        let preview = self.generate_preview(&object).await;
+    async fn add_object(
+        &self,
+        object: fstore::Object,
+    ) -> Result<ObjectPreview> {
+        let result = preview::generate_preview(&self.bucket, &object).await;
+        let preview = result.as_ref().ok().cloned().flatten();
 
         self.database
             .create_object(object.id, preview, None)
             .await?;
+
+        if let Err(preview_error) = result {
+            if let Err(err) = self
+                .database
+                .create_object_preview_error(object.id, &preview_error)
+                .await
+            {
+                error!(
+                    "Failed to write object preview error to database: {err}; \
+                    error for object '{}': {preview_error}",
+                    object.id
+                );
+            }
+        }
 
         Ok(ObjectPreview {
             id: object.id,
@@ -159,6 +171,16 @@ impl Repo {
             r#type: object.r#type,
             subtype: object.subtype,
         })
+    }
+
+    pub async fn add_object_stream<S>(&self, stream: S) -> Result<ObjectPreview>
+    where
+        S: TryStream + Send + 'static,
+        S::Error: Into<Box<dyn error::Error + Send + Sync>>,
+        Bytes: From<S::Ok>,
+    {
+        let object = self.bucket.add_object_stream(stream).await?;
+        self.add_object(object).await
     }
 
     pub async fn add_post_objects(
@@ -616,13 +638,6 @@ impl Repo {
         Ok(())
     }
 
-    pub async fn regenerate_preview(
-        &self,
-        object_id: Uuid,
-    ) -> Result<Option<Uuid>> {
-        todo!()
-    }
-
     pub async fn set_comment_content(
         &self,
         comment_id: Uuid,
@@ -733,23 +748,30 @@ impl Repo {
         Ok(update.names.into())
     }
 
-    async fn generate_preview(&self, object: &fstore::Object) -> Option<Uuid> {
-        match preview::generate_preview(&self.bucket, object).await {
-            Ok(preview) => preview,
-            Err(message) => {
-                if let Err(err) = self
-                    .database
-                    .create_object_preview_error(object.id, &message)
-                    .await
-                {
-                    error!(
-                        "Failed to write object preview error \
-                        to database: {err}; error for object '{}': {message}",
-                        object.id
-                    );
-                }
+    pub async fn regenerate_preview(
+        &self,
+        object: Uuid,
+    ) -> Result<Option<Uuid>> {
+        let object = self.bucket.get_object(object).await?;
+        self.update_preview(&object).await
+    }
 
-                None
+    async fn update_preview(
+        &self,
+        object: &fstore::Object,
+    ) -> Result<Option<Uuid>> {
+        match preview::generate_preview(&self.bucket, object).await {
+            Ok(preview) => {
+                self.database
+                    .update_object_preview(object.id, preview)
+                    .await?;
+                Ok(preview)
+            }
+            Err(message) => {
+                self.database
+                    .create_object_preview_error(object.id, &message)
+                    .await?;
+                Err(Error::Internal(message))
             }
         }
     }

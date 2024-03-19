@@ -653,15 +653,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION delete_object_preview_error(
-    a_object_id     uuid
-) RETURNS void AS $$
-BEGIN
-    DELETE FROM data.object_preview_error
-    WHERE object_id = a_object_id;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE FUNCTION delete_post(
     a_post_id       uuid
 ) RETURNS void AS $$
@@ -1040,6 +1031,9 @@ BEGIN
 
     UPDATE data.object
     SET preview_id = a_preview_id
+    WHERE object_id = a_object_id;
+
+    DELETE FROM data.object_preview_error
     WHERE object_id = a_object_id;
 END;
 $$ LANGUAGE plpgsql;

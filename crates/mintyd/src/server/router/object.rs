@@ -16,7 +16,7 @@ async fn add_object(
     request: Request,
 ) -> Result<Json<ObjectPreview>> {
     let stream = request.into_body().into_data_stream();
-    let object = repo.add_object(stream).await?;
+    let object = repo.add_object_stream(stream).await?;
 
     Ok(Json(object))
 }
