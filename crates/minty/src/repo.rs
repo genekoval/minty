@@ -20,7 +20,7 @@ pub trait Repo {
 
     async fn add_object<S>(&self, stream: S) -> Result<ObjectPreview>
     where
-        S: TryStream + Send + 'static,
+        S: TryStream + Send + Sync + 'static,
         S::Error: Into<Box<dyn Error + Send + Sync>>,
         Bytes: From<S::Ok>;
 

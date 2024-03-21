@@ -9,6 +9,7 @@ use axum::{
 };
 use axum_extra::body::AsyncReadBody;
 use minty::{Object, ObjectPreview, ObjectSummary, Uuid};
+use sync_wrapper::SyncStream;
 use tokio_util::io::StreamReader;
 
 async fn add_object(
@@ -16,7 +17,7 @@ async fn add_object(
     request: Request,
 ) -> Result<Json<ObjectPreview>> {
     let stream = request.into_body().into_data_stream();
-    let object = repo.add_object_stream(stream).await?;
+    let object = repo.add_object_stream(SyncStream::new(stream)).await?;
 
     Ok(Json(object))
 }

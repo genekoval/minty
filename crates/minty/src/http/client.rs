@@ -132,7 +132,7 @@ impl RequestBuilder {
 
     pub fn stream<S>(mut self, stream: S) -> Self
     where
-        S: TryStream + Send + 'static,
+        S: TryStream + Send + Sync + 'static,
         S::Error: Into<Box<dyn error::Error + Send + Sync>>,
         Bytes: From<S::Ok>,
     {

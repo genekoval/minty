@@ -20,7 +20,7 @@ num_cpus = "1"
 num-format = "0.4"
 owo-colors = "4"
 ratatui = "0.26"
-reqwest = "0.11"
+reqwest = "0.12"
 scraper = "0.19"
 serde = "1"
 serde_json = "1"
@@ -33,6 +33,7 @@ sqlx = { version = "0.7", features = [
     "runtime-tokio",
     "uuid",
 ] }
+sync_wrapper = "1"
 textwrap = "0.16"
 thiserror = "1"
 tokio = "1"
