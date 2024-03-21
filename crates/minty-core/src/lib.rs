@@ -8,10 +8,12 @@ mod obj;
 mod preview;
 mod repo;
 mod search;
+mod task;
 
 pub use error::{Error, Result};
 pub use model::{About, Version};
 pub use repo::Repo;
+pub use task::Task;
 
 pub struct Env {
     #[allow(dead_code)]

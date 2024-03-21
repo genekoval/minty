@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 bytes = { workspace = true }
 bytesize = { workspace = true }
+chrono = { workspace = true }
 elasticsearch = { workspace = true }
 fstore = { workspace = true, features = ["http"] }
 futures = { workspace = true }
@@ -21,4 +22,5 @@ serde_json = { workspace = true }
 sqlx = { workspace = true }
 sqlx-helper-macros = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["rt", "sync"] }
+tokio-util = { workspace = true, features = ["rt"] }

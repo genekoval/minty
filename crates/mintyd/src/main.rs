@@ -1,6 +1,6 @@
-use mintyd::{conf::Config, server, Result};
+use mintyd::{conf::Config, server, ProgressBarTask, Result};
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use log::error;
 use minty::Uuid;
 use minty_core::{conf::RepoConfig, Repo, Version};
@@ -89,8 +89,26 @@ enum Regen {
     /// Regenerate object previews
     Previews {
         /// ID of object for which to regenerate preview
-        object: Uuid,
+        object: Option<Uuid>,
+
+        #[command(subcommand)]
+        command: Option<RegenPreviews>,
     },
+}
+
+#[derive(Subcommand)]
+enum RegenPreviews {
+    All(RegenPreviewsAll),
+}
+
+#[derive(Args)]
+#[command(args_conflicts_with_subcommands = true)]
+struct RegenPreviewsAll {
+    #[arg(short, long, default_value = "100")]
+    batch_size: usize,
+
+    #[arg(short, long, default_value = "32")]
+    max_tasks: usize,
 }
 
 fn main() -> ExitCode {
@@ -204,13 +222,20 @@ async fn run_command(
         }
         Command::Migrate => repo.migrate().await?,
         Command::Regen { command } => match command {
-            Regen::Previews { object } => {
-                let preview = repo.regenerate_preview(*object).await?;
-                match preview {
-                    Some(id) => println!("{id}"),
-                    None => println!("<no preview>"),
+            Regen::Previews { object, command } => match object {
+                Some(object) => {
+                    let preview = repo.regenerate_preview(*object).await?;
+                    match preview {
+                        Some(id) => println!("{id}"),
+                        None => println!("<no preview>"),
+                    }
                 }
-            }
+                None => match command.as_ref().unwrap() {
+                    RegenPreviews::All(args) => {
+                        regenerate_previews(repo, args).await?
+                    }
+                },
+            },
         },
         Command::Restore { filename } => repo.restore(filename).await?,
         Command::Serve { .. } => {
@@ -219,4 +244,32 @@ async fn run_command(
     };
 
     Ok(())
+}
+
+async fn regenerate_previews(
+    repo: &Arc<Repo>,
+    args: &RegenPreviewsAll,
+) -> Result {
+    let (task, handle) = repo
+        .regenerate_previews(args.batch_size, args.max_tasks)
+        .await?;
+
+    let title = "Regenerating object previews".into();
+    let progress = match ProgressBarTask::new(title, task) {
+        Ok(progress) => Some(progress),
+        Err(err) => {
+            eprintln!("{err}");
+            None
+        }
+    };
+
+    let result = handle.await;
+
+    if let Some(progress) = progress {
+        if let Err(err) = progress.join().await {
+            eprintln!("{err}");
+        }
+    }
+
+    Ok(result??)
 }

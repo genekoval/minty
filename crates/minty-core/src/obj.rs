@@ -42,6 +42,13 @@ impl Bucket {
         Ok(self.bucket.get_object(id).await?)
     }
 
+    pub async fn get_objects(
+        &self,
+        objects: &[Uuid],
+    ) -> Result<Vec<fstore::Object>> {
+        Ok(self.bucket.get_objects(objects).await?)
+    }
+
     pub async fn get_object_bytes(
         &self,
         id: Uuid,
@@ -68,7 +75,7 @@ impl Bucket {
         Ok((summary, stream))
     }
 
-    pub async fn get_objects(
+    pub async fn get_object_previews(
         &self,
         objects: Vec<db::Object>,
     ) -> Result<Vec<ObjectPreview>> {

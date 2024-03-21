@@ -6,14 +6,20 @@ use crate::{
     obj::Bucket,
     preview,
     search::Search,
+    task::Task,
     About,
 };
 
 use bytes::Bytes;
-use futures::{Stream, TryStream};
+use futures::{Stream, StreamExt, TryStream};
 use log::{error, info};
 use minty::model::*;
-use std::{error, io, path::Path, result};
+use std::{error, io, path::Path, result, sync::Arc};
+use tokio::{
+    sync::Semaphore,
+    task::{self, JoinHandle},
+};
+use tokio_util::task::TaskTracker;
 
 pub struct Repo {
     about: About,
@@ -537,7 +543,7 @@ impl Repo {
             visibility: post.visibility.into(),
             created: post.created,
             modified: post.modified,
-            objects: self.bucket.get_objects(post.objects).await?,
+            objects: self.bucket.get_object_previews(post.objects).await?,
             posts: self.build_posts(post.posts).await?,
             tags: post.tags.into_iter().map(|tag| tag.into()).collect(),
             comment_count: post.comment_count,
@@ -567,7 +573,8 @@ impl Repo {
             .filter_map(|post| post.preview.clone())
             .collect();
 
-        let mut objects = self.bucket.get_objects(objects).await?.into_iter();
+        let mut objects =
+            self.bucket.get_object_previews(objects).await?.into_iter();
 
         let posts = posts
             .into_iter()
@@ -753,14 +760,8 @@ impl Repo {
         object: Uuid,
     ) -> Result<Option<Uuid>> {
         let object = self.bucket.get_object(object).await?;
-        self.update_preview(&object).await
-    }
 
-    async fn update_preview(
-        &self,
-        object: &fstore::Object,
-    ) -> Result<Option<Uuid>> {
-        match preview::generate_preview(&self.bucket, object).await {
+        match preview::generate_preview(&self.bucket, &object).await {
             Ok(preview) => {
                 self.database
                     .update_object_preview(object.id, preview)
@@ -772,6 +773,135 @@ impl Repo {
                     .create_object_preview_error(object.id, &message)
                     .await?;
                 Err(Error::Internal(message))
+            }
+        }
+    }
+
+    pub async fn regenerate_previews(
+        self: &Arc<Self>,
+        batch_size: usize,
+        max_tasks: usize,
+    ) -> Result<(Task, JoinHandle<Result<()>>)> {
+        let total: u64 = self
+            .database
+            .read_total_objects()
+            .await?
+            .try_into()
+            .unwrap();
+
+        let task = Task::new(total);
+        let guard = task.guard();
+        let repo = self.clone();
+
+        let handle = task::spawn(async move {
+            repo.regenerate_previews_task(guard.task(), batch_size, max_tasks)
+                .await
+        });
+
+        Ok((task, handle))
+    }
+
+    async fn regenerate_previews_task(
+        self: Arc<Self>,
+        task: Task,
+        batch_size: usize,
+        max_tasks: usize,
+    ) -> Result<()> {
+        let tracker = TaskTracker::new();
+        let semaphore = Arc::new(Semaphore::new(max_tasks));
+        let mut error: Option<Error> = None;
+        let mut stream = self.database.stream_objects().chunks(batch_size);
+
+        'stream: while let Some(chunk) = stream.next().await {
+            let objects = match chunk
+                .into_iter()
+                .collect::<result::Result<Vec<_>, _>>()
+                .map(|objects| {
+                    objects
+                        .into_iter()
+                        .map(|object| object.id)
+                        .collect::<Vec<_>>()
+                }) {
+                Ok(objects) => objects,
+                Err(err) => {
+                    error = Some(err.into());
+                    break 'stream;
+                }
+            };
+
+            let objects = match self.bucket.get_objects(&objects).await {
+                Ok(objects) => objects,
+                Err(err) => {
+                    error = Some(err);
+                    break 'stream;
+                }
+            };
+
+            for object in objects {
+                let permit = tokio::select! {
+                    biased;
+
+                    _ = task.cancelled() => {
+                        break 'stream;
+                    }
+                    permit = semaphore.clone().acquire_owned() => {
+                        permit.unwrap()
+                    }
+                };
+
+                let repo = self.clone();
+                let task = task.clone();
+
+                tracker.spawn(async move {
+                    repo.regenerate_previews_subtask(&task, &object).await;
+                    task.increment();
+                    drop(permit);
+                });
+            }
+        }
+
+        tracker.close();
+        tracker.wait().await;
+
+        match error {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
+    }
+
+    async fn regenerate_previews_subtask(
+        &self,
+        task: &Task,
+        object: &fstore::Object,
+    ) {
+        match preview::generate_preview(&self.bucket, object).await {
+            Ok(preview) => {
+                if let Err(err) = self
+                    .database
+                    .update_object_preview(object.id, preview)
+                    .await
+                {
+                    error!(
+                        "Failed to update object \
+                        preview for {}: {err}",
+                        object.id
+                    );
+                    task.error();
+                }
+            }
+            Err(message) => {
+                if let Err(err) = self
+                    .database
+                    .create_object_preview_error(object.id, &message)
+                    .await
+                {
+                    error!(
+                        "Failed to write object preview error \
+                        for {}: {err}; preview error: {message}",
+                        object.id
+                    );
+                }
+                task.error();
             }
         }
     }
