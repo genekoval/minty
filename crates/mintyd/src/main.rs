@@ -3,13 +3,20 @@ use mintyd::{conf::Config, server, ProgressBarTask, Result};
 use clap::{Args, Parser, Subcommand};
 use log::error;
 use minty::Uuid;
-use minty_core::{conf::RepoConfig, Repo, Version};
+use minty_core::{conf::RepoConfig, Repo, Task, Version};
 use shadow_rs::shadow;
-use std::{path::PathBuf, process::ExitCode, result, sync::Arc};
+use std::{
+    io::{stdout, IsTerminal},
+    path::PathBuf,
+    process::ExitCode,
+    result,
+    sync::Arc,
+};
 use timber::{
     syslog::{self, Facility, LogOption},
     Sink::Syslog,
 };
+use tokio::task::JoinHandle;
 
 shadow!(build);
 
@@ -72,6 +79,20 @@ enum Command {
         command: Regen,
     },
 
+    /// Rebuild all search engine indices
+    Reindex {
+        #[arg(short, long, default_value = "100", global = true)]
+        /// Max items to upload to search engine in a single request
+        batch_size: usize,
+
+        #[arg(short, long, global = true)]
+        /// Do not display progress
+        quiet: bool,
+
+        #[command(subcommand)]
+        command: Option<Reindex>,
+    },
+
     /// Start the web server
     Serve {
         #[arg(short, long)]
@@ -109,6 +130,15 @@ struct RegenPreviewsAll {
 
     #[arg(short, long, default_value = "32")]
     max_tasks: usize,
+}
+
+#[derive(Subcommand)]
+enum Reindex {
+    /// Reindex all posts
+    Posts,
+
+    /// Reindex all tags
+    Tags,
 }
 
 fn main() -> ExitCode {
@@ -219,6 +249,8 @@ async fn run_command(
             } else {
                 repo.init().await?;
             }
+
+            repo.create_indices().await?;
         }
         Command::Migrate => repo.migrate().await?,
         Command::Regen { command } => match command {
@@ -236,6 +268,24 @@ async fn run_command(
                     }
                 },
             },
+        },
+        Command::Reindex {
+            batch_size,
+            quiet,
+            command,
+        } => match command {
+            Some(index) => match index {
+                Reindex::Posts => {
+                    reindex_posts(repo, *batch_size, *quiet).await?
+                }
+                Reindex::Tags => {
+                    reindex_tags(repo, *batch_size, *quiet).await?
+                }
+            },
+            None => {
+                reindex_posts(repo, *batch_size, *quiet).await?;
+                reindex_tags(repo, *batch_size, *quiet).await?;
+            }
         },
         Command::Restore { filename } => repo.restore(filename).await?,
         Command::Serve { .. } => {
@@ -272,4 +322,71 @@ async fn regenerate_previews(
     }
 
     Ok(result??)
+}
+
+async fn reindex(
+    index: &str,
+    quiet: bool,
+    (task, handle): (Task, JoinHandle<minty_core::Result<()>>),
+) -> Result {
+    let progress = if quiet || !stdout().is_terminal() {
+        None
+    } else {
+        let title = format!(
+            "Indexing {} {}{}",
+            task.total(),
+            index,
+            match task.total() {
+                1 => "",
+                _ => "s",
+            }
+        );
+
+        match ProgressBarTask::new(title, task.clone()) {
+            Ok(progress) => Some(progress),
+            Err(err) => {
+                eprintln!("{err}");
+                None
+            }
+        }
+    };
+
+    let result = handle.await;
+
+    if let Some(progress) = progress {
+        if let Err(err) = progress.join().await {
+            eprintln!("{err}");
+        }
+    }
+
+    result??;
+
+    println!(
+        "Indexed {} {}{} in {}ms",
+        task.total(),
+        index,
+        match task.total() {
+            1 => "",
+            _ => "s",
+        },
+        task.elapsed().num_milliseconds()
+    );
+
+    Ok(())
+}
+
+async fn reindex_posts(
+    repo: &Arc<Repo>,
+    batch_size: usize,
+    quiet: bool,
+) -> Result {
+    reindex("post", quiet, repo.reindex_posts(batch_size).await?).await
+}
+
+async fn reindex_tags(
+    repo: &Arc<Repo>,
+    batch_size: usize,
+    quiet: bool,
+) -> Result {
+    reindex("tag", quiet, repo.reindex_tags(batch_size).await?).await
 }

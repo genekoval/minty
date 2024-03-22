@@ -1,19 +1,20 @@
 use crate::{
     conf::RepoConfig,
-    db::{self, Database},
+    db::{self, Database, Id},
     error::{Error, Result},
     ico::Favicons,
     obj::Bucket,
     preview,
-    search::Search,
+    search::{Index, Search},
     task::Task,
     About,
 };
 
 use bytes::Bytes;
-use futures::{Stream, StreamExt, TryStream};
+use futures::{stream::BoxStream, Stream, StreamExt, TryStream};
 use log::{error, info};
 use minty::model::*;
+use serde::Serialize;
 use std::{error, io, path::Path, result, sync::Arc};
 use tokio::{
     sync::Semaphore,
@@ -782,12 +783,8 @@ impl Repo {
         batch_size: usize,
         max_tasks: usize,
     ) -> Result<(Task, JoinHandle<Result<()>>)> {
-        let total: u64 = self
-            .database
-            .read_total_objects()
-            .await?
-            .try_into()
-            .unwrap();
+        let total =
+            self.database.read_object_total().await?.try_into().unwrap();
 
         let task = Task::new(total);
         let guard = task.guard();
@@ -904,5 +901,84 @@ impl Repo {
                 task.error();
             }
         }
+    }
+
+    async fn reindex<T>(
+        &self,
+        task: Task,
+        index: &Index,
+        batch_size: usize,
+        stream: BoxStream<'_, sqlx::Result<T>>,
+    ) -> Result<()>
+    where
+        T: Id + Serialize,
+    {
+        index.recreate().await?;
+
+        let mut stream = stream.chunks(batch_size);
+        let mut error: Option<Error> = None;
+
+        while let Some(chunk) = stream.next().await {
+            let items = match chunk
+                .into_iter()
+                .collect::<result::Result<Vec<_>, _>>()
+            {
+                Ok(items) => items,
+                Err(err) => {
+                    error = Some(err.into());
+                    break;
+                }
+            };
+
+            index.bulk_create(&items).await?;
+            task.progress(items.len());
+        }
+
+        index.refresh().await?;
+
+        match error {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
+    }
+
+    pub async fn reindex_posts(
+        self: &Arc<Self>,
+        batch_size: usize,
+    ) -> Result<(Task, JoinHandle<Result<()>>)> {
+        let total = self.database.read_post_total().await?.try_into().unwrap();
+
+        let task = Task::new(total);
+        let guard = task.guard();
+        let repo = self.clone();
+
+        let handle = task::spawn(async move {
+            let index = &repo.search.indices.post;
+            let stream = repo.database.read_post_search();
+
+            repo.reindex(guard.task(), index, batch_size, stream).await
+        });
+
+        Ok((task, handle))
+    }
+
+    pub async fn reindex_tags(
+        self: &Arc<Self>,
+        batch_size: usize,
+    ) -> Result<(Task, JoinHandle<Result<()>>)> {
+        let total = self.database.read_tag_total().await?.try_into().unwrap();
+
+        let task = Task::new(total);
+        let guard = task.guard();
+        let repo = self.clone();
+
+        let handle = task::spawn(async move {
+            let index = &repo.search.indices.tag;
+            let stream = repo.database.read_tag_search();
+
+            repo.reindex(guard.task(), index, batch_size, stream).await
+        });
+
+        Ok((task, handle))
     }
 }

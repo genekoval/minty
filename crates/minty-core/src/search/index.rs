@@ -1,10 +1,11 @@
 use super::ResponseExt;
 
-use crate::Result;
+use crate::{db::Id, Result};
 
 use elasticsearch::{
-    indices::{IndicesCreateParts, IndicesDeleteParts},
-    CreateParts, DeleteParts, Elasticsearch, SearchParts, UpdateParts,
+    indices::{IndicesCreateParts, IndicesDeleteParts, IndicesRefreshParts},
+    BulkOperation, BulkParts, CreateParts, DeleteParts, Elasticsearch,
+    SearchParts, UpdateParts,
 };
 use minty::Uuid;
 use serde::{Deserialize, Serialize};
@@ -64,6 +65,26 @@ impl Index {
         }
     }
 
+    pub async fn bulk_create<T>(&self, items: &[T]) -> Result<()>
+    where
+        T: Id + Serialize,
+    {
+        let ops: Vec<BulkOperation<&T>> = items
+            .iter()
+            .map(|item| BulkOperation::create(item.id(), item).into())
+            .collect();
+
+        self.client
+            .bulk(BulkParts::Index(&self.name))
+            .body(ops)
+            .send()
+            .await?
+            .check()
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn create(&self) -> Result<()> {
         self.client
             .indices()
@@ -93,6 +114,18 @@ impl Index {
     pub async fn recreate(&self) -> Result<()> {
         self.delete().await?;
         self.create().await
+    }
+
+    pub async fn refresh(&self) -> Result<()> {
+        self.client
+            .indices()
+            .refresh(IndicesRefreshParts::Index(&[&self.name]))
+            .send()
+            .await?
+            .check()
+            .await?;
+
+        Ok(())
     }
 
     pub async fn search(

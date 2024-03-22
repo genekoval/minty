@@ -1,7 +1,8 @@
 mod index;
 mod response;
 
-use index::Indices;
+pub use index::{Index, Indices};
+
 use response::ResponseExt;
 
 use crate::{conf::SearchConfig, db::PostSearch, Result};
@@ -16,7 +17,7 @@ use std::result;
 
 #[derive(Debug)]
 pub struct Search {
-    indices: Indices,
+    pub indices: Indices,
 }
 
 impl Search {

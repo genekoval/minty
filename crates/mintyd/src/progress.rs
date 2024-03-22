@@ -17,8 +17,8 @@ const VIEWPORT_HEIGHT: u16 = 2;
 #[derive(Clone, Copy, Debug)]
 struct Progress<'a> {
     title: &'a str,
-    completed: u64,
-    total: u64,
+    completed: usize,
+    total: usize,
 }
 
 impl Widget for &Progress<'_> {

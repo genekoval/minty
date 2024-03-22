@@ -45,11 +45,15 @@ database! {
 
     read_object_preview_errors() -> Vec<ObjectError>;
 
+    read_object_total() -> i64;
+
     read_post(id: Uuid) -> Option<Post>;
 
     read_posts(posts: &[Uuid]) -> Vec<PostPreview>;
 
     read_post_search() -> Stream<PostSearch>;
+
+    read_post_total() -> i64;
 
     read_site(scheme: &str, host: &str) -> Option<(i64,)>;
 
@@ -61,7 +65,7 @@ database! {
 
     read_tag_search() -> Stream<TagSearch>;
 
-    read_total_objects() -> i64;
+    read_tag_total() -> i64;
 
     update_comment(comment_id: Uuid, content: &str) -> bool;
 

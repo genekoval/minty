@@ -200,7 +200,7 @@ SELECT
     visibility,
     date_created,
     date_modified,
-    array_agg(tag_id) FILTER (WHERE tag_id IS NOT NULL) AS tags
+    coalesce(array_agg(tag_id) FILTER (WHERE tag_id IS NOT NULL), '{}') AS tags
 FROM data.post
 LEFT JOIN data.post_tag USING (post_id)
 GROUP BY post_id;
@@ -967,14 +967,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION read_total_objects()
-RETURNS SETOF bigint AS $$
-BEGIN
-    RETURN QUERY
-    SELECT count(*) FROM data.object;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE FUNCTION read_object(
     a_object_id     uuid
 ) RETURNS SETOF object AS $$
@@ -996,6 +988,24 @@ BEGIN
     JOIN data.post_object post_object USING (post_id)
     WHERE post_object.object_id = a_object_id
     ORDER BY date_created DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION read_object_total() RETURNS int8 AS $$
+BEGIN
+    RETURN (SELECT count(*) FROM data.object);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION read_post_total() RETURNS int8 AS $$
+BEGIN
+    RETURN (SELECT count(*) FROM data.post);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION read_tag_total() RETURNS int8 AS $$
+BEGIN
+    RETURN (SELECT count(*) FROM data.tag);
 END;
 $$ LANGUAGE plpgsql;
 

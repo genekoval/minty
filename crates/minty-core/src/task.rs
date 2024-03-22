@@ -1,7 +1,7 @@
 use chrono::{Duration, Local};
 use minty::DateTime;
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
+    atomic::{AtomicUsize, Ordering},
     Arc, RwLock,
 };
 use tokio_util::sync::CancellationToken;
@@ -11,9 +11,9 @@ struct Inner {
     token: CancellationToken,
     start: DateTime,
     end: RwLock<Option<DateTime>>,
-    total: u64,
-    completed: AtomicU64,
-    errors: AtomicU64,
+    total: usize,
+    completed: AtomicUsize,
+    errors: AtomicUsize,
 }
 
 #[derive(Clone, Debug)]
@@ -22,7 +22,7 @@ pub struct Task {
 }
 
 impl Task {
-    pub(crate) fn new(total: u64) -> Self {
+    pub(crate) fn new(total: usize) -> Self {
         Self {
             inner: Arc::new(Inner {
                 start: Local::now(),
@@ -64,20 +64,24 @@ impl Task {
         self.ended().is_some()
     }
 
-    pub fn total(&self) -> u64 {
+    pub fn total(&self) -> usize {
         self.inner.total
     }
 
-    pub fn completed(&self) -> u64 {
+    pub fn completed(&self) -> usize {
         self.inner.completed.load(Ordering::Relaxed)
     }
 
-    pub fn errors(&self) -> u64 {
+    pub fn errors(&self) -> usize {
         self.inner.errors.load(Ordering::Relaxed)
     }
 
+    pub(crate) fn progress(&self, amount: usize) {
+        self.inner.completed.fetch_add(amount, Ordering::Relaxed);
+    }
+
     pub(crate) fn increment(&self) {
-        self.inner.completed.fetch_add(1, Ordering::Relaxed);
+        self.progress(1);
     }
 
     pub(crate) fn error(&self) {

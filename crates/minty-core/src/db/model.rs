@@ -11,6 +11,10 @@ use sqlx::{
     Decode, Encode, FromRow, Postgres, Type,
 };
 
+pub trait Id {
+    fn id(&self) -> Uuid;
+}
+
 #[derive(Clone, Debug, FromRow)]
 pub struct Comment {
     #[sqlx(rename = "comment_id")]
@@ -190,16 +194,26 @@ impl PgHasArrayType for PostPreview {
 
 #[derive(Clone, Debug, FromRow, Serialize)]
 pub struct PostSearch {
+    #[serde(skip)]
     #[sqlx(rename = "post_id")]
     pub id: Uuid,
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub title: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub description: String,
     pub visibility: Visibility,
     #[sqlx(rename = "date_created")]
     pub created: DateTime,
     #[sqlx(rename = "date_modified")]
     pub modified: DateTime,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<Uuid>,
+}
+
+impl Id for PostSearch {
+    fn id(&self) -> Uuid {
+        self.id
+    }
 }
 
 #[derive(Clone, Debug, FromRow, Type)]
@@ -351,11 +365,18 @@ impl From<TagPreview> for minty::TagPreview {
     }
 }
 
-#[derive(Clone, Debug, FromRow)]
+#[derive(Clone, Debug, FromRow, Serialize)]
 pub struct TagSearch {
+    #[serde(skip)]
     #[sqlx(rename = "tag_id")]
     pub id: Uuid,
     pub names: Vec<String>,
+}
+
+impl Id for TagSearch {
+    fn id(&self) -> Uuid {
+        self.id
+    }
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
