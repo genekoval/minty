@@ -6,12 +6,12 @@ mod io;
 mod packet;
 mod sws;
 
-use codec::CodecContext;
-use format::FormatContext;
-use frame::*;
-use io::IoContext;
-use packet::PacketHandle;
-use sws::SwsContext;
+pub use codec::*;
+pub use format::*;
+pub use frame::*;
+pub use io::*;
+pub use packet::*;
+pub use sws::*;
 
 use super::{
     image::{self, Image},

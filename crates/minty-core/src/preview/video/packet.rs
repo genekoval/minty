@@ -1,6 +1,6 @@
 use super::ffmpeg::{self, AVPacket, AVStream};
 
-use std::ops::Deref;
+use std::{ops::Deref, slice};
 
 pub struct PacketHandle(*mut AVPacket);
 
@@ -55,6 +55,13 @@ impl<'a> Packet<'a> {
 
     pub fn as_ptr(&self) -> *const AVPacket {
         self.0.as_ptr()
+    }
+
+    pub fn data(&self) -> &[u8] {
+        let data = self.0.data;
+        let len = self.0.size as usize;
+
+        unsafe { slice::from_raw_parts(data, len) }
     }
 
     pub fn is_stream(&self, stream: &AVStream) -> bool {
