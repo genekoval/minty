@@ -1,6 +1,6 @@
 mod magick;
 
-use magick::{Geometry, Image};
+pub use magick::*;
 
 use super::{Bucket, Object, Result};
 
@@ -30,10 +30,7 @@ impl Drop for Env {
     }
 }
 
-fn make_thumbnail(image: Bytes) -> result::Result<Bytes, String> {
-    let mut image = Image::from_bytes(image)
-        .map_err(|err| format!("failed to read image data: {err}"))?;
-
+pub fn make_thumbnail(image: &mut Image) -> result::Result<Bytes, String> {
     let width = image.width();
     let height = image.height();
 
@@ -78,9 +75,14 @@ pub async fn generate_preview(bucket: &Bucket, object: &Object) -> Result {
         .await
         .map_err(|err| format!("failed to retrieve image data: {err}"))?;
 
-    let thumbnail = task::spawn_blocking(move || make_thumbnail(bytes))
-        .await
-        .map_err(|err| err.to_string())??;
+    let thumbnail = task::spawn_blocking(move || {
+        let mut image = Image::from_bytes(bytes)
+            .map_err(|err| format!("failed to read image data: {err}"))?;
+
+        make_thumbnail(&mut image)
+    })
+    .await
+    .map_err(|err| err.to_string())??;
 
     let preview = bucket.add_object(thumbnail).await.map_err(|err| {
         format!("failed to upload thumbnail to bucket: {err}")

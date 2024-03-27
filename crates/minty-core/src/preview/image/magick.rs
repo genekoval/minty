@@ -218,7 +218,7 @@ impl Image {
         let image = unsafe {
             gm::BlobToImage(
                 info.as_ptr(),
-                bytes.as_ptr() as *const c_void,
+                bytes.as_ptr().cast(),
                 bytes.len() as u64,
                 exception.as_ptr(),
             )
@@ -227,6 +227,32 @@ impl Image {
         let handle = ImageHandle::new(image).ok_or(exception)?;
 
         Ok(Self { info, handle })
+    }
+
+    pub fn from_raw_pixels(
+        width: u64,
+        height: u64,
+        pixels: *const u8,
+    ) -> Result<Self> {
+        let mut exception = ExceptionInfo::default();
+
+        let image = unsafe {
+            gm::ConstituteImage(
+                width,
+                height,
+                c"RGB".as_ptr(),
+                gm::StorageType_CharPixel,
+                pixels.cast(),
+                exception.as_ptr(),
+            )
+        };
+
+        let handle = ImageHandle::new(image).ok_or(exception)?;
+
+        Ok(Self {
+            info: ImageInfo::new(),
+            handle,
+        })
     }
 
     pub fn width(&self) -> u64 {

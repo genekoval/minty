@@ -1,4 +1,5 @@
 mod image;
+mod video;
 
 use crate::obj::Bucket;
 
@@ -24,6 +25,7 @@ impl Env {
 pub async fn generate_preview(bucket: &Bucket, object: &Object) -> Result {
     match object.r#type.as_str() {
         "image" => image::generate_preview(bucket, object).await,
+        "video" => video::generate_preview(bucket, object).await,
         _ => Ok(None),
     }
 }

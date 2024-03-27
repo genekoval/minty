@@ -8,6 +8,7 @@ bytes = { workspace = true }
 bytesize = { workspace = true }
 chrono = { workspace = true }
 elasticsearch = { workspace = true }
+ffmpeg-sys-next = { workspace = true }
 fstore = { workspace = true, features = ["http"] }
 futures = { workspace = true }
 futures-core = { workspace = true }

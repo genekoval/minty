@@ -337,6 +337,9 @@ BEGIN
     ) ON CONFLICT (object_id) DO UPDATE SET
         preview_id = a_preview_id,
         source_id = a_source_id;
+
+    DELETE FROM data.object_preview_error
+    WHERE object_id = a_object_id;
 END;
 $$ LANGUAGE plpgsql;
 
