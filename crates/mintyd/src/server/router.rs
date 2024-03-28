@@ -5,6 +5,7 @@ mod post;
 mod posts;
 mod tag;
 mod tags;
+mod text;
 
 use super::{error::Result, AppState};
 

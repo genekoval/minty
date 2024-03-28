@@ -1,4 +1,4 @@
-use super::{AppState, Result, Router};
+use super::{text::Text, AppState, Result, Router};
 
 use axum::{
     extract::{Path, State},
@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post, put},
     Json,
 };
-use minty::{Modification, Post, PostParts, Uuid};
+use minty::{text, Modification, Post, PostParts, Uuid};
 
 async fn add_objects(
     State(AppState { repo }): State<AppState>,
@@ -105,17 +105,17 @@ async fn publish_post(
 async fn set_description(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
-    description: String,
+    Text(description): Text<text::Description>,
 ) -> Result<Json<Modification<String>>> {
-    Ok(Json(repo.set_post_description(id, &description).await?))
+    Ok(Json(repo.set_post_description(id, description).await?))
 }
 
 async fn set_title(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
-    title: String,
+    Text(title): Text<text::PostTitle>,
 ) -> Result<Json<Modification<String>>> {
-    Ok(Json(repo.set_post_title(id, &title).await?))
+    Ok(Json(repo.set_post_title(id, title).await?))
 }
 
 pub fn routes() -> Router {

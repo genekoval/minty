@@ -5,11 +5,12 @@ use crate::{
     output::{About, Output, Print},
 };
 
-use minty::{http, model::*, Repo};
+use minty::{http, model::*, text, Repo};
 use std::{
     fmt::{self, Display},
     io::{stdin, IsTerminal, Read},
     path::PathBuf,
+    str::FromStr,
 };
 use tokio::fs::File;
 use tokio_util::io::{ReaderStream, StreamReader};
@@ -49,14 +50,14 @@ impl Client {
     pub async fn add_comment(
         &self,
         post: Uuid,
-        content: Option<String>,
+        content: Option<text::Comment>,
     ) -> Result {
         let content = match content {
             Some(content) => content,
             None => read_from_stdin()?,
         };
 
-        let comment = self.repo.add_comment(post, content.trim()).await?;
+        let comment = self.repo.add_comment(post, content).await?;
         println!("{}", comment.id);
 
         Ok(())
@@ -126,13 +127,17 @@ impl Client {
         Ok(())
     }
 
-    pub async fn add_tag(&self, name: &str) -> Result {
+    pub async fn add_tag(&self, name: text::TagName) -> Result {
         let id = self.repo.add_tag(name).await?;
         println!("{id}");
         Ok(())
     }
 
-    pub async fn add_tag_alias(&self, id: Uuid, alias: &str) -> Result {
+    pub async fn add_tag_alias(
+        &self,
+        id: Uuid,
+        alias: text::TagName,
+    ) -> Result {
         self.print(self.repo.add_tag_alias(id, alias).await?)
     }
 
@@ -373,13 +378,17 @@ impl Client {
         Ok(())
     }
 
-    pub async fn reply(&self, parent: Uuid, content: Option<String>) -> Result {
+    pub async fn reply(
+        &self,
+        parent: Uuid,
+        content: Option<text::Comment>,
+    ) -> Result {
         let content = match content {
             Some(content) => content,
             None => read_from_stdin()?,
         };
 
-        let comment = self.repo.add_reply(parent, content.trim()).await?;
+        let comment = self.repo.add_reply(parent, content).await?;
         println!("{}", comment.id);
 
         Ok(())
@@ -388,14 +397,14 @@ impl Client {
     pub async fn set_comment_content(
         &self,
         id: Uuid,
-        content: Option<String>,
+        content: Option<text::Comment>,
     ) -> Result {
         let content = match content {
             Some(content) => content,
             None => read_from_stdin()?,
         };
 
-        self.repo.set_comment_content(id, content.trim()).await?;
+        self.repo.set_comment_content(id, content).await?;
 
         Ok(())
     }
@@ -403,16 +412,14 @@ impl Client {
     pub async fn set_post_description(
         &self,
         id: Uuid,
-        description: Option<String>,
+        description: Option<text::Description>,
     ) -> Result {
         let description = match description {
             Some(description) => description,
             None => read_from_stdin()?,
         };
 
-        self.repo
-            .set_post_description(id, description.trim())
-            .await?;
+        self.repo.set_post_description(id, description).await?;
 
         Ok(())
     }
@@ -420,14 +427,14 @@ impl Client {
     pub async fn set_post_title(
         &self,
         id: Uuid,
-        title: Option<String>,
+        title: Option<text::PostTitle>,
     ) -> Result {
         let title = match title {
             Some(title) => title,
             None => read_from_stdin()?,
         };
 
-        self.repo.set_post_title(id, title.trim()).await?;
+        self.repo.set_post_title(id, title).await?;
 
         Ok(())
     }
@@ -435,21 +442,19 @@ impl Client {
     pub async fn set_tag_description(
         &self,
         id: Uuid,
-        description: Option<String>,
+        description: Option<text::Description>,
     ) -> Result {
         let description = match description {
             Some(description) => description,
             None => read_from_stdin()?,
         };
 
-        self.repo
-            .set_tag_description(id, description.trim())
-            .await?;
+        self.repo.set_tag_description(id, description).await?;
 
         Ok(())
     }
 
-    pub async fn set_tag_name(&self, id: Uuid, name: &str) -> Result {
+    pub async fn set_tag_name(&self, id: Uuid, name: text::TagName) -> Result {
         self.print(self.repo.set_tag_name(id, name).await?)
     }
 
@@ -498,8 +503,12 @@ impl Display for SourceChoice {
     }
 }
 
-fn read_from_stdin() -> crate::Result<String> {
+fn read_from_stdin<T>() -> crate::Result<T>
+where
+    T: FromStr<Err = text::Error>,
+{
     let mut buffer = String::new();
     stdin().read_to_string(&mut buffer)?;
-    Ok(buffer)
+
+    Ok(buffer.parse().map_err(|err: text::Error| err.to_string())?)
 }

@@ -1,4 +1,4 @@
-use super::{AppState, Result, Router};
+use super::{text::Text, AppState, Result, Router};
 
 use axum::{
     extract::{Path, Query, State},
@@ -6,7 +6,7 @@ use axum::{
     routing::{delete, get, post, put},
     Json,
 };
-use minty::{http::query::SetTagName, Source, Tag, TagName, Url, Uuid};
+use minty::{http::query::SetTagName, text, Source, Tag, TagName, Url, Uuid};
 
 async fn add_source(
     State(AppState { repo }): State<AppState>,
@@ -18,9 +18,9 @@ async fn add_source(
 
 async fn add_tag(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<String>,
+    Path(tag): Path<text::TagName>,
 ) -> Result<String> {
-    Ok(repo.add_tag(&tag).await?.to_string())
+    Ok(repo.add_tag(tag).await?.to_string())
 }
 
 async fn delete_alias(
@@ -64,22 +64,22 @@ async fn get_tag(
 async fn set_description(
     State(AppState { repo }): State<AppState>,
     Path(tag): Path<Uuid>,
-    description: String,
+    Text(description): Text<text::Description>,
 ) -> Result<String> {
-    Ok(repo.set_tag_description(tag, &description).await?)
+    Ok(repo.set_tag_description(tag, description).await?)
 }
 
 async fn set_name(
     State(AppState { repo }): State<AppState>,
-    Path((tag, name)): Path<(Uuid, String)>,
+    Path((tag, name)): Path<(Uuid, text::TagName)>,
     Query(SetTagName { main }): Query<SetTagName>,
 ) -> Result<Json<TagName>> {
     let main = main.unwrap_or(false);
 
     let result = if main {
-        repo.set_tag_name(tag, &name).await
+        repo.set_tag_name(tag, name).await
     } else {
-        repo.add_tag_alias(tag, &name).await
+        repo.add_tag_alias(tag, name).await
     }?;
 
     Ok(Json(result))

@@ -13,7 +13,7 @@ use crate::{
 use bytes::Bytes;
 use futures::{stream::BoxStream, Stream, StreamExt, TryStream};
 use log::{error, info};
-use minty::model::*;
+use minty::{model::*, text};
 use serde::Serialize;
 use std::{error, io, path::Path, result, sync::Arc};
 use tokio::{
@@ -142,9 +142,13 @@ impl Repo {
     pub async fn add_comment(
         &self,
         post_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<CommentData> {
-        Ok(self.database.create_comment(post_id, content).await?.into())
+        Ok(self
+            .database
+            .create_comment(post_id, content.as_ref())
+            .await?
+            .into())
     }
 
     async fn add_object(
@@ -234,16 +238,20 @@ impl Repo {
     pub async fn add_reply(
         &self,
         parent_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<CommentData> {
-        Ok(self.database.create_reply(parent_id, content).await?.into())
+        Ok(self
+            .database
+            .create_reply(parent_id, content.as_ref())
+            .await?
+            .into())
     }
 
-    pub async fn add_tag(&self, name: &str) -> Result<Uuid> {
+    pub async fn add_tag(&self, name: text::TagName) -> Result<Uuid> {
         let mut tx = self.database.begin().await?;
 
-        let id = tx.create_tag(name).await?.0;
-        self.search.add_tag_alias(id, name).await?;
+        let id = tx.create_tag(name.as_ref()).await?.0;
+        self.search.add_tag_alias(id, name.as_ref()).await?;
 
         tx.commit().await?;
         Ok(id)
@@ -293,12 +301,12 @@ impl Repo {
     pub async fn add_tag_alias(
         &self,
         tag_id: Uuid,
-        alias: &str,
+        alias: text::TagName,
     ) -> Result<TagName> {
         let mut tx = self.database.begin().await?;
 
-        let names = tx.create_tag_alias(tag_id, alias).await?;
-        self.search.add_tag_alias(tag_id, alias).await?;
+        let names = tx.create_tag_alias(tag_id, alias.as_ref()).await?;
+        self.search.add_tag_alias(tag_id, alias.as_ref()).await?;
 
         tx.commit().await?;
         Ok(names.into())
@@ -320,8 +328,8 @@ impl Repo {
 
         let post = tx
             .create_post(
-                parts.title.as_deref().unwrap_or(""),
-                parts.description.as_deref().unwrap_or(""),
+                parts.title.as_ref().map(|t| t.as_ref()).unwrap_or(""),
+                parts.description.as_ref().map(|d| d.as_ref()).unwrap_or(""),
                 parts.visibility.map(db::Visibility::from_minty),
                 parts.objects.as_deref().unwrap_or(&[]),
                 parts.posts.as_deref().unwrap_or(&[]),
@@ -649,9 +657,12 @@ impl Repo {
     pub async fn set_comment_content(
         &self,
         comment_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<String> {
-        let found = self.database.update_comment(comment_id, content).await?;
+        let found = self
+            .database
+            .update_comment(comment_id, content.as_ref())
+            .await?;
 
         if found {
             Ok(content.into())
@@ -665,12 +676,12 @@ impl Repo {
     pub async fn set_post_description(
         &self,
         post_id: Uuid,
-        description: &str,
+        description: text::Description,
     ) -> Result<Modification<String>> {
         let mut tx = self.database.begin().await?;
 
         let modified = tx
-            .update_post_description(post_id, description)
+            .update_post_description(post_id, description.as_ref())
             .await?
             .ok_or_else(|| {
                 Error::NotFound(format!(
@@ -680,7 +691,7 @@ impl Repo {
             .0;
 
         self.search
-            .update_post_description(post_id, description, modified)
+            .update_post_description(post_id, description.as_ref(), modified)
             .await?;
 
         tx.commit().await?;
@@ -693,12 +704,12 @@ impl Repo {
     pub async fn set_post_title(
         &self,
         post_id: Uuid,
-        title: &str,
+        title: text::PostTitle,
     ) -> Result<Modification<String>> {
         let mut tx = self.database.begin().await?;
 
         let modified = tx
-            .update_post_title(post_id, title)
+            .update_post_title(post_id, title.as_ref())
             .await?
             .ok_or_else(|| {
                 Error::NotFound(format!(
@@ -708,7 +719,7 @@ impl Repo {
             .0;
 
         self.search
-            .update_post_title(post_id, title, modified)
+            .update_post_title(post_id, title.as_ref(), modified)
             .await?;
 
         tx.commit().await?;
@@ -721,11 +732,11 @@ impl Repo {
     pub async fn set_tag_description(
         &self,
         tag_id: Uuid,
-        description: &str,
+        description: text::Description,
     ) -> Result<String> {
         let found = self
             .database
-            .update_tag_description(tag_id, description)
+            .update_tag_description(tag_id, description.as_ref())
             .await?;
 
         if found {
@@ -740,15 +751,15 @@ impl Repo {
     pub async fn set_tag_name(
         &self,
         tag_id: Uuid,
-        new_name: &str,
+        new_name: text::TagName,
     ) -> Result<TagName> {
         let mut tx = self.database.begin().await?;
 
-        let update = tx.update_tag_name(tag_id, new_name).await?;
+        let update = tx.update_tag_name(tag_id, new_name.as_ref()).await?;
 
         if let Some(old_name) = update.old_name {
             self.search
-                .update_tag_name(tag_id, &old_name, new_name)
+                .update_tag_name(tag_id, &old_name, new_name.as_ref())
                 .await?;
         }
 

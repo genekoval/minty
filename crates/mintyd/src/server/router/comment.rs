@@ -1,4 +1,4 @@
-use super::{AppState, Result, Router};
+use super::{text::Text, AppState, Result, Router};
 
 use axum::{
     extract::{Path, Query, State},
@@ -6,14 +6,14 @@ use axum::{
     routing::get,
     Json,
 };
-use minty::{http::query::DeleteComment, Comment, CommentData, Uuid};
+use minty::{http::query::DeleteComment, text, Comment, CommentData, Uuid};
 
 async fn add_reply(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
-    content: String,
+    Text(content): Text<text::Comment>,
 ) -> Result<Json<CommentData>> {
-    Ok(Json(repo.add_reply(id, &content).await?))
+    Ok(Json(repo.add_reply(id, content).await?))
 }
 
 async fn delete_comment(
@@ -43,9 +43,9 @@ async fn get_comment(
 async fn set_comment_content(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
-    content: String,
+    Text(content): Text<text::Comment>,
 ) -> Result<String> {
-    Ok(repo.set_comment_content(id, &content).await?)
+    Ok(repo.set_comment_content(id, content).await?)
 }
 
 pub fn routes() -> Router {

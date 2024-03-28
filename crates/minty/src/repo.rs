@@ -1,4 +1,4 @@
-use crate::{model::*, Result};
+use crate::{model::*, text, Result};
 
 use bytes::Bytes;
 use futures_core::{Stream, TryStream};
@@ -15,7 +15,7 @@ pub trait Repo {
     async fn add_comment(
         &self,
         post_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<CommentData>;
 
     async fn add_object<S>(&self, stream: S) -> Result<ObjectPreview>
@@ -35,13 +35,16 @@ pub trait Repo {
     async fn add_reply(
         &self,
         parent_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<CommentData>;
 
-    async fn add_tag(&self, name: &str) -> Result<Uuid>;
+    async fn add_tag(&self, name: text::TagName) -> Result<Uuid>;
 
-    async fn add_tag_alias(&self, tag_id: Uuid, alias: &str)
-        -> Result<TagName>;
+    async fn add_tag_alias(
+        &self,
+        tag_id: Uuid,
+        alias: text::TagName,
+    ) -> Result<TagName>;
 
     async fn add_tag_source(&self, tag_id: Uuid, url: &Url) -> Result<Source>;
 
@@ -128,30 +131,30 @@ pub trait Repo {
     async fn set_comment_content(
         &self,
         comment_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<String>;
 
     async fn set_post_description(
         &self,
         post_id: Uuid,
-        description: &str,
+        description: text::Description,
     ) -> Result<Modification<String>>;
 
     async fn set_post_title(
         &self,
         post_id: Uuid,
-        title: &str,
+        title: text::PostTitle,
     ) -> Result<Modification<String>>;
 
     async fn set_tag_description(
         &self,
         tag_id: Uuid,
-        description: &str,
+        description: text::Description,
     ) -> Result<String>;
 
     async fn set_tag_name(
         &self,
         tag_id: Uuid,
-        new_name: &str,
+        new_name: text::TagName,
     ) -> Result<TagName>;
 }

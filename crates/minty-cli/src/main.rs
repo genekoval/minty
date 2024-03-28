@@ -156,7 +156,7 @@ async fn new(command: New, client: Client) -> Result {
                 })
                 .await
         }
-        New::Tag { name } => client.add_tag(&name).await,
+        New::Tag { name } => client.add_tag(name).await,
     }
 }
 
@@ -216,12 +216,12 @@ async fn tag(id: Uuid, command: Option<Tag>, client: Client) -> Result {
     };
 
     match command {
-        Tag::Aka { alias } => client.add_tag_alias(id, &alias).await,
+        Tag::Aka { alias } => client.add_tag_alias(id, alias).await,
         Tag::Desc { description } => {
             client.set_tag_description(id, description).await
         }
         Tag::Ln { url } => client.add_tag_source(id, &url).await,
-        Tag::Rename { name } => client.set_tag_name(id, &name).await,
+        Tag::Rename { name } => client.set_tag_name(id, name).await,
         Tag::Rm { force, command } => match command {
             Some(command) => tag_rm(id, command, client).await,
             None => client.delete_tag(id, force).await,

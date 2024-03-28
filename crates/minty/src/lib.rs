@@ -1,4 +1,5 @@
 pub mod model;
+pub mod text;
 
 #[cfg(feature = "http")]
 pub mod http;

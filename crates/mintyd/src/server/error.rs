@@ -5,7 +5,7 @@ use axum::{
 use log::error;
 use std::result;
 
-pub struct Error(minty_core::Error);
+pub struct Error(pub minty_core::Error);
 
 impl From<minty_core::Error> for Error {
     fn from(value: minty_core::Error) -> Self {

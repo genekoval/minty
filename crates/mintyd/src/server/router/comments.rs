@@ -1,18 +1,18 @@
-use super::{AppState, Result, Router};
+use super::{text::Text, AppState, Result, Router};
 
 use axum::{
     extract::{Path, State},
     routing::get,
     Json,
 };
-use minty::{CommentData, Uuid};
+use minty::{text, CommentData, Uuid};
 
 async fn add_comment(
     State(AppState { repo }): State<AppState>,
     Path(post): Path<Uuid>,
-    content: String,
+    Text(content): Text<text::Comment>,
 ) -> Result<Json<CommentData>> {
-    Ok(Json(repo.add_comment(post, &content).await?))
+    Ok(Json(repo.add_comment(post, content).await?))
 }
 
 async fn get_comments(

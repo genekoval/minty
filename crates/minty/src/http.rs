@@ -4,7 +4,7 @@ mod client;
 
 use client::Client;
 
-use crate::{model::*, Result};
+use crate::{model::*, text, Result};
 
 use bytes::Bytes;
 use futures_core::{Stream, TryStream};
@@ -32,11 +32,11 @@ impl crate::Repo for Repo {
     async fn add_comment(
         &self,
         post_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<CommentData> {
         self.client
             .post(format!("comments/{post_id}"))
-            .text(content)
+            .text(content.into())
             .send()
             .await?
             .deserialize()
@@ -83,18 +83,18 @@ impl crate::Repo for Repo {
     async fn add_reply(
         &self,
         parent_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<CommentData> {
         self.client
             .post(format!("comment/{parent_id}"))
-            .text(content)
+            .text(content.into())
             .send()
             .await?
             .deserialize()
             .await
     }
 
-    async fn add_tag(&self, name: &str) -> Result<Uuid> {
+    async fn add_tag(&self, name: text::TagName) -> Result<Uuid> {
         self.client
             .post(format!("tag/{name}"))
             .send()
@@ -106,7 +106,7 @@ impl crate::Repo for Repo {
     async fn add_tag_alias(
         &self,
         tag_id: Uuid,
-        alias: &str,
+        alias: text::TagName,
     ) -> Result<TagName> {
         self.client
             .put(format!("tag/{tag_id}/name/{alias}"))
@@ -353,11 +353,11 @@ impl crate::Repo for Repo {
     async fn set_comment_content(
         &self,
         comment_id: Uuid,
-        content: &str,
+        content: text::Comment,
     ) -> Result<String> {
         self.client
             .put(format!("comment/{comment_id}"))
-            .text(content)
+            .text(content.into())
             .send()
             .await?
             .text()
@@ -367,11 +367,11 @@ impl crate::Repo for Repo {
     async fn set_post_description(
         &self,
         post_id: Uuid,
-        description: &str,
+        description: text::Description,
     ) -> Result<Modification<String>> {
         self.client
             .put(format!("post/{post_id}/description"))
-            .text(description)
+            .text(description.into())
             .send()
             .await?
             .deserialize()
@@ -381,11 +381,11 @@ impl crate::Repo for Repo {
     async fn set_post_title(
         &self,
         post_id: Uuid,
-        title: &str,
+        title: text::PostTitle,
     ) -> Result<Modification<String>> {
         self.client
             .put(format!("post/{post_id}/title"))
-            .text(title)
+            .text(title.into())
             .send()
             .await?
             .deserialize()
@@ -395,11 +395,11 @@ impl crate::Repo for Repo {
     async fn set_tag_description(
         &self,
         tag_id: Uuid,
-        description: &str,
+        description: text::Description,
     ) -> Result<String> {
         self.client
             .put(format!("tag/{tag_id}/description"))
-            .text(description)
+            .text(description.into())
             .send()
             .await?
             .text()
@@ -409,7 +409,7 @@ impl crate::Repo for Repo {
     async fn set_tag_name(
         &self,
         tag_id: Uuid,
-        new_name: &str,
+        new_name: text::TagName,
     ) -> Result<TagName> {
         let query = query::SetTagName::main(true);
 

@@ -1,3 +1,5 @@
+use crate::text;
+
 pub use url::Url;
 pub use uuid::Uuid;
 
@@ -125,8 +127,8 @@ pub struct Post {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostParts {
-    pub title: Option<String>,
-    pub description: Option<String>,
+    pub title: Option<text::PostTitle>,
+    pub description: Option<text::Description>,
     pub visibility: Option<Visibility>,
     pub objects: Option<Vec<Uuid>>,
     pub posts: Option<Vec<Uuid>>,

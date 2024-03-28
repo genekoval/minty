@@ -117,8 +117,8 @@ impl RequestBuilder {
         self
     }
 
-    pub fn text(mut self, body: &str) -> Self {
-        self.inner = self.inner.body(String::from(body));
+    pub fn text(mut self, body: String) -> Self {
+        self.inner = self.inner.body(body);
         self.content_type(TEXT_PLAIN_UTF_8)
     }
 

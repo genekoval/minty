@@ -1,7 +1,7 @@
 use crate::{Config, Result};
 
 use clap::{Parser, Subcommand};
-use minty::{PostSort, Url, Uuid};
+use minty::{text, PostSort, Url, Uuid};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
@@ -119,7 +119,7 @@ pub enum Command {
         /// Comment text
         ///
         /// If not present, content will be read from STDIN.
-        content: Option<String>,
+        content: Option<text::Comment>,
     },
 
     /// Read about or modify a tag
@@ -139,7 +139,7 @@ pub enum Comment {
         /// The comment's new comment
         ///
         /// If not present, content will be read from STDIN.
-        content: Option<String>,
+        content: Option<text::Comment>,
     },
 
     /// Delete a comment
@@ -189,23 +189,23 @@ pub enum Find {
 pub enum New {
     /// Create a new post
     Post {
-        #[arg(short = 'T', long)]
+        #[arg(short = 'T', long, value_name = "TEXT")]
         /// Post title
-        title: Option<String>,
+        title: Option<text::PostTitle>,
 
-        #[arg(short = 'D', long)]
+        #[arg(short = 'D', long, value_name = "TEXT")]
         /// Post description
-        description: Option<String>,
+        description: Option<text::Description>,
 
         #[arg(short, long)]
         /// Do not publish the newly created post
         draft: bool,
 
-        #[arg(short, long)]
+        #[arg(short, long, value_name = "ID")]
         /// Link related posts
         post: Option<Vec<Uuid>>,
 
-        #[arg(short, long)]
+        #[arg(short, long, value_name = "ID")]
         /// Add tags to the post
         tag: Option<Vec<Uuid>>,
 
@@ -221,13 +221,13 @@ pub enum New {
         /// Comment text
         ///
         /// If not present, content will be read from STDIN.
-        content: Option<String>,
+        content: Option<text::Comment>,
     },
 
     /// Create a new tag
     Tag {
         /// New tag's name
-        name: String,
+        name: text::TagName,
     },
 }
 
@@ -251,7 +251,7 @@ pub enum Post {
         /// The post's title text
         ///
         /// If not present, the title will be read from STDIN.
-        text: Option<String>,
+        text: Option<text::PostTitle>,
     },
 
     /// Set a post's description
@@ -259,7 +259,7 @@ pub enum Post {
         /// The post's description text
         ///
         /// If not present, the description will be read from STDIN.
-        text: Option<String>,
+        text: Option<text::Description>,
     },
 
     /// Attach additional files to a post
@@ -337,19 +337,19 @@ pub enum Tag {
     /// Set a tag's primary name
     Rename {
         /// Tag's new primary name
-        name: String,
+        name: text::TagName,
     },
 
     /// Add a tag alias
     Aka {
         /// Tag's new alias
-        alias: String,
+        alias: text::TagName,
     },
 
     /// Set a tag's description
     Desc {
         /// Tag's description
-        description: Option<String>,
+        description: Option<text::Description>,
     },
 
     /// Add a link to a tag
