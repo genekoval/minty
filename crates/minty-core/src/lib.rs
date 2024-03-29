@@ -1,5 +1,6 @@
 pub mod conf;
 
+mod comment;
 mod db;
 mod error;
 mod ico;

@@ -1,4 +1,5 @@
 use crate::{
+    comment,
     conf::RepoConfig,
     db::{self, Database, Id},
     error::{Error, Result},
@@ -494,13 +495,8 @@ impl Repo {
         &self,
         post_id: Uuid,
     ) -> Result<Vec<CommentData>> {
-        Ok(self
-            .database
-            .read_comments(post_id)
-            .await?
-            .into_iter()
-            .map(|comment| comment.into())
-            .collect())
+        let comments = self.database.read_comments(post_id).await?;
+        Ok(comment::build_tree(comments))
     }
 
     pub async fn get_object(&self, id: Uuid) -> Result<Object> {
