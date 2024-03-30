@@ -43,7 +43,7 @@ impl Config {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Http {
-    pub listen: Endpoint,
+    pub listen: Vec<Endpoint>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
