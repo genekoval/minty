@@ -1,13 +1,10 @@
-use mintyd::{conf::Config, server, ProgressBarTask, Result};
+use mintyd::*;
 
-use clap::{Args, Parser, Subcommand};
+use clap::Parser;
 use log::error;
-use minty::Uuid;
 use minty_core::{conf::RepoConfig, Repo, Task, Version};
-use shadow_rs::shadow;
 use std::{
     io::{stdout, IsTerminal},
-    path::PathBuf,
     process::ExitCode,
     result,
     sync::Arc,
@@ -18,128 +15,7 @@ use timber::{
 };
 use tokio::task::JoinHandle;
 
-shadow!(build);
-
-const DEFAULT_CONFIG: &str = match option_env!("MINTYD_DEFAULT_CONFIG") {
-    Some(config) => config,
-    None => "/etc/minty/minty.yml",
-};
-
 const SYSLOG_IDENTIFIER: &str = "minty";
-
-#[derive(Parser)]
-#[command(
-    version,
-    long_version = build::CLAP_LONG_VERSION,
-    arg_required_else_help = true
-)]
-/// Minty server
-pub struct Cli {
-    #[arg(
-        short,
-        long,
-        value_name = "FILE",
-        env = "MINTYD_CONFIG",
-        default_value = DEFAULT_CONFIG,
-        global = true
-    )]
-    /// Server config file in YAML format
-    config: PathBuf,
-
-    #[command(subcommand)]
-    command: Command,
-}
-
-#[derive(Subcommand)]
-enum Command {
-    /// Save an archive of the database to the specified file
-    Dump {
-        /// Location of the archive file
-        filename: PathBuf,
-    },
-
-    /// Initialize the database
-    Init {
-        /// Delete existing data if necessary
-        overwrite: bool,
-    },
-
-    /// Update schemas to match the current program version
-    Migrate,
-
-    /// Restore database data from a backup
-    Restore {
-        /// Location of the archive file
-        filename: PathBuf,
-    },
-
-    /// Regenerate assets
-    Regen {
-        #[command(subcommand)]
-        command: Regen,
-    },
-
-    /// Rebuild all search engine indices
-    Reindex {
-        #[arg(short, long, default_value = "100", global = true)]
-        /// Max items to upload to search engine in a single request
-        batch_size: usize,
-
-        #[arg(short, long, global = true)]
-        /// Do not display progress
-        quiet: bool,
-
-        #[command(subcommand)]
-        command: Option<Reindex>,
-    },
-
-    /// Start the web server
-    Serve {
-        #[arg(short, long)]
-        /// Run the server as a daemon process
-        daemon: bool,
-
-        #[arg(short, long, requires = "daemon")]
-        /// Path to the pidfile
-        pidfile: Option<PathBuf>,
-    },
-}
-
-#[derive(Subcommand)]
-enum Regen {
-    /// Regenerate object previews
-    Previews {
-        /// ID of object for which to regenerate preview
-        object: Option<Uuid>,
-
-        #[command(subcommand)]
-        command: Option<RegenPreviews>,
-    },
-}
-
-#[derive(Subcommand)]
-enum RegenPreviews {
-    All(RegenPreviewsAll),
-}
-
-#[derive(Args)]
-#[command(args_conflicts_with_subcommands = true)]
-struct RegenPreviewsAll {
-    #[arg(short, long, default_value = "100")]
-    batch_size: usize,
-
-    #[arg(short, long, default_value = "32")]
-    max_tasks: usize,
-}
-
-#[derive(Subcommand)]
-enum Reindex {
-    /// Reindex all posts
-    Posts,
-
-    /// Reindex all tags
-    Tags,
-}
 
 fn main() -> ExitCode {
     let args = Cli::parse();
