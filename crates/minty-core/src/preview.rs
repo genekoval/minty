@@ -11,14 +11,13 @@ use std::result;
 pub type Result = result::Result<Option<Uuid>, String>;
 
 pub struct Env {
-    #[allow(dead_code)]
-    image: image::Env,
+    _image: image::Env,
 }
 
 impl Env {
     pub fn initialize() -> Self {
         Self {
-            image: image::Env::initialize(),
+            _image: image::Env::initialize(),
         }
     }
 }

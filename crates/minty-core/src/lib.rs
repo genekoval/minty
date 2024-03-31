@@ -17,14 +17,13 @@ pub use repo::Repo;
 pub use task::Task;
 
 pub struct Env {
-    #[allow(dead_code)]
-    preview: preview::Env,
+    _preview: preview::Env,
 }
 
 impl Env {
     fn initialize() -> Self {
         Self {
-            preview: preview::Env::initialize(),
+            _preview: preview::Env::initialize(),
         }
     }
 }
