@@ -42,6 +42,7 @@ pub enum Command {
 
     /// Initialize the database
     Init {
+        #[arg(short, long)]
         /// Delete existing data if necessary
         overwrite: bool,
     },
@@ -121,4 +122,15 @@ pub enum Reindex {
 
     /// Reindex all tags
     Tags,
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn verify_cli() {
+        use clap::CommandFactory;
+        Cli::command().debug_assert();
+    }
 }
