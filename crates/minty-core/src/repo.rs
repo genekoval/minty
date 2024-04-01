@@ -923,19 +923,10 @@ impl Repo {
         index.recreate().await?;
 
         let mut stream = stream.chunks(batch_size);
-        let mut error: Option<Error> = None;
 
         while let Some(chunk) = stream.next().await {
-            let items = match chunk
-                .into_iter()
-                .collect::<result::Result<Vec<_>, _>>()
-            {
-                Ok(items) => items,
-                Err(err) => {
-                    error = Some(err.into());
-                    break;
-                }
-            };
+            let items =
+                chunk.into_iter().collect::<result::Result<Vec<_>, _>>()?;
 
             index.bulk_create(&items).await?;
             task.progress(items.len());
@@ -943,10 +934,7 @@ impl Repo {
 
         index.refresh().await?;
 
-        match error {
-            Some(err) => Err(err),
-            None => Ok(()),
-        }
+        Ok(())
     }
 
     pub async fn reindex_posts(
