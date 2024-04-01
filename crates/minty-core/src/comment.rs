@@ -3,12 +3,12 @@ use crate::db;
 use minty::CommentData;
 
 pub fn build_tree(comments: Vec<db::Comment>) -> Vec<CommentData> {
-    let mut results = Vec::new();
+    let mut results = Vec::with_capacity(comments.len());
 
     let levels: Vec<_> = comments.chunk_by(|a, b| a.level == b.level).collect();
     let mut roots = levels
         .first()
-        .map(|roots| vec![roots.iter()])
+        .map(|level| vec![level.iter()])
         .unwrap_or_default();
 
     while let Some(root) = 'next: {
