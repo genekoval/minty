@@ -33,7 +33,7 @@ pub struct Repo {
 }
 
 impl Repo {
-    pub async fn new(config: RepoConfig<'_>) -> result::Result<Self, String> {
+    pub async fn new(config: &RepoConfig) -> result::Result<Self, String> {
         let version = crate::Version::get();
 
         let mut pool = db::PoolOptions::new();
@@ -61,7 +61,7 @@ impl Repo {
         )?;
 
         let database = Database::new(pool);
-        let bucket = Bucket::new(config.objects).await?;
+        let bucket = Bucket::new(&config.objects).await?;
         let favicons = Favicons::new(bucket.clone());
 
         Ok(Self {
@@ -70,7 +70,7 @@ impl Repo {
             database,
             db_support,
             favicons,
-            search: Search::new(config.search)?,
+            search: Search::new(&config.search)?,
         })
     }
 

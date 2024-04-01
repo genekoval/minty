@@ -49,9 +49,9 @@ impl From<SearchAuth> for elasticsearch::auth::Credentials {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct RepoConfig<'a> {
-    pub objects: &'a BucketConfig,
-    pub database: &'a DatabaseConfig,
-    pub search: &'a SearchConfig,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RepoConfig {
+    pub database: DatabaseConfig,
+    pub objects: BucketConfig,
+    pub search: SearchConfig,
 }

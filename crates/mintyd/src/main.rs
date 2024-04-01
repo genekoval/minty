@@ -2,11 +2,10 @@ use mintyd::*;
 
 use clap::Parser;
 use log::error;
-use minty_core::{conf::RepoConfig, Repo, Task, Version};
+use minty_core::{Repo, Task};
 use std::{
     io::{stdout, IsTerminal},
     process::ExitCode,
-    result,
     sync::Arc,
 };
 use timber::{
@@ -69,19 +68,9 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-async fn repo(config: &Config) -> result::Result<Arc<Repo>, String> {
-    let config = RepoConfig {
-        objects: &config.objects,
-        database: &config.database,
-        search: &config.search,
-    };
-
-    Ok(Arc::new(Repo::new(config).await?))
-}
-
 fn run_async(args: &Cli, config: &Config, parent: &mut dmon::Parent) -> Result {
     let body = async {
-        let repo = repo(config).await?;
+        let repo = Arc::new(Repo::new(&config.repo).await?);
 
         let result = run_command(args, config, parent, &repo).await;
 

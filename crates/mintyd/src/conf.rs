@@ -1,6 +1,6 @@
 use axum_unix::Endpoint;
 use log::LevelFilter;
-use minty_core::conf::{BucketConfig, DatabaseConfig, SearchConfig};
+use minty_core::conf::RepoConfig;
 use serde::{Deserialize, Serialize};
 use serde_yaml as yaml;
 use std::{fs, path::Path};
@@ -8,11 +8,7 @@ use timber::Sink;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub database: DatabaseConfig,
-
-    pub objects: BucketConfig,
-
-    pub search: SearchConfig,
+    pub repo: RepoConfig,
 
     pub http: Http,
 

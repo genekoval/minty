@@ -2,7 +2,6 @@
 name = "mintyd"
 version = "0.5.3"
 edition = "2021"
-build = "build.rs"
 
 [dependencies]
 axum = { workspace = true }

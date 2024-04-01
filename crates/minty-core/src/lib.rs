@@ -14,6 +14,7 @@ mod task;
 pub use error::{Error, Result};
 pub use model::{About, Version};
 pub use repo::Repo;
+pub use shadow_rs::formatcp;
 pub use task::Task;
 
 use shadow_rs::shadow;
