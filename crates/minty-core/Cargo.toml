@@ -18,6 +18,7 @@ minty = { path = "../minty" }
 pgtools = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 scraper = { workspace = true }
+shadow-rs = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sqlx = { workspace = true }
@@ -25,3 +26,6 @@ sqlx-helper-macros = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "sync"] }
 tokio-util = { workspace = true, features = ["rt"] }
+
+[build-dependencies]
+shadow-rs = { workspace = true }

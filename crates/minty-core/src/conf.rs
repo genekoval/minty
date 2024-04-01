@@ -2,8 +2,6 @@ pub use pgtools::{
     ConnectionParameters as DbConnection, PgDump, PgRestore, Psql,
 };
 
-use crate::Version;
-
 use minty::Url;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -53,7 +51,6 @@ impl From<SearchAuth> for elasticsearch::auth::Credentials {
 
 #[derive(Clone, Copy, Debug)]
 pub struct RepoConfig<'a> {
-    pub version: Version,
     pub objects: &'a BucketConfig,
     pub database: &'a DatabaseConfig,
     pub search: &'a SearchConfig,

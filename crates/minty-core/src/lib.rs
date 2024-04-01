@@ -16,6 +16,10 @@ pub use model::{About, Version};
 pub use repo::Repo;
 pub use task::Task;
 
+use shadow_rs::shadow;
+
+shadow!(build);
+
 pub struct Env {
     _preview: preview::Env,
 }

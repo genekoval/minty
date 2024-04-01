@@ -69,23 +69,8 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn version() -> Version {
-    Version {
-        number: build::PKG_VERSION,
-        branch: build::BRANCH,
-        build_time: build::BUILD_TIME,
-        build_os: build::BUILD_OS,
-        build_type: build::BUILD_RUST_CHANNEL,
-        commit_hash: build::COMMIT_HASH,
-        commit_date: build::COMMIT_DATE,
-        rust_version: build::RUST_VERSION,
-        rust_channel: build::RUST_CHANNEL,
-    }
-}
-
 async fn repo(config: &Config) -> result::Result<Arc<Repo>, String> {
     let config = RepoConfig {
-        version: version(),
         objects: &config.objects,
         database: &config.database,
         search: &config.search,

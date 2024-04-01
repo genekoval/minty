@@ -17,11 +17,7 @@ minty-core = { path = "../minty-core" }
 ratatui = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_yaml = { workspace = true }
-shadow-rs = { workspace = true }
 sync_wrapper = { workspace = true, features = ["futures"] }
 timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
 tokio-util = { workspace = true, features = ["io"] }
-
-[build-dependencies]
-shadow-rs = { workspace = true }

@@ -34,6 +34,8 @@ pub struct Repo {
 
 impl Repo {
     pub async fn new(config: RepoConfig<'_>) -> result::Result<Self, String> {
+        let version = crate::Version::get();
+
         let mut pool = db::PoolOptions::new();
 
         if let Some(max_connections) = config.database.max_connections {
@@ -48,7 +50,7 @@ impl Repo {
             })?;
 
         let db_support = pgtools::Database::new(
-            config.version.number,
+            version.number,
             pgtools::Options {
                 connection: &config.database.connection,
                 psql: &config.database.psql,
@@ -63,9 +65,7 @@ impl Repo {
         let favicons = Favicons::new(bucket.clone());
 
         Ok(Self {
-            about: About {
-                version: config.version,
-            },
+            about: About { version },
             bucket,
             database,
             db_support,
