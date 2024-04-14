@@ -8,6 +8,7 @@ use std::{
 pub enum ErrorKind {
     Client,
     Server,
+    NotFound,
     Other,
 }
 

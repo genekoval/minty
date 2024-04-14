@@ -4,9 +4,11 @@ use crate::{db::Id, Result};
 
 use elasticsearch::{
     indices::{IndicesCreateParts, IndicesDeleteParts, IndicesRefreshParts},
+    params::Refresh,
     BulkOperation, BulkParts, CreateParts, DeleteParts, Elasticsearch,
     SearchParts, UpdateParts,
 };
+use log::debug;
 use minty::Uuid;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
@@ -49,6 +51,7 @@ pub struct Index {
     client: Elasticsearch,
     name: String,
     config: Config,
+    refresh: Refresh,
 }
 
 impl Index {
@@ -57,11 +60,13 @@ impl Index {
         namespace: &str,
         name: &str,
         config: Config,
+        refresh: Refresh,
     ) -> Self {
         Self {
             client,
             name: format!("{namespace}-{name}"),
             config,
+            refresh,
         }
     }
 
@@ -132,6 +137,8 @@ impl Index {
         &self,
         query: Json,
     ) -> Result<minty::SearchResult<Uuid>> {
+        debug!("search {}: {query}", self.name);
+
         let result: SearchResult = self
             .client
             .search(SearchParts::Index(&[&self.name]))
@@ -152,6 +159,7 @@ impl Index {
     {
         self.client
             .create(CreateParts::IndexId(&self.name, &id.to_string()))
+            .refresh(self.refresh)
             .body(doc)
             .send()
             .await?
@@ -164,6 +172,7 @@ impl Index {
     pub async fn delete_doc(&self, id: Uuid) -> Result<()> {
         self.client
             .delete(DeleteParts::IndexId(&self.name, &id.to_string()))
+            .refresh(self.refresh)
             .send()
             .await?
             .check()
@@ -175,6 +184,7 @@ impl Index {
     pub async fn update_doc(&self, id: Uuid, script: Json) -> Result<()> {
         self.client
             .update(UpdateParts::IndexId(&self.name, &id.to_string()))
+            .refresh(self.refresh)
             .body(script)
             .send()
             .await?
@@ -193,11 +203,15 @@ pub struct Indices {
 }
 
 impl Indices {
-    pub fn new(client: &Elasticsearch, namespace: &str) -> Self {
+    pub fn new(
+        client: Elasticsearch,
+        namespace: &str,
+        refresh: Refresh,
+    ) -> Self {
         Self {
             client: client.clone(),
-            post: Index::new(client.clone(), namespace, "post", post),
-            tag: Index::new(client.clone(), namespace, "tag", tag),
+            post: Index::new(client.clone(), namespace, "post", post, refresh),
+            tag: Index::new(client.clone(), namespace, "tag", tag, refresh),
         }
     }
 

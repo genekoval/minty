@@ -1,3 +1,6 @@
+#[cfg(feature = "export")]
+pub mod export;
+
 use crate::text;
 
 pub use url::Url;
@@ -68,13 +71,19 @@ pub struct ObjectError {
     pub message: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct ObjectPreview {
     pub id: Uuid,
     pub preview_id: Option<Uuid>,
     pub r#type: String,
     pub subtype: String,
+}
+
+impl PartialEq for ObjectPreview {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -124,7 +133,7 @@ pub struct Post {
     pub comment_count: u32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostParts {
     pub title: Option<text::PostTitle>,
@@ -135,7 +144,7 @@ pub struct PostParts {
     pub tags: Option<Vec<Uuid>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostPreview {
     pub id: Uuid,
@@ -144,6 +153,12 @@ pub struct PostPreview {
     pub comment_count: u32,
     pub object_count: u32,
     pub created: DateTime,
+}
+
+impl PartialEq for PostPreview {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -342,12 +357,18 @@ pub struct TagName {
     pub aliases: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct TagPreview {
     pub id: Uuid,
     pub name: String,
     pub avatar: Option<Uuid>,
+}
+
+impl PartialEq for TagPreview {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 #[derive(Clone, Debug)]

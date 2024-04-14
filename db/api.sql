@@ -480,7 +480,8 @@ CREATE FUNCTION create_post_tag(
 ) RETURNS void AS $$
 BEGIN
     INSERT INTO data.post_tag (post_id, tag_id)
-    VALUES (a_post_id, a_tag_id);
+    VALUES (a_post_id, a_tag_id)
+    ON CONFLICT DO NOTHING;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -499,31 +500,22 @@ CREATE FUNCTION create_reply(
     a_parent_id     uuid,
     a_content       text
 ) RETURNS SETOF post_comment AS $$
-DECLARE l_parent record;
 BEGIN
-    SELECT post_id, indent
-    INTO l_parent
-    FROM data.post_comment
-    WHERE comment_id = a_parent_id;
-
     RETURN QUERY
     INSERT INTO data.post_comment(
         post_id,
         parent_id,
         indent,
         content
-    ) VALUES (
-        l_parent.post_id,
+    )
+    SELECT
+        parent.post_id,
         a_parent_id,
-        l_parent.indent + 1,
+        parent.indent + 1,
         a_content
-    ) RETURNING
-        comment_id,
-        post_id,
-        parent_id,
-        indent,
-        content,
-        date_created;
+    FROM data.post_comment parent
+    WHERE comment_id = a_parent_id
+    RETURNING *;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -609,6 +601,8 @@ BEGIN
     SELECT t.name, t.aliases
     FROM tag_name_view t
     WHERE tag_id = a_tag_id;
+
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -658,10 +652,12 @@ $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION delete_post(
     a_post_id       uuid
-) RETURNS void AS $$
+) RETURNS boolean AS $$
 BEGIN
     DELETE FROM data.post
     WHERE post_id = a_post_id;
+
+    RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -684,29 +680,35 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION delete_post_tag(
     a_post_id       uuid,
     a_tag_id        uuid
-) RETURNS void AS $$
+) RETURNS boolean AS $$
 BEGIN
     DELETE FROM data.post_tag
     WHERE post_id = a_post_id AND tag_id = a_tag_id;
+
+    RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION delete_related_post(
     a_post_id       uuid,
     a_related       uuid
-) RETURNS void AS $$
+) RETURNS boolean AS $$
 BEGIN
     DELETE FROM data.related_post
     WHERE post_id = a_post_id AND related = a_related;
+
+    RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION delete_tag(
     a_tag_id        uuid
-) RETURNS void AS $$
+) RETURNS boolean AS $$
 BEGIN
     DELETE FROM data.tag
     WHERE tag_id = a_tag_id;
+
+    RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -730,10 +732,12 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION delete_tag_source(
     a_tag_id        uuid,
     a_source_id     bigint
-) RETURNS void AS $$
+) RETURNS bool AS $$
 BEGIN
     DELETE FROM data.tag_source
     WHERE tag_id = a_tag_id AND source_id = a_source_id;
+
+    RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1139,6 +1143,172 @@ BEGIN
     WHERE tag_id = a_tag_id;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION import(data jsonb) RETURNS void AS $$
+BEGIN
+    PERFORM create_object_refs(ARRAY[avatar, banner])
+    FROM jsonb_to_recordset(data -> 'tags') AS (avatar uuid, banner uuid);
+
+    INSERT INTO data.tag (tag_id, description, avatar, banner, date_created)
+    SELECT *
+    FROM jsonb_to_recordset(data -> 'tags') AS (
+        id uuid,
+        description text,
+        avatar uuid,
+        banner uuid,
+        created timestamptz
+    );
+
+    INSERT INTO data.tag_name (tag_id, value, main)
+    SELECT id, name, true
+    FROM jsonb_to_recordset(data -> 'tags') AS (id uuid, name text);
+
+    INSERT INTO data.tag_name (tag_id, value)
+    SELECT id, unnest(aliases)
+    FROM jsonb_to_recordset(data -> 'tags') AS (id uuid, aliases text[]);
+
+    INSERT INTO data.post (
+        post_id,
+        title,
+        description,
+        objects,
+        visibility,
+        date_created,
+        date_modified
+    )
+    SELECT *
+    FROM jsonb_to_recordset(data -> 'posts') AS (
+        id uuid,
+        title text,
+        description text,
+        objects uuid[],
+        visibility data.visibility,
+        created timestamptz,
+        modified timestamptz
+    );
+
+    INSERT INTO data.post_object (post_id, object_id)
+    SELECT id, unnest(objects)
+    FROM jsonb_to_recordset(data -> 'posts') AS (id uuid, objects uuid[]);
+
+    INSERT INTO data.related_post (post_id, related)
+    SELECT id, unnest(posts)
+    FROM jsonb_to_recordset(data -> 'posts') AS (id uuid, posts uuid[]);
+
+    INSERT INTO data.post_tag (post_id, tag_id)
+    SELECT id, unnest(tags)
+    FROM jsonb_to_recordset(data -> 'posts') AS (id uuid, tags uuid[]);
+
+    INSERT INTO data.post_comment (
+        comment_id,
+        post_id,
+        parent_id,
+        indent,
+        content,
+        date_created
+    )
+    SELECT comment_id, post_id, parent_id, indent, content, created
+    FROM jsonb_to_recordset(data -> 'posts') AS (id uuid, comments jsonb),
+        LATERAL (SELECT id AS post_id),
+        LATERAL (
+            SELECT id AS comment_id, *
+            FROM jsonb_to_recordset(comments) AS (
+                id uuid,
+                parent_id uuid,
+                indent smallint,
+                content text,
+                created timestamptz
+            )
+        );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION export() RETURNS json AS $$
+SELECT json_build_object(
+    'posts', (
+        SELECT (coalesce((
+            SELECT json_agg(p)
+            FROM (
+                SELECT
+                    post_id AS id,
+                    title,
+                    description,
+                    visibility,
+                    date_created AS created,
+                    date_modified AS modified,
+                    objects,
+                    coalesce(posts, '[]'::json) AS posts,
+                    coalesce(tags, '[]'::json) AS tags,
+                    coalesce(comments, '[]'::Json) AS comments
+                FROM data.post p
+                LEFT JOIN (
+                    SELECT
+                        post_id,
+                        json_agg(related) AS posts
+                    FROM data.related_post
+                    GROUP BY post_id
+                ) r USING (post_id)
+                LEFT JOIN (
+                    SELECT
+                        post_id,
+                        json_agg(tag_id) AS tags
+                    FROM data.post_tag t
+                    GROUP BY post_id
+                ) t USING (post_id)
+                LEFT JOIN (
+                    SELECT
+                        post_id,
+                        json_agg(json_build_object(
+                            'id', comment_id,
+                            'parent_id', parent_id,
+                            'indent', indent,
+                            'content', content,
+                            'created', date_created
+                        ) ORDER BY
+                            indent,
+                            parent_id,
+                            date_created DESC
+                        ) AS comments
+                    FROM data.post_comment c
+                    GROUP by post_id
+                ) c USING (post_id)
+                ORDER BY date_created
+            ) p
+        ), '[]'::json))
+    ),
+    'tags', (
+        SELECT (coalesce((
+            SELECT json_agg(t)
+            FROM (
+                SELECT
+                    tag_id AS id,
+                    name,
+                    aliases,
+                    description,
+                    avatar,
+                    banner,
+                    coalesce(source, '[]'::json) AS sources,
+                    date_created AS created
+                FROM data.tag
+                LEFT JOIN tag_name_view USING (tag_id)
+                LEFT JOIN (
+                    SELECT
+                        tag_id,
+                        json_agg(json_build_object(
+                            'url', scheme || '://' || host || resource,
+                            'icon', icon
+                        )) source
+                    FROM data.tag_source
+                    JOIN data.source USING (source_id)
+                    JOIN data.site USING (site_id)
+                    GROUP BY tag_id
+                ) ts USING (tag_id)
+                ORDER BY name
+            ) t
+        ), '[]'::json))
+    )
+)
+$$ LANGUAGE SQL;
 
 --}}}
 

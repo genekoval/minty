@@ -4,7 +4,7 @@ use bytes::Bytes;
 use futures_core::{Stream, TryStream};
 use log::debug;
 use mime::{Mime, TEXT_PLAIN_UTF_8};
-use reqwest::{header::CONTENT_TYPE, Body, Method, Request};
+use reqwest::{header::CONTENT_TYPE, Body, Method, Request, StatusCode};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{error, io};
 use tokio_stream::StreamExt;
@@ -162,7 +162,9 @@ impl RequestBuilder {
             return Ok(Response { inner: response });
         }
 
-        let kind = if status.is_client_error() {
+        let kind = if status == StatusCode::NOT_FOUND {
+            ErrorKind::NotFound
+        } else if status.is_client_error() {
             ErrorKind::Client
         } else if status.is_server_error() {
             ErrorKind::Server

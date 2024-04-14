@@ -130,6 +130,9 @@ pub enum Command {
         #[command(subcommand)]
         command: Option<Tag>,
     },
+
+    /// Fetch the entire repo as a JSON object
+    Export,
 }
 
 #[derive(Debug, Subcommand)]

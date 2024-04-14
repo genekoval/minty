@@ -6,6 +6,7 @@ use crate::{
 };
 
 use minty::{http, model::*, text, Repo};
+use serde_json as json;
 use std::{
     fmt::{self, Display},
     io::{stdin, IsTerminal, Read},
@@ -296,6 +297,15 @@ impl Client {
         sources: &[String],
     ) -> Result {
         self.repo.delete_tag_sources(id, sources).await?;
+        Ok(())
+    }
+
+    pub async fn export(&self) -> Result {
+        let data = self.repo.export().await?;
+        let json = json::to_string_pretty(&data).map_err(|err| {
+            format!("failed to serialize exported data as JSON: {err}")
+        })?;
+        println!("{}", json);
         Ok(())
     }
 

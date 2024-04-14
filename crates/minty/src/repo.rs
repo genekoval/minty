@@ -94,6 +94,8 @@ pub trait Repo {
         sources: &[String],
     ) -> Result<()>;
 
+    async fn export(&self) -> Result<export::Data>;
+
     async fn get_comment(&self, id: Uuid) -> Result<Comment>;
 
     async fn get_comments(&self, post_id: Uuid) -> Result<Vec<CommentData>>;

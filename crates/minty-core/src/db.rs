@@ -4,6 +4,8 @@ pub use model::*;
 
 pub use sqlx::postgres::PgPoolOptions as PoolOptions;
 
+use minty::model::export::Data;
+use sqlx::types::Json;
 use sqlx_helper_macros::{database, transaction};
 
 database! {
@@ -19,7 +21,7 @@ database! {
 
     create_related_post(post_id: Uuid, related: Uuid);
 
-    create_reply(parent_id: Uuid, content: &str) -> Comment;
+    create_reply(parent_id: Uuid, content: &str) -> Option<Comment>;
 
     create_site(scheme: &str, name: &str, icon: Option<Uuid>) -> Site;
 
@@ -29,9 +31,13 @@ database! {
 
     delete_comment(id: Uuid, recursive: bool) -> bool;
 
-    delete_related_post(post_id: Uuid, related: Uuid);
+    delete_related_post(post_id: Uuid, related: Uuid) -> bool;
 
-    delete_tag_source(tag_id: Uuid, source_id: i64);
+    delete_tag_source(tag_id: Uuid, source_id: i64) -> bool;
+
+    export() -> (Json<Data>,);
+
+    import(data: Json<&Data>);
 
     prune();
 
@@ -55,7 +61,7 @@ database! {
 
     read_post_total() -> i64;
 
-    read_site(scheme: &str, host: &str) -> Option<(i64,)>;
+    read_site(scheme: &str, host: &str) -> (Option<i64>,);
 
     read_tag(id: Uuid) -> Option<Tag>;
 
@@ -96,23 +102,21 @@ transaction! {
 
     create_tag(name: &str) -> (Uuid,);
 
-    create_tag_alias(tag_id: Uuid, alias: &str) -> TagName;
+    create_tag_alias(tag_id: Uuid, alias: &str) -> Option<TagName>;
 
-    delete_post(id: Uuid);
+    delete_post(id: Uuid) -> bool;
 
     delete_post_objects(post_id: Uuid, objects: &[Uuid]) -> (DateTime,);
 
-    delete_post_tag(post_id: Uuid, tag_id: Uuid);
+    delete_post_tag(post_id: Uuid, tag_id: Uuid) -> bool;
 
-    delete_tag(id: Uuid);
+    delete_tag(id: Uuid) -> bool;
 
-    delete_tag_alias(tag_id: Uuid, alias: &str) -> TagName;
+    delete_tag_alias(tag_id: Uuid, alias: &str) -> Option<TagName>;
 
     prune_objects() -> Vec<(Uuid,)>;
 
     publish_post(post_id: Uuid) -> (DateTime,);
-
-    update_tag_name(tag_id: Uuid, name: &str) -> TagNameUpdate;
 
     update_post_description(
         post_id: Uuid,
@@ -120,6 +124,8 @@ transaction! {
     ) -> Option<(DateTime,)>;
 
     update_post_title(post_id: Uuid, title: &str) -> Option<(DateTime,)>;
+
+    update_tag_name(tag_id: Uuid, name: &str) -> Option<TagNameUpdate>;
 }
 
 impl Clone for Database {

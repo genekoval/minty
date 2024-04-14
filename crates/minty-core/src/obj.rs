@@ -1,4 +1,4 @@
-use crate::{conf::BucketConfig, db, Result};
+use crate::{conf::BucketConfig, db, Error, Result};
 
 use bytes::Bytes;
 use fstore::{http::Client, Object, RemoveResult};
@@ -66,7 +66,18 @@ impl Bucket {
         &self,
         id: Uuid,
     ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)> {
-        let (summary, stream) = self.bucket.get_object_stream(id).await?;
+        let (summary, stream) = self
+            .bucket
+            .get_object_stream(id)
+            .await
+            .map_err(|err| match err.kind() {
+                fstore::ErrorKind::NotFound => Error::NotFound {
+                    entity: "object",
+                    id,
+                },
+                _ => err.into(),
+            })?;
+
         let summary = ObjectSummary {
             media_type: summary.media_type,
             size: summary.size,

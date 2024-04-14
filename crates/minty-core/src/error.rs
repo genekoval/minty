@@ -1,7 +1,9 @@
+use minty::Uuid;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("{0}")]
-    NotFound(String),
+    #[error("{entity} with ID '{id}' not found")]
+    NotFound { entity: &'static str, id: Uuid },
 
     #[error("{0}")]
     InvalidInput(String),
@@ -20,3 +22,32 @@ pub enum Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+pub trait Found {
+    type Value;
+
+    fn found(self, entity: &'static str, id: Uuid) -> Result<Self::Value>;
+}
+
+impl Found for bool {
+    type Value = ();
+
+    fn found(self, entity: &'static str, id: Uuid) -> Result<Self::Value> {
+        if self {
+            Ok(())
+        } else {
+            Err(Error::NotFound { entity, id })
+        }
+    }
+}
+
+impl<T> Found for Option<T> {
+    type Value = T;
+
+    fn found(self, entity: &'static str, id: Uuid) -> Result<Self::Value> {
+        match self {
+            Some(value) => Ok(value),
+            None => Err(Error::NotFound { entity, id }),
+        }
+    }
+}

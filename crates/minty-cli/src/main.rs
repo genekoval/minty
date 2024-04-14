@@ -56,6 +56,7 @@ async fn run_command(args: Cli, client: Client) -> Result {
         Command::About => client.about().await,
         Command::Comment { id, command } => comment(id, command, client).await,
         Command::Comments { post } => client.get_comments(post).await,
+        Command::Export => client.export().await,
         Command::Find {
             command,
             from,

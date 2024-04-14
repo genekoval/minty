@@ -34,7 +34,7 @@ impl Search {
             })?;
 
         let client = Elasticsearch::new(transport);
-        let indices = Indices::new(&client, &config.namespace);
+        let indices = Indices::new(client, &config.namespace, config.refresh);
 
         Ok(Self { indices })
     }
@@ -132,11 +132,13 @@ impl Search {
             "size": query.pagination.size,
             "query": {
                 "bool": {
-                    "filter": {
-                        "term": {
-                            "visibility": query.visibility
+                    "filter": [
+                        {
+                            "term": {
+                                "visibility": query.visibility
+                            }
                         }
-                    }
+                    ]
                 }
             }
         });
@@ -163,21 +165,19 @@ impl Search {
             }
 
             if !query.tags.is_empty() {
-                b.get_mut("filter")
-                    .unwrap()
-                    .as_object_mut()
-                    .unwrap()
-                    .insert(
-                        "terms_set".into(),
-                        json!({
+                b.get_mut("filter").unwrap().as_array_mut().unwrap().push(
+                    json!({
+                        "terms_set": {
                             "tags": {
                                 "terms": query.tags,
                                 "minimum_should_match_script": {
-                                    "source": query.tags.len()
+                                    "source": query.tags.len().to_string()
                                 }
                             }
-                        }),
-                    );
+                        }
+
+                    }),
+                );
             }
         }
 

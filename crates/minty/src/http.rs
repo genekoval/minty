@@ -10,6 +10,7 @@ use bytes::Bytes;
 use futures_core::{Stream, TryStream};
 use std::{error::Error, io};
 
+#[derive(Clone, Debug)]
 pub struct Repo {
     client: Client,
 }
@@ -244,6 +245,10 @@ impl crate::Repo for Repo {
             .await?;
 
         Ok(())
+    }
+
+    async fn export(&self) -> Result<export::Data> {
+        self.client.get("export").send().await?.deserialize().await
     }
 
     async fn get_comment(&self, id: Uuid) -> Result<Comment> {

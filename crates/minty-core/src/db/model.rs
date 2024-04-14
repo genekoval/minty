@@ -206,7 +206,6 @@ pub struct PostSearch {
     pub created: DateTime,
     #[sqlx(rename = "date_modified")]
     pub modified: DateTime,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<Uuid>,
 }
 

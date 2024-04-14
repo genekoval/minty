@@ -1,0 +1,23 @@
+[package]
+name = "minty-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dmon = { workspace = true }
+fstore = { workspace = true }
+log = { workspace = true }
+minty = { path = "../minty", features = ["export"] }
+mintyd = { path = "../mintyd" }
+minty-core = { path = "../minty-core" }
+serde_json = { workspace = true, features = ["std"] }
+timber = { workspace = true }
+tokio = { workspace = true, features = ["io-util", "rt", "sync"] }
+uuid = { workspace = true }
+
+[dev-dependencies]
+base16ct = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+sha2 = { workspace = true }
+tokio-util = { workspace = true, features = ["io"] }

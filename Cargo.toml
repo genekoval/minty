@@ -5,6 +5,7 @@ members = ["crates/*"]
 [workspace.dependencies]
 axum = "0.7"
 axum-extra = "0.9"
+base16ct = "0.2"
 bytes = "1"
 bytesize = "1"
 chrono = "0.4"
@@ -26,6 +27,7 @@ scraper = "0.19"
 serde = "1"
 serde_json = "1"
 serde_yaml = "0.9"
+sha2 = "0.10"
 shadow-rs = "0.27"
 sqlx = { version = "0.7", features = [
     "chrono",

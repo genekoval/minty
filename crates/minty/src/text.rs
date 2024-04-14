@@ -141,5 +141,5 @@ macro_rules! text {
 
 text!(Comment, "comment", not_empty);
 text!(Description, "description");
-text!(PostTitle, "post title", not_empty, no_newlines);
+text!(PostTitle, "post title", no_newlines);
 text!(TagName, "tag name", not_empty, no_newlines);

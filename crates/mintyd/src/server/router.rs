@@ -10,6 +10,7 @@ mod text;
 use super::{error::Result, AppState};
 
 use axum::{extract::State, routing::get, Json};
+use minty::model::export::Data;
 use minty_core::About;
 
 pub type Router = axum::Router<AppState>;
@@ -18,9 +19,16 @@ async fn about(State(AppState { repo }): State<AppState>) -> Json<About> {
     Json(*repo.about())
 }
 
+async fn export(
+    State(AppState { repo }): State<AppState>,
+) -> Result<Json<Data>> {
+    Ok(Json(repo.export().await?))
+}
+
 pub fn routes() -> Router {
     Router::new()
         .route("/", get(about))
+        .route("/export", get(export))
         .nest("/comment", comment::routes())
         .nest("/comments", comments::routes())
         .nest("/object", object::routes())

@@ -1,3 +1,4 @@
+pub use elasticsearch::params::Refresh;
 pub use pgtools::{
     ConnectionParameters as DbConnection, PgDump, PgRestore, Psql,
 };
@@ -35,6 +36,14 @@ pub struct SearchConfig {
     pub node: Url,
     pub auth: SearchAuth,
     pub namespace: String,
+    #[serde(default = "SearchConfig::default_refresh")]
+    pub refresh: Refresh,
+}
+
+impl SearchConfig {
+    fn default_refresh() -> Refresh {
+        Refresh::False
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

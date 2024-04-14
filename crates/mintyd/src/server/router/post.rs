@@ -10,8 +10,7 @@ use minty::{text, Modification, Post, PostParts, Uuid};
 
 async fn add_objects(
     State(AppState { repo }): State<AppState>,
-    Path(id): Path<Uuid>,
-    Path(destination): Path<Uuid>,
+    Path((id, destination)): Path<(Uuid, Uuid)>,
     Json(objects): Json<Vec<Uuid>>,
 ) -> Result<String> {
     Ok(repo
@@ -30,8 +29,7 @@ async fn append_objects(
 
 async fn add_related_post(
     State(AppState { repo }): State<AppState>,
-    Path(id): Path<Uuid>,
-    Path(related): Path<Uuid>,
+    Path((id, related)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode> {
     repo.add_related_post(id, related).await?;
     Ok(StatusCode::NO_CONTENT)
@@ -39,8 +37,7 @@ async fn add_related_post(
 
 async fn add_tag(
     State(AppState { repo }): State<AppState>,
-    Path(id): Path<Uuid>,
-    Path(tag): Path<Uuid>,
+    Path((id, tag)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode> {
     repo.add_post_tag(id, tag).await?;
     Ok(StatusCode::NO_CONTENT)
@@ -71,20 +68,28 @@ async fn delete_post(
 
 async fn delete_related_post(
     State(AppState { repo }): State<AppState>,
-    Path(id): Path<Uuid>,
-    Path(related): Path<Uuid>,
+    Path((id, related)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode> {
-    repo.delete_related_post(id, related).await?;
-    Ok(StatusCode::NO_CONTENT)
+    let status = if repo.delete_related_post(id, related).await? {
+        StatusCode::NO_CONTENT
+    } else {
+        StatusCode::NOT_FOUND
+    };
+
+    Ok(status)
 }
 
 async fn delete_tag(
     State(AppState { repo }): State<AppState>,
-    Path(id): Path<Uuid>,
-    Path(tag): Path<Uuid>,
+    Path((id, tag)): Path<(Uuid, Uuid)>,
 ) -> Result<StatusCode> {
-    repo.delete_post_tag(id, tag).await?;
-    Ok(StatusCode::NO_CONTENT)
+    let status = if repo.delete_post_tag(id, tag).await? {
+        StatusCode::NO_CONTENT
+    } else {
+        StatusCode::NOT_FOUND
+    };
+
+    Ok(status)
 }
 
 async fn get_post(

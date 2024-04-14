@@ -34,8 +34,13 @@ async fn delete_source(
     State(AppState { repo }): State<AppState>,
     Path((tag, source)): Path<(Uuid, i64)>,
 ) -> Result<StatusCode> {
-    repo.delete_tag_source(tag, source).await?;
-    Ok(StatusCode::NO_CONTENT)
+    let status = if repo.delete_tag_source(tag, source).await? {
+        StatusCode::NO_CONTENT
+    } else {
+        StatusCode::NOT_FOUND
+    };
+
+    Ok(status)
 }
 
 async fn delete_sources(
