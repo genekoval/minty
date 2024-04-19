@@ -6,6 +6,7 @@ mod posts;
 mod tag;
 mod tags;
 mod text;
+mod timestamp;
 
 use super::{error::Result, AppState};
 

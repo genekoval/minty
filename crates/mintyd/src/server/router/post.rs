@@ -1,4 +1,4 @@
-use super::{text::Text, AppState, Result, Router};
+use super::{text::Text, timestamp::Timestamp, AppState, Result, Router};
 
 use axum::{
     extract::{Path, State},
@@ -12,19 +12,19 @@ async fn add_objects(
     State(AppState { repo }): State<AppState>,
     Path((id, destination)): Path<(Uuid, Uuid)>,
     Json(objects): Json<Vec<Uuid>>,
-) -> Result<String> {
+) -> Result<Timestamp> {
     Ok(repo
         .add_post_objects(id, &objects, Some(destination))
         .await?
-        .to_string())
+        .into())
 }
 
 async fn append_objects(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
     Json(objects): Json<Vec<Uuid>>,
-) -> Result<String> {
-    Ok(repo.add_post_objects(id, &objects, None).await?.to_string())
+) -> Result<Timestamp> {
+    Ok(repo.add_post_objects(id, &objects, None).await?.into())
 }
 
 async fn add_related_post(
@@ -54,8 +54,8 @@ async fn delete_objects(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
     Json(objects): Json<Vec<Uuid>>,
-) -> Result<String> {
-    Ok(repo.delete_post_objects(id, &objects).await?.to_string())
+) -> Result<Timestamp> {
+    Ok(repo.delete_post_objects(id, &objects).await?.into())
 }
 
 async fn delete_post(
