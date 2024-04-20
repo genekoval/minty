@@ -1718,7 +1718,7 @@ dependencies = [
 
 [[package]]
 name = "minty"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "bytes",
  "chrono",
@@ -1755,7 +1755,7 @@ dependencies = [
 
 [[package]]
 name = "minty-core"
-version = "0.5.3"
+version = "0.6.0"
 dependencies = [
  "bytes",
  "bytesize",
@@ -1784,7 +1784,7 @@ dependencies = [
 
 [[package]]
 name = "minty-test"
-version = "0.1.0"
+version = "0.6.0"
 dependencies = [
  "base16ct",
  "bytes",
@@ -1805,7 +1805,7 @@ dependencies = [
 
 [[package]]
 name = "mintyd"
-version = "0.5.3"
+version = "0.6.0"
 dependencies = [
  "axum",
  "axum-extra",
