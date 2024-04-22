@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 const DEFAULT_CONFIG: &str = match option_env!("MINTYD_DEFAULT_CONFIG") {
     Some(config) => config,
-    None => "/etc/minty/minty.yml",
+    None => "minty.yml",
 };
 
 const LONG_VERSION: &str = formatcp!(
