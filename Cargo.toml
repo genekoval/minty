@@ -5,6 +5,7 @@ members = ["crates/*"]
 [workspace.package]
 version = "0.6.0"
 edition = "2021"
+repository = "https://git.aurora.aur/minty/minty"
 
 [workspace.dependencies]
 axum = "0.7"
