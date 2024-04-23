@@ -1,6 +1,6 @@
 use super::HumanReadable;
 
-use minty::{Url, Version};
+use minty::Url;
 use serde::Serialize;
 use std::io::{Result, Write};
 
@@ -20,33 +20,12 @@ impl<'a> HumanReadable for About<'a> {
     ) -> Result<()> {
         let alias = self.server;
         let url = self.url;
-        let Version {
-            number,
-            branch,
-            build_time,
-            build_os,
-            build_type,
-            commit_hash,
-            commit_date,
-            rust_version,
-            rust_channel,
-        } = &self.info.version;
+        let minty::About { version } = &self.info;
 
         writeln!(
             w,
             r#"{alias}: {url}
-    Version: {number}
-    Branch:  {branch}
-    Build:
-        Time: {build_time}
-        OS:   {build_os}
-        Type: {build_type}
-    Commit:
-        Hash: {commit_hash}
-        Date: {commit_date}
-    Rust:
-        Version: {rust_version}
-        Channel: {rust_channel}"#
+    server version: {version}"#
         )
     }
 }

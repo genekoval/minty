@@ -17,7 +17,7 @@ use minty_core::About;
 pub type Router = axum::Router<AppState>;
 
 async fn about(State(AppState { repo }): State<AppState>) -> Json<About> {
-    Json(*repo.about())
+    Json(repo.about())
 }
 
 async fn export(

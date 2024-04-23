@@ -12,14 +12,11 @@ mod search;
 mod task;
 
 pub use error::{Error, Result};
-pub use model::{About, Version};
+pub use model::About;
 pub use repo::Repo;
-pub use shadow_rs::formatcp;
 pub use task::Task;
 
-use shadow_rs::shadow;
-
-shadow!(build);
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct Env {
     _preview: preview::Env,

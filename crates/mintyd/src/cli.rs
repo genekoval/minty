@@ -1,6 +1,5 @@
 use clap::{Args, Parser, Subcommand};
 use minty::Uuid;
-use minty_core::{build, formatcp};
 use std::path::PathBuf;
 
 const DEFAULT_CONFIG: &str = match option_env!("MINTYD_DEFAULT_CONFIG") {
@@ -8,28 +7,8 @@ const DEFAULT_CONFIG: &str = match option_env!("MINTYD_DEFAULT_CONFIG") {
     None => "minty.yml",
 };
 
-const LONG_VERSION: &str = formatcp!(
-    r#"{}
-core: {} ({} {})
-build config: {}
-build time: {}
-build env: {} {}"#,
-    env!("CARGO_PKG_VERSION"),
-    build::PKG_VERSION,
-    build::BRANCH,
-    build::SHORT_COMMIT,
-    build::BUILD_RUST_CHANNEL,
-    build::BUILD_TIME,
-    build::RUST_VERSION,
-    build::RUST_CHANNEL,
-);
-
 #[derive(Parser)]
-#[command(
-    version,
-    long_version = LONG_VERSION,
-    arg_required_else_help = true
-)]
+#[command(version, arg_required_else_help = true)]
 /// Minty server
 pub struct Cli {
     #[arg(

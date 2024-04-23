@@ -19,7 +19,7 @@ pub async fn serve(
     repo: Arc<Repo>,
     parent: &mut dmon::Parent,
 ) -> Result {
-    info!("minty version {} starting up", repo.about().version.number);
+    info!("minty version {} starting up", minty_core::VERSION);
 
     repo.prepare().await?;
 

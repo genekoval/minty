@@ -24,7 +24,6 @@ use tokio::{
 use tokio_util::task::TaskTracker;
 
 pub struct Repo {
-    about: About,
     bucket: Bucket,
     database: Database,
     db_support: pgtools::Database,
@@ -34,8 +33,6 @@ pub struct Repo {
 
 impl Repo {
     pub async fn new(config: &RepoConfig) -> result::Result<Self, String> {
-        let version = crate::Version::get();
-
         let mut pool = db::PoolOptions::new();
 
         if let Some(max_connections) = config.database.max_connections {
@@ -50,7 +47,7 @@ impl Repo {
             })?;
 
         let db_support = pgtools::Database::new(
-            version.number,
+            crate::VERSION,
             pgtools::Options {
                 connection: &config.database.connection,
                 psql: &config.database.psql,
@@ -65,7 +62,6 @@ impl Repo {
         let favicons = Favicons::new(bucket.clone());
 
         Ok(Self {
-            about: About { version },
             bucket,
             database,
             db_support,
@@ -74,8 +70,10 @@ impl Repo {
         })
     }
 
-    pub fn about(&self) -> &About {
-        &self.about
+    pub fn about(&self) -> About {
+        About {
+            version: crate::VERSION,
+        }
     }
 
     pub async fn prepare(&self) -> result::Result<(), String> {

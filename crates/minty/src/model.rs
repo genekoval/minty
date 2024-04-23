@@ -21,7 +21,7 @@ pub type DateTime = chrono::DateTime<Local>;
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct About {
-    pub version: Version,
+    pub version: String,
 }
 
 #[derive(Clone, Debug)]
@@ -381,20 +381,6 @@ pub struct TagQuery {
 
     #[cfg_attr(feature = "serde", serde(default))]
     pub exclude: Vec<Uuid>,
-}
-
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct Version {
-    pub number: String,
-    pub branch: String,
-    pub build_time: String,
-    pub build_os: String,
-    pub build_type: String,
-    pub commit_hash: String,
-    pub commit_date: String,
-    pub rust_version: String,
-    pub rust_channel: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
