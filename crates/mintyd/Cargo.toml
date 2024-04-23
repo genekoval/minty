@@ -12,8 +12,6 @@ clap = { workspace = true, features = ["derive", "env"] }
 crossterm = { workspace = true }
 dmon = { workspace = true }
 log = { workspace = true, features = ["serde"] }
-minty = { path = "../minty", features = ["http"] }
-minty-core = { path = "../minty-core" }
 ratatui = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_yaml = { workspace = true }
@@ -21,3 +19,14 @@ sync_wrapper = { workspace = true, features = ["futures"] }
 timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
 tokio-util = { workspace = true, features = ["io"] }
+
+[dependencies.minty]
+path = "../minty"
+version = "0.6"
+registry = "minty"
+features = ["http"]
+
+[dependencies.minty-core]
+path = "../minty-core"
+version = "0.6"
+registry = "minty"

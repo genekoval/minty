@@ -1,6 +1,5 @@
 [package]
 name = "minty-test"
-version.workspace = true
 edition.workspace = true
 
 [dependencies]

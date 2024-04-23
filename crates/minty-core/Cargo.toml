@@ -14,7 +14,6 @@ futures = { workspace = true }
 futures-core = { workspace = true }
 graphicsmagick-sys = { workspace = true }
 log = { workspace = true }
-minty = { path = "../minty", features = ["export"] }
 pgtools = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 scraper = { workspace = true }
@@ -27,6 +26,12 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
 tokio-util = { workspace = true, features = ["rt"] }
 url = { workspace = true }
+
+[dependencies.minty]
+path = "../minty"
+version = "0.6"
+registry = "minty"
+features = ["export"]
 
 [build-dependencies]
 shadow-rs = { workspace = true }

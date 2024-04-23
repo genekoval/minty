@@ -9,14 +9,17 @@ edition = "2021"
 [workspace.dependencies]
 axum = "0.7"
 axum-extra = "0.9"
+axum-unix = { version = "0.1", registry = "genya" }
 base16ct = "0.2"
 bytes = "1"
 bytesize = "1"
 chrono = "0.4"
 clap = "4"
 crossterm = "0.27"
+dmon = { version = "0.1", registry = "genya" }
 elasticsearch = "8.5.0-alpha.1"
 ffmpeg-sys-next = "6"
+fstore = { version = "0.4", registry = "fstore" }
 futures = "0.3"
 futures-core = "0.3"
 graphicsmagick-sys = "0.6"
@@ -25,6 +28,7 @@ mime = "0.3"
 num_cpus = "1"
 num-format = "0.4"
 owo-colors = "4"
+pgtools = { version = "0.1", registry = "genya" }
 ratatui = "0.26"
 reqwest = "0.12"
 scraper = "0.19"
@@ -40,29 +44,13 @@ sqlx = { version = "0.7", features = [
     "runtime-tokio",
     "uuid",
 ] }
+sqlx-helper-macros = { version = "0.1", registry = "genya" }
 sync_wrapper = "1"
 textwrap = "0.16"
 thiserror = "1"
+timber = { version = "0.1", registry = "genya" }
 tokio = "1"
 tokio-stream = "0.1"
 tokio-util = "0.7"
 url = "2"
 uuid = "1"
-
-[workspace.dependencies.axum-unix]
-git = "https://git.aurora.aur/genya/axum-unix.git"
-
-[workspace.dependencies.dmon]
-git = "https://git.aurora.aur/genya/dmon-rs.git"
-
-[workspace.dependencies.fstore]
-git = "https://git.aurora.aur/fstore/fstore.git"
-
-[workspace.dependencies.pgtools]
-git = "https://git.aurora.aur/genya/pgtools.git"
-
-[workspace.dependencies.sqlx-helper-macros]
-git = "https://git.aurora.aur/genya/sqlx-helper-macros.git"
-
-[workspace.dependencies.timber]
-git = "https://git.aurora.aur/genya/timber-rs.git"

@@ -8,7 +8,6 @@ bytesize = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 log = { workspace = true, features = ["serde"] }
-minty = { path = "../minty", features = ["export", "http"] }
 num-format = { workspace = true, features = ["with-system-locale"] }
 owo-colors = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
@@ -19,6 +18,12 @@ textwrap = { workspace = true, features = ["terminal_size"] }
 timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["fs", "io-std", "rt"] }
 tokio-util = { workspace = true, features = ["io"] }
+
+[dependencies.minty]
+path = "../minty"
+version = "0.6"
+registry = "minty"
+features = ["export", "http"]
 
 [[bin]]
 name = "minty"
