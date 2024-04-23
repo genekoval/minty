@@ -94,6 +94,7 @@ pub trait Repo {
         sources: &[String],
     ) -> Result<()>;
 
+    #[cfg(feature = "export")]
     async fn export(&self) -> Result<export::Data>;
 
     async fn get_comment(&self, id: Uuid) -> Result<Comment>;

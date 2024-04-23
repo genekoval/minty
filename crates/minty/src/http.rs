@@ -247,6 +247,7 @@ impl crate::Repo for Repo {
         Ok(())
     }
 
+    #[cfg(feature = "export")]
     async fn export(&self) -> Result<export::Data> {
         self.client.get("export").send().await?.deserialize().await
     }
