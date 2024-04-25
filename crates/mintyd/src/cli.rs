@@ -2,7 +2,7 @@ use clap::{Args, Parser, Subcommand};
 use minty::Uuid;
 use std::path::PathBuf;
 
-const DEFAULT_CONFIG: &str = match option_env!("MINTYD_DEFAULT_CONFIG") {
+const DEFAULT_CONFIG: &str = match option_env!("MINTY_DEFAULT_CONFIG") {
     Some(config) => config,
     None => "minty.yml",
 };

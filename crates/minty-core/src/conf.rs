@@ -7,6 +7,12 @@ use minty::Url;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+const DEFAULT_SQL_DIRECTORY: &str =
+    match option_env!("MINTY_DEFAULT_SQL_DIRECTORY") {
+        Some(dir) => dir,
+        None => "db",
+    };
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DatabaseConfig {
     pub connection: DbConnection,
@@ -22,7 +28,14 @@ pub struct DatabaseConfig {
     #[serde(default)]
     pub pg_restore: PgRestore,
 
+    #[serde(default = "DatabaseConfig::default_sql_directory")]
     pub sql_directory: PathBuf,
+}
+
+impl DatabaseConfig {
+    fn default_sql_directory() -> PathBuf {
+        DEFAULT_SQL_DIRECTORY.into()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
