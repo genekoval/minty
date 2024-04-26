@@ -1727,6 +1727,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "axum-unix",
+ "bytesize",
  "chrono",
  "clap",
  "crossterm",

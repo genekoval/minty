@@ -102,6 +102,23 @@ async fn run_command(
 
             repo.create_indices().await?;
         }
+        Command::Prune => {
+            let result = repo.prune().await?;
+
+            if result.objects_removed == 0 {
+                println!("No objects to prune");
+            } else {
+                println!(
+                    "Removed {} {} freeing {}",
+                    result.objects_removed,
+                    match result.objects_removed {
+                        1 => "object",
+                        _ => "objects",
+                    },
+                    bytesize::to_string(result.space_freed, true)
+                );
+            }
+        }
         Command::Migrate => repo.migrate().await?,
         Command::Regen { command } => match command {
             Regen::Previews { object, command } => match object {

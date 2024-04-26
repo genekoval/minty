@@ -44,6 +44,9 @@ pub enum Command {
     /// Update schemas to match the current program version
     Migrate,
 
+    /// Delete unused data
+    Prune,
+
     /// Restore database data from a backup
     Restore {
         /// Location of the archive file

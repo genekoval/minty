@@ -12,8 +12,9 @@ use crate::{
 };
 
 use bytes::Bytes;
+use fstore::RemoveResult;
 use futures::{stream::BoxStream, Stream, StreamExt, TryStream};
-use log::{error, info};
+use log::error;
 use minty::{model::*, text};
 use serde::Serialize;
 use std::{error, io, path::Path, result, sync::Arc};
@@ -96,7 +97,7 @@ impl Repo {
         self.db_support.migrate().await
     }
 
-    pub async fn prune(&self) -> Result<()> {
+    pub async fn prune(&self) -> Result<RemoveResult> {
         self.database.prune().await?;
 
         let mut tx = self.database.begin().await?;
@@ -111,18 +112,7 @@ impl Repo {
         let result = self.bucket.remove_objects(&objects).await?;
 
         tx.commit().await?;
-
-        info!(
-            "Removed {} {} freeing {}",
-            result.objects_removed,
-            match result.objects_removed {
-                1 => "object",
-                _ => "objects",
-            },
-            bytesize::to_string(result.space_freed, true),
-        );
-
-        Ok(())
+        Ok(result)
     }
 
     pub async fn reset(&self) -> result::Result<(), String> {
