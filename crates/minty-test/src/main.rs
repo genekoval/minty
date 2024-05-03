@@ -10,7 +10,7 @@ use std::{
     error::Error, fs::File, io::BufReader, path::Path, result, sync::Arc,
 };
 
-const CONFIG: &str = "test-config.yml";
+const CONFIG: &str = "minty-test.toml";
 
 pub type BoxError = Box<dyn Error + Sync + Send + 'static>;
 pub type Result<T> = result::Result<T, BoxError>;

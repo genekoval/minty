@@ -3,7 +3,6 @@ use crate::{Error, Result};
 use log::LevelFilter;
 use minty::Url;
 use serde::{Deserialize, Serialize};
-use serde_yaml as yaml;
 use std::{
     collections::HashMap,
     env, fs,
@@ -32,7 +31,7 @@ impl Config {
             ))
         })?;
 
-        yaml::from_str(&data).map_err(|err| {
+        toml::from_str(&data).map_err(|err| {
             Error::Config(format!(
                 "config file '{}' contains errors: {err}",
                 path.display()
@@ -94,17 +93,17 @@ fn search_home() -> Option<PathBuf> {
     let home = Path::new(&home);
     let config = home.join(".config");
 
-    let path = config.join("minty/minty.yml");
+    let path = config.join("minty/minty.toml");
     if path.is_file() {
         return Some(path);
     }
 
-    let path = config.join("minty.yml");
+    let path = config.join("minty.toml");
     if path.is_file() {
         return Some(path);
     }
 
-    let path = home.join(".minty.yml");
+    let path = home.join(".minty.toml");
     if path.is_file() {
         return Some(path);
     }
@@ -115,7 +114,7 @@ fn search_home() -> Option<PathBuf> {
 fn search_xdg_config_home() -> Option<PathBuf> {
     let config = env::var_os("XDG_CONFIG_HOME")?;
 
-    let path = Path::new(&config).join("minty/minty.yml");
+    let path = Path::new(&config).join("minty/minty.toml");
 
     if path.is_file() {
         return Some(path);

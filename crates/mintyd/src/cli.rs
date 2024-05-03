@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 const DEFAULT_CONFIG: &str = match option_env!("MINTY_DEFAULT_CONFIG") {
     Some(config) => config,
-    None => "minty.yml",
+    None => "minty.toml",
 };
 
 #[derive(Parser)]
@@ -19,7 +19,7 @@ pub struct Cli {
         default_value = DEFAULT_CONFIG,
         global = true
     )]
-    /// Server config file in YAML format
+    /// Server config file in TOML format
     pub config: PathBuf,
 
     #[command(subcommand)]

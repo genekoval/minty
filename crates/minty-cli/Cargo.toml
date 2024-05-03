@@ -14,11 +14,11 @@ owo-colors = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-serde_yaml = { workspace = true }
 textwrap = { workspace = true, features = ["terminal_size"] }
 timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["fs", "io-std", "rt"] }
 tokio-util = { workspace = true, features = ["io"] }
+toml = { workspace = true, features = ["parse"] }
 
 [dependencies.minty]
 path = "../minty"

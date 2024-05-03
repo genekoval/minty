@@ -2,7 +2,6 @@ use axum_unix::Endpoint;
 use log::LevelFilter;
 use minty_core::conf::RepoConfig;
 use serde::{Deserialize, Serialize};
-use serde_yaml as yaml;
 use std::{fs, path::Path};
 use timber::Sink;
 
@@ -24,7 +23,7 @@ impl Config {
             format!("failed to read config file '{}': {err}", path.display())
         })?;
 
-        yaml::from_str(&data).map_err(|err| {
+        toml::from_str(&data).map_err(|err| {
             format!(
                 "failed to deserialize config file '{}': {err}",
                 path.display()

@@ -15,7 +15,7 @@ pub struct Cli {
         env = "MINTY_CONFIG",
         global = true
     )]
-    /// Config file in YAML format
+    /// Config file in TOML format
     pub config: Option<PathBuf>,
 
     #[arg(
