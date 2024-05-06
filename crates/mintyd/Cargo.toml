@@ -1,6 +1,6 @@
 [package]
 name = "mintyd"
-version.workspace = true
+version = "0.6.1-dev"
 edition.workspace = true
 repository.workspace = true
 
@@ -24,11 +24,11 @@ toml = { workspace = true, features = ["parse"] }
 
 [dependencies.minty]
 path = "../minty"
-version = "0.6"
+version = "0.6.1-dev"
 registry = "minty"
 features = ["http"]
 
 [dependencies.minty-core]
 path = "../minty-core"
-version = "0.6"
+version = "0.6.1-dev"
 registry = "minty"

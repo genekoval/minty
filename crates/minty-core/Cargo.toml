@@ -1,6 +1,6 @@
 [package]
 name = "minty-core"
-version.workspace = true
+version = "0.6.1-dev"
 edition.workspace = true
 repository.workspace = true
 
@@ -29,6 +29,6 @@ url = { workspace = true }
 
 [dependencies.minty]
 path = "../minty"
-version = "0.6"
+version = "0.6.1-dev"
 registry = "minty"
 features = ["export"]
