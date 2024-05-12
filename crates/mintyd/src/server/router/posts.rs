@@ -1,5 +1,7 @@
 use super::{AppState, Result, Router};
 
+use crate::server::extract::OptionalUser;
+
 use axum::{
     extract::{Query, State},
     routing::get,
@@ -9,9 +11,10 @@ use minty::{http::query::PostQuery, PostPreview, SearchResult};
 
 async fn get_posts(
     State(AppState { repo }): State<AppState>,
+    OptionalUser(user): OptionalUser,
     Query(query): Query<PostQuery>,
 ) -> Result<Json<SearchResult<PostPreview>>> {
-    Ok(Json(repo.get_posts(&query.into()).await?))
+    Ok(Json(repo.get_posts(user, query.into()).await?))
 }
 
 pub fn routes() -> Router {

@@ -125,7 +125,7 @@ macro_rules! text {
             type Err = Error;
 
             fn from_str(s: &str) -> result::Result<Self, Self::Err> {
-                $name::new(s)
+                Self::new(s)
             }
         }
 
@@ -133,7 +133,7 @@ macro_rules! text {
             type Error = Error;
 
             fn try_from(value: String) -> result::Result<Self, Self::Error> {
-                $name::new(&value)
+                Self::new(&value)
             }
         }
     };
@@ -142,4 +142,4 @@ macro_rules! text {
 text!(Comment, "comment", not_empty);
 text!(Description, "description");
 text!(PostTitle, "post title", no_newlines);
-text!(TagName, "tag name", not_empty, no_newlines);
+text!(Name, "name", not_empty, no_newlines);

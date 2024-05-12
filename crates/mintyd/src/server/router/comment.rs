@@ -1,5 +1,7 @@
 use super::{text::Text, AppState, Result, Router};
 
+use crate::server::extract::User;
+
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -10,10 +12,11 @@ use minty::{http::query::DeleteComment, text, Comment, CommentData, Uuid};
 
 async fn add_reply(
     State(AppState { repo }): State<AppState>,
+    User(user): User,
     Path(id): Path<Uuid>,
     Text(content): Text<text::Comment>,
 ) -> Result<Json<CommentData>> {
-    Ok(Json(repo.add_reply(id, content).await?))
+    Ok(Json(repo.add_reply(user, id, content).await?))
 }
 
 async fn delete_comment(

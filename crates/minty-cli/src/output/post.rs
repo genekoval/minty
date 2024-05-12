@@ -1,37 +1,28 @@
 use super::{
     color, icon,
     metadata::Metadata,
+    text::StringExt,
     time::{FormatDate, RelativeUnits},
     HumanReadable,
 };
 
 use minty::{Post, PostPreview};
 use owo_colors::OwoColorize;
-use std::{
-    cmp::min,
-    io::{Result, Write},
-};
-use textwrap::{fill, termwidth, Options};
-
-const INDENT: &str = "    ";
+use std::io::{Result, Write};
 
 impl HumanReadable for Post {
     fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
+        if let Some(poster) = &self.poster {
+            write!(w, "{} ", icon::ACCOUNT)?;
+            poster.human_readable(w, indent + 2)?;
+            writeln!(w)?;
+        }
+
         if !self.title.is_empty() {
             writeln!(w, "{}\n", self.title.italic().fg::<color::Title>())?;
         }
 
-        if !self.description.is_empty() {
-            let width = min(termwidth(), 80);
-
-            let options = Options::new(width)
-                .initial_indent(INDENT)
-                .subsequent_indent(INDENT);
-
-            let description = fill(&self.description, options);
-
-            writeln!(w, "{}\n", description)?;
-        }
+        self.description.wrapped().human_readable(w, indent)?;
 
         if !self.objects.is_empty() {
             writeln!(

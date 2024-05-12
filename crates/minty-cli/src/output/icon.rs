@@ -9,6 +9,9 @@ impl Display for Icon {
     }
 }
 
+/// nf-md-account 󰀄
+pub const ACCOUNT: Icon = Icon('\u{f0004}');
+
 /// nf-oct-file_binary 
 pub const BINARY: Icon = Icon('\u{f471}');
 
@@ -38,6 +41,9 @@ pub const PENCIL: Icon = Icon('\u{f03eb}');
 
 /// nf-md-pound 󰐣
 pub const POUND: Icon = Icon('\u{f0423}');
+
+/// nf-md-tag 󰓹
+pub const TAG: Icon = Icon('\u{f04f9}');
 
 /// nf-oct-trash 
 pub const TRASH: Icon = Icon('\u{f48e}');

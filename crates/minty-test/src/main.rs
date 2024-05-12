@@ -98,6 +98,7 @@ async fn create_repo(config: &RepoConfig) -> Result<Arc<Repo>> {
     info!("Building search indices");
     repo.reindex_posts(BATCH_SIZE).await?.1.await??;
     repo.reindex_tags(BATCH_SIZE).await?.1.await??;
+    repo.reindex_users(BATCH_SIZE).await?.1.await??;
 
     Ok(repo)
 }

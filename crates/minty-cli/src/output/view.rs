@@ -26,6 +26,8 @@ where
             let item = item.style(style.unwrap_or_default());
             writeln!(w, "\u{eab6} {item}")?;
         }
+
+        writeln!(w)?;
     }
 
     Ok(())

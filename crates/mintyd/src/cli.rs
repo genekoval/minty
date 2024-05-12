@@ -119,6 +119,9 @@ pub enum Reindex {
 
     /// Reindex all tags
     Tags,
+
+    /// Reindex all users
+    Users,
 }
 
 #[cfg(test)]

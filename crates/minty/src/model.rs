@@ -46,6 +46,18 @@ pub struct CommentData {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct EntityProfile {
+    pub name: String,
+    pub aliases: Vec<String>,
+    pub description: String,
+    pub sources: Vec<Source>,
+    pub avatar: Option<Uuid>,
+    pub banner: Option<Uuid>,
+    pub created: DateTime,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Modification<T> {
     pub date_modified: DateTime,
     pub new_value: T,
@@ -122,6 +134,7 @@ impl Default for Pagination {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Post {
     pub id: Uuid,
+    pub poster: Option<UserPreview>,
     pub title: String,
     pub description: String,
     pub visibility: Visibility,
@@ -148,6 +161,7 @@ pub struct PostParts {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostPreview {
     pub id: Uuid,
+    pub poster: Option<UserPreview>,
     pub title: String,
     pub preview: Option<ObjectPreview>,
     pub comment_count: u32,
@@ -166,6 +180,9 @@ impl PartialEq for PostPreview {
 pub struct PostQuery {
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub pagination: Pagination,
+
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub poster: Option<Uuid>,
 
     #[cfg_attr(feature = "serde", serde(default))]
     pub text: String,
@@ -307,9 +324,34 @@ impl PostSortValue {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct ProfileName {
+    pub name: String,
+    pub aliases: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct ProfileQuery {
+    #[cfg_attr(feature = "serde", serde(flatten))]
+    pub pagination: Pagination,
+
+    pub name: String,
+
+    #[cfg_attr(feature = "serde", serde(default))]
+    pub exclude: Vec<Uuid>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct SearchResult<T> {
     pub total: u32,
     pub hits: Vec<T>,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct SignUp {
+    pub username: text::Name,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -340,21 +382,9 @@ impl Display for Source {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Tag {
     pub id: Uuid,
-    pub name: String,
-    pub aliases: Vec<String>,
-    pub description: String,
-    pub avatar: Option<Uuid>,
-    pub banner: Option<Uuid>,
-    pub sources: Vec<Source>,
+    pub profile: EntityProfile,
+    pub creator: Option<UserPreview>,
     pub post_count: u32,
-    pub created: DateTime,
-}
-
-#[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct TagName {
-    pub name: String,
-    pub aliases: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq)]
@@ -373,14 +403,26 @@ impl PartialEq for TagPreview {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct TagQuery {
-    #[cfg_attr(feature = "serde", serde(flatten))]
-    pub pagination: Pagination,
+pub struct User {
+    pub id: Uuid,
+    pub profile: EntityProfile,
+    pub post_count: u32,
+    pub comment_count: u32,
+    pub tag_count: u32,
+}
 
+#[derive(Clone, Debug, Eq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct UserPreview {
+    pub id: Uuid,
     pub name: String,
+    pub avatar: Option<Uuid>,
+}
 
-    #[cfg_attr(feature = "serde", serde(default))]
-    pub exclude: Vec<Uuid>,
+impl PartialEq for UserPreview {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

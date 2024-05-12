@@ -1,22 +1,24 @@
 use super::{color, icon, metadata::Metadata, time::FormatDate, HumanReadable};
 
-use minty::{Tag, TagPreview};
+use minty::{User, UserPreview};
 use owo_colors::OwoColorize;
 use std::io::{Result, Write};
 
-impl HumanReadable for Tag {
+impl HumanReadable for User {
     fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
         self.profile.human_readable(w, indent)?;
 
         Metadata::new()
             .row("ID", icon::POUND, self.id)
             .row("Posts", icon::DOCUMENT, self.post_count)
-            .row("Created", icon::CALENDAR, self.profile.created.long_date())
+            .row("Comments", icon::COMMENT, self.comment_count)
+            .row("Tags", icon::TAG, self.tag_count)
+            .row("Joined", icon::CALENDAR, self.profile.created.long_date())
             .print(indent, w)
     }
 }
 
-impl HumanReadable for TagPreview {
+impl HumanReadable for UserPreview {
     fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
         writeln!(w, "{}", self.name.bold())?;
 

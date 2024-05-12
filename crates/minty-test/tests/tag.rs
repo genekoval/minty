@@ -1,8 +1,8 @@
 use minty_test::{not_found, repo};
 
 use minty::{
-    text::{Description, TagName},
-    Pagination, Repo, TagQuery, Url,
+    text::{Description, Name},
+    Pagination, ProfileQuery, Repo, Url,
 };
 use tokio::test;
 use uuid::uuid;
@@ -12,11 +12,11 @@ async fn add_tag() {
     const NAME: &str = "Minty Test";
 
     let repo = repo();
-    let name = TagName::new(NAME).unwrap();
+    let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name).await.unwrap();
     let tag = repo.get_tag(id).await.unwrap();
 
-    assert_eq!(NAME, tag.name);
+    assert_eq!(NAME, tag.profile.name);
 }
 
 #[test]
@@ -26,10 +26,10 @@ async fn add_tag_alias() {
 
     let repo = repo();
 
-    let name = TagName::new(NAME).unwrap();
+    let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name.clone()).await.unwrap();
 
-    let alias = TagName::new(ALIAS).unwrap();
+    let alias = Name::new(ALIAS).unwrap();
 
     for _ in 0..2 {
         let tag = repo.add_tag_alias(id, alias.clone()).await.unwrap();
@@ -47,9 +47,9 @@ async fn add_tag_alias() {
 
     let tag = repo.get_tag(id).await.unwrap();
 
-    assert_eq!(tag.name, NAME);
-    assert_eq!(tag.aliases.len(), 1);
-    assert_eq!(tag.aliases.first().unwrap(), ALIAS);
+    assert_eq!(tag.profile.name, NAME);
+    assert_eq!(tag.profile.aliases.len(), 1);
+    assert_eq!(tag.profile.aliases.first().unwrap(), ALIAS);
 
     let id = uuid!("4b88efa9-e961-4e63-8142-5c39e289a29a");
     not_found!(repo.add_tag_alias(id, alias).await, "tag", id);
@@ -60,7 +60,7 @@ async fn add_tag_source() {
     const SOURCE: &str = "https://example.com/hello";
 
     let repo = repo();
-    let name = TagName::new("Tag Name").unwrap();
+    let name = Name::new("Tag Name").unwrap();
     let id = repo.add_tag(name).await.unwrap();
     let url = Url::parse(SOURCE).unwrap();
     let source = repo.add_tag_source(id, &url).await.unwrap();
@@ -70,9 +70,9 @@ async fn add_tag_source() {
 
     let tag = repo.get_tag(id).await.unwrap();
 
-    assert_eq!(1, tag.sources.len());
+    assert_eq!(1, tag.profile.sources.len());
 
-    let result = tag.sources.first().unwrap();
+    let result = tag.profile.sources.first().unwrap();
 
     assert_eq!(source.id, result.id);
     assert_eq!(source.url, result.url);
@@ -85,7 +85,7 @@ async fn add_tag_source() {
 #[test]
 async fn delete_tag() {
     let repo = repo();
-    let name = TagName::new("Delete Me").unwrap();
+    let name = Name::new("Delete Me").unwrap();
     let id = repo.add_tag(name).await.unwrap();
     repo.delete_tag(id).await.unwrap();
     not_found!(repo.delete_tag(id).await, "tag", id);
@@ -97,9 +97,9 @@ async fn delete_tag_alias() {
     const ALIAS: &str = "Delete Me";
 
     let repo = repo();
-    let name = TagName::new(NAME).unwrap();
+    let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name).await.unwrap();
-    let alias = TagName::new(ALIAS).unwrap();
+    let alias = Name::new(ALIAS).unwrap();
     repo.add_tag_alias(id, alias).await.unwrap();
 
     for _ in 0..2 {
@@ -108,8 +108,8 @@ async fn delete_tag_alias() {
         assert!(tag.aliases.is_empty());
 
         let tag = repo.get_tag(id).await.unwrap();
-        assert_eq!(NAME, tag.name);
-        assert!(tag.aliases.is_empty());
+        assert_eq!(NAME, tag.profile.name);
+        assert!(tag.profile.aliases.is_empty());
     }
 
     let id = uuid!("010bf31b-eb5d-4f35-8314-678abbd6cd36");
@@ -119,7 +119,7 @@ async fn delete_tag_alias() {
 #[test]
 async fn delete_tag_source() {
     let repo = repo();
-    let name = TagName::new("Tag Name").unwrap();
+    let name = Name::new("Tag Name").unwrap();
     let id = repo.add_tag(name).await.unwrap();
     let url = Url::parse("https://example.com/hello").unwrap();
     let source = repo.add_tag_source(id, &url).await.unwrap();
@@ -137,7 +137,7 @@ async fn delete_tag_sources() {
     const HOST: &str = "example.com";
 
     let repo = repo();
-    let name = TagName::new("Tag Name").unwrap();
+    let name = Name::new("Tag Name").unwrap();
     let id = repo.add_tag(name).await.unwrap();
 
     for path in ["hello/world", "foo/bar"] {
@@ -153,19 +153,23 @@ async fn delete_tag_sources() {
 
     let tag = repo.get_tag(id).await.unwrap();
 
-    assert!(tag.sources.is_empty(), "tag.sources = {:?}", tag.sources);
+    assert!(
+        tag.profile.sources.is_empty(),
+        "tag.sources = {:?}",
+        tag.profile.sources
+    );
 }
 
 #[test]
 async fn get_tags() {
     let repo = repo();
-    let java = repo.add_tag(TagName::new("Java").unwrap()).await.unwrap();
+    let java = repo.add_tag(Name::new("Java").unwrap()).await.unwrap();
     let js = repo
-        .add_tag(TagName::new("JavaScript").unwrap())
+        .add_tag(Name::new("JavaScript").unwrap())
         .await
         .unwrap();
 
-    let mut query = TagQuery {
+    let mut query = ProfileQuery {
         pagination: Pagination {
             from: 0,
             size: 1_000,
@@ -197,7 +201,7 @@ async fn set_tag_description() {
     const DESCRIPTION: &str = "A description of a tag.";
 
     let repo = repo();
-    let name = TagName::new(NAME).unwrap();
+    let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name).await.unwrap();
 
     let description = Description::new(DESCRIPTION).unwrap();
@@ -207,7 +211,7 @@ async fn set_tag_description() {
         .unwrap();
     assert_eq!(result, DESCRIPTION);
 
-    result = repo.get_tag(id).await.unwrap().description;
+    result = repo.get_tag(id).await.unwrap().profile.description;
     assert_eq!(result, DESCRIPTION);
 
     let id = uuid!("43b59116-2faa-4a15-9ae8-bb27c11183ab");
@@ -221,10 +225,10 @@ async fn set_tag_name() {
 
     let repo = repo();
 
-    let name = TagName::new(NAME).unwrap();
+    let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name.clone()).await.unwrap();
 
-    let alias = TagName::new(ALIAS).unwrap();
+    let alias = Name::new(ALIAS).unwrap();
     let tag = repo.set_tag_name(id, alias).await.unwrap();
 
     assert_eq!(tag.name, ALIAS);
@@ -239,9 +243,9 @@ async fn set_tag_name() {
 
     let tag = repo.get_tag(id).await.unwrap();
 
-    assert_eq!(tag.name, NAME);
-    assert_eq!(tag.aliases.len(), 1);
-    assert_eq!(tag.aliases.first().unwrap(), ALIAS);
+    assert_eq!(tag.profile.name, NAME);
+    assert_eq!(tag.profile.aliases.len(), 1);
+    assert_eq!(tag.profile.aliases.first().unwrap(), ALIAS);
 
     let id = uuid!("90ed1a19-6b7f-4892-b096-5280dcc652d6");
     not_found!(repo.set_tag_name(id, name.clone()).await, "tag", id);

@@ -38,6 +38,7 @@ impl From<crate::Pagination> for Pagination {
 pub struct PostQuery {
     pub from: Option<u32>,
     pub size: Option<u32>,
+    pub u: Option<Uuid>,
     pub q: Option<String>,
     pub tags: Option<String>,
     pub vis: Option<Visibility>,
@@ -50,6 +51,7 @@ impl From<PostQuery> for crate::PostQuery {
         PostQuery {
             from,
             size,
+            u,
             q,
             tags,
             vis,
@@ -61,6 +63,7 @@ impl From<PostQuery> for crate::PostQuery {
 
         Self {
             pagination: Pagination { from, size }.into(),
+            poster: u,
             text: q.unwrap_or_default(),
             tags: tags
                 .map(|tags| {
@@ -82,6 +85,7 @@ impl From<crate::PostQuery> for PostQuery {
     fn from(
         crate::PostQuery {
             pagination,
+            poster,
             text,
             tags,
             visibility,
@@ -93,6 +97,7 @@ impl From<crate::PostQuery> for PostQuery {
         Self {
             from,
             size,
+            u: poster,
             q: {
                 let text = text.trim();
                 if text.is_empty() {
@@ -131,33 +136,22 @@ impl From<crate::PostQuery> for PostQuery {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
-pub struct SetTagName {
-    pub main: Option<bool>,
-}
-
-impl SetTagName {
-    pub fn main(value: bool) -> Self {
-        Self { main: Some(value) }
-    }
-}
-
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct TagQuery {
+pub struct ProfileQuery {
     pub from: Option<u32>,
     pub size: Option<u32>,
     pub name: String,
     pub exclude: Option<String>,
 }
 
-impl From<TagQuery> for crate::TagQuery {
+impl From<ProfileQuery> for crate::ProfileQuery {
     fn from(
-        TagQuery {
+        ProfileQuery {
             from,
             size,
             name,
             exclude,
-        }: TagQuery,
+        }: ProfileQuery,
     ) -> Self {
         Self {
             pagination: Pagination { from, size }.into(),
@@ -173,13 +167,13 @@ impl From<TagQuery> for crate::TagQuery {
     }
 }
 
-impl From<crate::TagQuery> for TagQuery {
+impl From<crate::ProfileQuery> for ProfileQuery {
     fn from(
-        crate::TagQuery {
+        crate::ProfileQuery {
             pagination,
             name,
             exclude,
-        }: crate::TagQuery,
+        }: crate::ProfileQuery,
     ) -> Self {
         let Pagination { from, size } = pagination.into();
 
@@ -199,5 +193,16 @@ impl From<crate::TagQuery> for TagQuery {
                 Some(tags)
             },
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+pub struct SetProfileName {
+    pub main: Option<bool>,
+}
+
+impl SetProfileName {
+    pub fn main(value: bool) -> Self {
+        Self { main: Some(value) }
     }
 }

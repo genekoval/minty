@@ -28,6 +28,10 @@ pub struct Cli {
     /// The configured server to use
     pub server: String,
 
+    #[arg(long, value_name = "ID", env = "MINTY_USER", global = true)]
+    /// Your user ID
+    pub user: Option<Uuid>,
+
     #[arg(short = 'H', long, env = "MINTY_HUMAN_READABLE", global = true)]
     /// Print data in a human-readable format
     pub human_readable: bool,
@@ -131,6 +135,24 @@ pub enum Command {
         command: Option<Tag>,
     },
 
+    /// View a user's publicly available information
+    User {
+        /// User ID
+        id: Uuid,
+    },
+
+    /// Modify the logged in user
+    Me {
+        #[command(subcommand)]
+        command: Option<Me>,
+    },
+
+    /// Create a new account
+    Signup {
+        /// New user's display name
+        username: text::Name,
+    },
+
     /// Fetch the entire repo as a JSON object
     Export,
 }
@@ -168,6 +190,10 @@ pub enum Find {
         /// Only search for post drafts
         drafts: bool,
 
+        #[arg(short = 'u', long, value_name = "ID", conflicts_with = "drafts")]
+        /// ID of the user who authored the post
+        poster: Option<Uuid>,
+
         #[arg(short, long, value_name = "SORT", default_value = "created")]
         /// Result sorting
         sort_by: PostSort,
@@ -183,6 +209,12 @@ pub enum Find {
     /// Search for tags
     Tag {
         /// Name or alias of the tag to search for
+        name: String,
+    },
+
+    /// Search for users
+    User {
+        /// Name or alias of the user to search for
         name: String,
     },
 }
@@ -230,7 +262,61 @@ pub enum New {
     /// Create a new tag
     Tag {
         /// New tag's name
-        name: text::TagName,
+        name: text::Name,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Me {
+    /// Set your display name
+    Rename {
+        /// User's new display name
+        name: text::Name,
+    },
+
+    /// Add an alias
+    Aka {
+        /// User's new alias
+        alias: text::Name,
+    },
+
+    /// Set your description
+    Desc {
+        /// User's description
+        description: Option<text::Description>,
+    },
+
+    /// Add a link to your user profile
+    Ln {
+        /// User's new link
+        url: Url,
+    },
+
+    /// Delete the user account or metadata
+    Rm {
+        #[arg(short, long)]
+        /// Do not prompt for confirmation before removal
+        ///
+        /// This is the default behavior if STDIN is not a terminal
+        force: bool,
+
+        #[command(subcommand)]
+        command: Option<MeRm>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum MeRm {
+    /// Remove an alias
+    Alias {
+        /// User alias to delete
+        alias: Option<String>,
+    },
+
+    /// Remove a link
+    Link {
+        /// User links to delete
+        sources: Vec<String>,
     },
 }
 
@@ -340,13 +426,13 @@ pub enum Tag {
     /// Set a tag's primary name
     Rename {
         /// Tag's new primary name
-        name: text::TagName,
+        name: text::Name,
     },
 
     /// Add a tag alias
     Aka {
         /// Tag's new alias
-        alias: text::TagName,
+        alias: text::Name,
     },
 
     /// Set a tag's description

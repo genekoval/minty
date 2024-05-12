@@ -8,7 +8,6 @@ use crate::{
 use minty::{http, model::*, text, Repo};
 use serde_json as json;
 use std::{
-    fmt::{self, Display},
     io::{stdin, IsTerminal, Read},
     path::PathBuf,
     str::FromStr,
@@ -25,10 +24,15 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(alias: &str, server: &Server, output: Output) -> Self {
+    pub fn new(
+        alias: &str,
+        server: &Server,
+        user: Option<Uuid>,
+        output: Output,
+    ) -> Self {
         Self {
             server: alias.into(),
-            repo: http::Repo::new(&server.url),
+            repo: http::Repo::new(&server.url, user),
             output,
         }
     }
@@ -128,22 +132,27 @@ impl Client {
         Ok(())
     }
 
-    pub async fn add_tag(&self, name: text::TagName) -> Result {
+    pub async fn add_tag(&self, name: text::Name) -> Result {
         let id = self.repo.add_tag(name).await?;
         println!("{id}");
         Ok(())
     }
 
-    pub async fn add_tag_alias(
-        &self,
-        id: Uuid,
-        alias: text::TagName,
-    ) -> Result {
+    pub async fn add_tag_alias(&self, id: Uuid, alias: text::Name) -> Result {
         self.print(self.repo.add_tag_alias(id, alias).await?)
     }
 
     pub async fn add_tag_source(&self, id: Uuid, url: &Url) -> Result {
         self.repo.add_tag_source(id, url).await?;
+        Ok(())
+    }
+
+    pub async fn add_user_alias(&self, alias: text::Name) -> Result {
+        self.print(self.repo.add_user_alias(alias).await?)
+    }
+
+    pub async fn add_user_source(&self, url: &Url) -> Result {
+        self.repo.add_user_source(url).await?;
         Ok(())
     }
 
@@ -232,7 +241,7 @@ impl Client {
 
     pub async fn delete_tag(&self, id: Uuid, force: bool) -> Result {
         if stdin().is_terminal() && !force {
-            let name = self.repo.get_tag(id).await?.name;
+            let name = self.repo.get_tag(id).await?.profile.name;
             let prompt = format!("Delete the tag '{name}'?");
 
             ask::confirm!(&prompt)?;
@@ -251,13 +260,7 @@ impl Client {
             Some(alias) => alias,
             None => {
                 let tag = self.repo.get_tag(id).await?;
-
-                println!("{}", tag.name);
-
-                match ask::multiple_choice(
-                    tag.aliases,
-                    "Which alias would you like to remove?",
-                )? {
+                match ask::delete_alias(tag.profile)? {
                     Some(alias) => alias,
                     None => return Ok(()),
                 }
@@ -269,24 +272,11 @@ impl Client {
 
     pub async fn delete_tag_source(&self, id: Uuid) -> Result {
         let tag = self.repo.get_tag(id).await?;
-
-        if tag.sources.is_empty() {
-            println!("tag '{}' has no links", tag.name);
+        let Some(source) = ask::delete_source("tag", tag.profile)? else {
             return Ok(());
-        }
-
-        let sources: Vec<SourceChoice> =
-            tag.sources.into_iter().map(Into::into).collect();
-
-        let source = match ask::multiple_choice(
-            sources,
-            "Which source would you like to remove?",
-        )? {
-            Some(source) => source,
-            None => return Ok(()),
         };
 
-        self.repo.delete_tag_source(id, source.id).await?;
+        self.repo.delete_tag_source(id, source).await?;
 
         Ok(())
     }
@@ -300,6 +290,50 @@ impl Client {
         Ok(())
     }
 
+    pub async fn delete_user(&self, force: bool) -> Result {
+        if stdin().is_terminal() && !force {
+            let name = self.repo.get_authenticated_user().await?.profile.name;
+            let prompt =
+                format!("Delete the currently logged in user '{name}'?");
+
+            ask::confirm!(&prompt)?;
+        }
+
+        self.repo.delete_user().await?;
+        Ok(())
+    }
+
+    pub async fn delete_user_alias(&self, alias: Option<String>) -> Result {
+        let alias = match alias {
+            Some(alias) => alias,
+            None => {
+                let user = self.repo.get_authenticated_user().await?;
+                match ask::delete_alias(user.profile)? {
+                    Some(alias) => alias,
+                    None => return Ok(()),
+                }
+            }
+        };
+
+        self.print(self.repo.delete_user_alias(&alias).await?)
+    }
+
+    pub async fn delete_user_source(&self) -> Result {
+        let user = self.repo.get_authenticated_user().await?;
+        let Some(source) = ask::delete_source("user", user.profile)? else {
+            return Ok(());
+        };
+
+        self.repo.delete_user_source(source).await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_user_sources(&self, sources: &[String]) -> Result {
+        self.repo.delete_user_sources(sources).await?;
+        Ok(())
+    }
+
     pub async fn export(&self) -> Result {
         let data = self.repo.export().await?;
         let json = json::to_string_pretty(&data).map_err(|err| {
@@ -307,6 +341,10 @@ impl Client {
         })?;
         println!("{}", json);
         Ok(())
+    }
+
+    pub async fn get_authenticated_user(&self) -> Result {
+        self.print(self.repo.get_authenticated_user().await?)
     }
 
     pub async fn get_comment(&self, id: Uuid) -> Result {
@@ -379,8 +417,16 @@ impl Client {
         self.print(self.repo.get_tag(id).await?)
     }
 
-    pub async fn get_tags(&self, query: TagQuery) -> Result {
+    pub async fn get_tags(&self, query: ProfileQuery) -> Result {
         self.print(self.repo.get_tags(&query).await?)
+    }
+
+    pub async fn get_user(&self, id: Uuid) -> Result {
+        self.print(self.repo.get_user(id).await?)
+    }
+
+    pub async fn get_users(&self, query: ProfileQuery) -> Result {
+        self.print(self.repo.get_users(&query).await?)
     }
 
     pub async fn publish_post(&self, id: Uuid) -> Result {
@@ -464,8 +510,32 @@ impl Client {
         Ok(())
     }
 
-    pub async fn set_tag_name(&self, id: Uuid, name: text::TagName) -> Result {
+    pub async fn set_tag_name(&self, id: Uuid, name: text::Name) -> Result {
         self.print(self.repo.set_tag_name(id, name).await?)
+    }
+
+    pub async fn set_user_description(
+        &self,
+        description: Option<text::Description>,
+    ) -> Result {
+        let description = match description {
+            Some(description) => description,
+            None => read_from_stdin()?,
+        };
+
+        self.repo.set_user_description(description).await?;
+
+        Ok(())
+    }
+
+    pub async fn set_user_name(&self, name: text::Name) -> Result {
+        self.print(self.repo.set_user_name(name).await?)
+    }
+
+    pub async fn sign_up(&self, info: SignUp) -> Result {
+        let id = self.repo.sign_up(&info).await?;
+        println!("{id}");
+        Ok(())
     }
 
     async fn upload_file(&self, path: PathBuf) -> crate::Result<Uuid> {
@@ -489,27 +559,6 @@ impl Client {
         let object = self.repo.add_object(stream).await?;
 
         Ok(object.id)
-    }
-}
-
-#[derive(Default)]
-struct SourceChoice {
-    id: i64,
-    url: String,
-}
-
-impl From<Source> for SourceChoice {
-    fn from(value: Source) -> Self {
-        Self {
-            id: value.id,
-            url: value.url.to_string(),
-        }
-    }
-}
-
-impl Display for SourceChoice {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.url)
     }
 }
 

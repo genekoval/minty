@@ -6,7 +6,7 @@ use std::{error::Error, io};
 
 #[allow(async_fn_in_trait)]
 pub trait Repo {
-    fn new(url: &Url) -> Self;
+    fn new(url: &Url, user_id: Option<Uuid>) -> Self;
 
     fn url(&self) -> &Url;
 
@@ -38,15 +38,19 @@ pub trait Repo {
         content: text::Comment,
     ) -> Result<CommentData>;
 
-    async fn add_tag(&self, name: text::TagName) -> Result<Uuid>;
+    async fn add_tag(&self, name: text::Name) -> Result<Uuid>;
 
     async fn add_tag_alias(
         &self,
         tag_id: Uuid,
-        alias: text::TagName,
-    ) -> Result<TagName>;
+        alias: text::Name,
+    ) -> Result<ProfileName>;
 
     async fn add_tag_source(&self, tag_id: Uuid, url: &Url) -> Result<Source>;
+
+    async fn add_user_alias(&self, alias: text::Name) -> Result<ProfileName>;
+
+    async fn add_user_source(&self, url: &Url) -> Result<Source>;
 
     async fn append_post_objects(
         &self,
@@ -80,7 +84,7 @@ pub trait Repo {
         &self,
         tag_id: Uuid,
         alias: &str,
-    ) -> Result<TagName>;
+    ) -> Result<ProfileName>;
 
     async fn delete_tag_source(
         &self,
@@ -94,8 +98,18 @@ pub trait Repo {
         sources: &[String],
     ) -> Result<()>;
 
+    async fn delete_user(&self) -> Result<()>;
+
+    async fn delete_user_alias(&self, alias: &str) -> Result<ProfileName>;
+
+    async fn delete_user_source(&self, source_id: i64) -> Result<()>;
+
+    async fn delete_user_sources(&self, sources: &[String]) -> Result<()>;
+
     #[cfg(feature = "export")]
     async fn export(&self) -> Result<export::Data>;
+
+    async fn get_authenticated_user(&self) -> Result<User>;
 
     async fn get_comment(&self, id: Uuid) -> Result<Comment>;
 
@@ -119,8 +133,15 @@ pub trait Repo {
 
     async fn get_tags(
         &self,
-        query: &TagQuery,
+        query: &ProfileQuery,
     ) -> Result<SearchResult<TagPreview>>;
+
+    async fn get_user(&self, id: Uuid) -> Result<User>;
+
+    async fn get_users(
+        &self,
+        query: &ProfileQuery,
+    ) -> Result<SearchResult<UserPreview>>;
 
     async fn insert_post_objects(
         &self,
@@ -158,6 +179,15 @@ pub trait Repo {
     async fn set_tag_name(
         &self,
         tag_id: Uuid,
-        new_name: text::TagName,
-    ) -> Result<TagName>;
+        new_name: text::Name,
+    ) -> Result<ProfileName>;
+
+    async fn set_user_description(
+        &self,
+        description: text::Description,
+    ) -> Result<String>;
+
+    async fn set_user_name(&self, new_name: text::Name) -> Result<ProfileName>;
+
+    async fn sign_up(&self, info: &SignUp) -> Result<Uuid>;
 }

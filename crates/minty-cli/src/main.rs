@@ -1,7 +1,9 @@
 use minty_cli::*;
 
 use clap::Parser;
-use minty::{Pagination, PostParts, PostQuery, TagQuery, Uuid, Visibility};
+use minty::{
+    Pagination, PostParts, PostQuery, ProfileQuery, SignUp, Uuid, Visibility,
+};
 use std::process::ExitCode;
 
 type Result = minty_cli::Result<()>;
@@ -32,6 +34,7 @@ fn real_main() -> Result {
     let client = Client::new(
         &args.server,
         server,
+        args.user,
         Output {
             human_readable: args.human_readable,
             json: args.json,
@@ -62,13 +65,18 @@ async fn run_command(args: Cli, client: Client) -> Result {
             from,
             size,
         } => find(command, Pagination { from, size }, client).await,
+        Command::Me { command } => me(command, client).await,
         Command::New { command } => new(command, client).await,
         Command::Obj { id, command } => object(id, command, client).await,
         Command::Post { id, command } => post(id, command, client).await,
         Command::Reply { comment, content } => {
             client.reply(comment, content).await
         }
+        Command::Signup { username } => {
+            client.sign_up(SignUp { username }).await
+        }
         Command::Tag { id, command } => tag(id, command, client).await,
+        Command::User { id } => client.get_user(id).await,
     }
 }
 
@@ -92,6 +100,7 @@ async fn find(command: Find, pagination: Pagination, client: Client) -> Result {
     match command {
         Find::Post {
             drafts,
+            poster,
             sort_by,
             tag,
             text,
@@ -99,6 +108,7 @@ async fn find(command: Find, pagination: Pagination, client: Client) -> Result {
             client
                 .get_posts(PostQuery {
                     pagination,
+                    poster,
                     text: text.unwrap_or_default(),
                     tags: tag,
                     visibility: if drafts {
@@ -112,12 +122,54 @@ async fn find(command: Find, pagination: Pagination, client: Client) -> Result {
         }
         Find::Tag { name } => {
             client
-                .get_tags(TagQuery {
+                .get_tags(ProfileQuery {
                     pagination,
                     name,
                     exclude: Default::default(),
                 })
                 .await
+        }
+        Find::User { name } => {
+            client
+                .get_users(ProfileQuery {
+                    pagination,
+                    name,
+                    exclude: Default::default(),
+                })
+                .await
+        }
+    }
+}
+
+async fn me(command: Option<Me>, client: Client) -> Result {
+    let Some(command) = command else {
+        client.get_authenticated_user().await?;
+        return Ok(());
+    };
+
+    match command {
+        Me::Rename { name } => client.set_user_name(name).await,
+        Me::Aka { alias } => client.add_user_alias(alias).await,
+        Me::Desc { description } => {
+            client.set_user_description(description).await
+        }
+        Me::Ln { url } => client.add_user_source(&url).await,
+        Me::Rm { force, command } => match command {
+            Some(command) => me_rm(command, client).await,
+            None => client.delete_user(force).await,
+        },
+    }
+}
+
+async fn me_rm(command: MeRm, client: Client) -> Result {
+    match command {
+        MeRm::Alias { alias } => client.delete_user_alias(alias).await,
+        MeRm::Link { sources } => {
+            if sources.is_empty() {
+                client.delete_user_source().await
+            } else {
+                client.delete_user_sources(&sources).await
+            }
         }
     }
 }

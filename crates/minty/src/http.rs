@@ -3,6 +3,7 @@ pub mod query;
 mod client;
 
 use client::Client;
+use reqwest::header::{HeaderMap, HeaderValue, COOKIE};
 
 use crate::{model::*, text, Result};
 
@@ -16,9 +17,16 @@ pub struct Repo {
 }
 
 impl crate::Repo for Repo {
-    fn new(url: &Url) -> Self {
+    fn new(url: &Url, user_id: Option<Uuid>) -> Self {
+        let mut headers = HeaderMap::new();
+
+        if let Some(user_id) = user_id {
+            let user = format!("user={user_id}");
+            headers.insert(COOKIE, HeaderValue::from_str(&user).unwrap());
+        }
+
         Self {
-            client: Client::new(url),
+            client: Client::new(url, headers),
         }
     }
 
@@ -95,7 +103,7 @@ impl crate::Repo for Repo {
             .await
     }
 
-    async fn add_tag(&self, name: text::TagName) -> Result<Uuid> {
+    async fn add_tag(&self, name: text::Name) -> Result<Uuid> {
         self.client
             .post(format!("tag/{name}"))
             .send()
@@ -107,8 +115,8 @@ impl crate::Repo for Repo {
     async fn add_tag_alias(
         &self,
         tag_id: Uuid,
-        alias: text::TagName,
-    ) -> Result<TagName> {
+        alias: text::Name,
+    ) -> Result<ProfileName> {
         self.client
             .put(format!("tag/{tag_id}/name/{alias}"))
             .send()
@@ -120,7 +128,26 @@ impl crate::Repo for Repo {
     async fn add_tag_source(&self, tag_id: Uuid, url: &Url) -> Result<Source> {
         self.client
             .post(format!("tag/{tag_id}/source"))
-            .serialize(url)
+            .json(url)
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
+    async fn add_user_alias(&self, alias: text::Name) -> Result<ProfileName> {
+        self.client
+            .put(format!("user/name/{alias}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
+    async fn add_user_source(&self, url: &Url) -> Result<Source> {
+        self.client
+            .post("user/source")
+            .json(url)
             .send()
             .await?
             .deserialize()
@@ -134,7 +161,7 @@ impl crate::Repo for Repo {
     ) -> Result<DateTime> {
         self.client
             .post(format!("post/{post_id}/objects"))
-            .serialize(objects)
+            .json(objects)
             .send()
             .await?
             .date_time()
@@ -144,7 +171,7 @@ impl crate::Repo for Repo {
     async fn create_post(&self, parts: &PostParts) -> Result<Uuid> {
         self.client
             .post("post")
-            .serialize(parts)
+            .json(parts)
             .send()
             .await?
             .uuid()
@@ -173,7 +200,7 @@ impl crate::Repo for Repo {
     ) -> Result<DateTime> {
         self.client
             .delete(format!("post/{post_id}/objects"))
-            .serialize(objects)
+            .json(objects)
             .send()
             .await?
             .date_time()
@@ -211,7 +238,7 @@ impl crate::Repo for Repo {
         &self,
         tag_id: Uuid,
         alias: &str,
-    ) -> Result<TagName> {
+    ) -> Result<ProfileName> {
         self.client
             .delete(format!("tag/{tag_id}/name/{alias}"))
             .send()
@@ -240,7 +267,40 @@ impl crate::Repo for Repo {
     ) -> Result<()> {
         self.client
             .delete(format!("tag/{tag_id}/source"))
-            .serialize(sources)
+            .json(sources)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn delete_user(&self) -> Result<()> {
+        self.client.delete("user").send().await?;
+        Ok(())
+    }
+
+    async fn delete_user_alias(&self, alias: &str) -> Result<ProfileName> {
+        self.client
+            .delete(format!("user/name/{alias}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
+    async fn delete_user_source(&self, source_id: i64) -> Result<()> {
+        self.client
+            .delete(format!("user/source/{source_id}"))
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    async fn delete_user_sources(&self, sources: &[String]) -> Result<()> {
+        self.client
+            .delete("user/source")
+            .json(sources)
             .send()
             .await?;
 
@@ -250,6 +310,10 @@ impl crate::Repo for Repo {
     #[cfg(feature = "export")]
     async fn export(&self) -> Result<export::Data> {
         self.client.get("export").send().await?.deserialize().await
+    }
+
+    async fn get_authenticated_user(&self) -> Result<User> {
+        self.client.get("user").send().await?.deserialize().await
     }
 
     async fn get_comment(&self, id: Uuid) -> Result<Comment> {
@@ -324,11 +388,34 @@ impl crate::Repo for Repo {
 
     async fn get_tags(
         &self,
-        query: &TagQuery,
+        query: &ProfileQuery,
     ) -> Result<SearchResult<TagPreview>> {
-        let query: query::TagQuery = query.clone().into();
+        let query: query::ProfileQuery = query.clone().into();
         self.client
             .get("tags")
+            .query(&query)
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
+    async fn get_user(&self, id: Uuid) -> Result<User> {
+        self.client
+            .get(format!("user/{id}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
+    async fn get_users(
+        &self,
+        query: &ProfileQuery,
+    ) -> Result<SearchResult<UserPreview>> {
+        let query: query::ProfileQuery = query.clone().into();
+        self.client
+            .get("users")
             .query(&query)
             .send()
             .await?
@@ -344,7 +431,7 @@ impl crate::Repo for Repo {
     ) -> Result<DateTime> {
         self.client
             .post(format!("post/{post_id}/objects/{destination}"))
-            .serialize(objects)
+            .json(objects)
             .send()
             .await?
             .date_time()
@@ -415,9 +502,9 @@ impl crate::Repo for Repo {
     async fn set_tag_name(
         &self,
         tag_id: Uuid,
-        new_name: text::TagName,
-    ) -> Result<TagName> {
-        let query = query::SetTagName::main(true);
+        new_name: text::Name,
+    ) -> Result<ProfileName> {
+        let query = query::SetProfileName::main(true);
 
         self.client
             .put(format!("tag/{tag_id}/name/{new_name}"))
@@ -425,6 +512,41 @@ impl crate::Repo for Repo {
             .send()
             .await?
             .deserialize()
+            .await
+    }
+
+    async fn set_user_description(
+        &self,
+        description: text::Description,
+    ) -> Result<String> {
+        self.client
+            .put("user/description")
+            .text(description.into())
+            .send()
+            .await?
+            .text()
+            .await
+    }
+
+    async fn set_user_name(&self, new_name: text::Name) -> Result<ProfileName> {
+        let query = query::SetProfileName::main(true);
+
+        self.client
+            .put(format!("user/name/{new_name}"))
+            .query(&query)
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
+    async fn sign_up(&self, info: &SignUp) -> Result<Uuid> {
+        self.client
+            .post("signup")
+            .form(info)
+            .send()
+            .await?
+            .uuid()
             .await
     }
 }

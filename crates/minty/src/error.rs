@@ -9,6 +9,7 @@ pub enum ErrorKind {
     Client,
     Server,
     NotFound,
+    Unauthenticated,
     Other,
 }
 
@@ -34,7 +35,12 @@ impl Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.message)
+        let message = match self.kind {
+            ErrorKind::Unauthenticated => "authentication required",
+            _ => &self.message,
+        };
+
+        f.write_str(message)
     }
 }
 

@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 mod model;
 
 pub use model::*;
@@ -9,7 +11,9 @@ use sqlx::types::Json;
 use sqlx_helper_macros::{database, transaction};
 
 database! {
-    create_comment(post_id: Uuid, content: &str) -> Comment;
+    create_comment(user_id: Uuid, post_id: Uuid, content: &str) -> Comment;
+
+    create_entity_link(profile_id: Uuid, source_id: i64);
 
     create_object(
         object_id: Uuid,
@@ -21,19 +25,21 @@ database! {
 
     create_related_post(post_id: Uuid, related: Uuid);
 
-    create_reply(parent_id: Uuid, content: &str) -> Option<Comment>;
+    create_reply(
+        user_id: Uuid,
+        parent_id: Uuid,
+        content: &str
+    ) -> Option<Comment>;
 
     create_site(scheme: &str, name: &str, icon: Option<Uuid>) -> Site;
 
     create_source(site_id: i64, resource: &str) -> Source;
 
-    create_tag_source(tag_id: Uuid, source_id: i64);
-
     delete_comment(id: Uuid, recursive: bool) -> bool;
 
-    delete_related_post(post_id: Uuid, related: Uuid) -> bool;
+    delete_entity_link(profile_id: Uuid, source_id: i64) -> bool;
 
-    delete_tag_source(tag_id: Uuid, source_id: i64) -> bool;
+    delete_related_post(post_id: Uuid, related: Uuid) -> bool;
 
     export() -> (Json<Data>,);
 
@@ -44,6 +50,8 @@ database! {
     read_comment(id: Uuid) -> Option<Comment>;
 
     read_comments(post_id: Uuid) -> Vec<Comment>;
+
+    read_entity_sources(profile_id: Uuid) -> Vec<Source>;
 
     read_object(object_id: Uuid) -> Option<Object>;
 
@@ -67,23 +75,32 @@ database! {
 
     read_tag_previews(tags: &[Uuid]) -> Vec<TagPreview>;
 
-    read_tag_sources(tag_id: Uuid) -> Vec<Source>;
-
     read_tag_search() -> Stream<TagSearch>;
 
     read_tag_total() -> i64;
 
+    read_user(id: Uuid) -> Option<User>;
+
+    read_user_previews(users: &[Uuid]) -> Vec<UserPreview>;
+
+    read_user_search() -> Stream<UserSearch>;
+
+    read_user_total() -> i64;
+
     update_comment(comment_id: Uuid, content: &str) -> bool;
 
-    update_object_preview(object_id: Uuid, preview_id: Option<Uuid>);
+    update_entity_description(profile_id: Uuid, description: &str) -> bool;
 
-    update_tag_description(tag_id: Uuid, description: &str) -> bool;
+    update_object_preview(object_id: Uuid, preview_id: Option<Uuid>);
 
     stream_objects() -> Stream<Object>;
 }
 
 transaction! {
+    create_entity_alias(profile_id: Uuid, alias: &str) -> Option<ProfileName>;
+
     create_post(
+        poster: Uuid,
         title: &str,
         description: &str,
         visibility: Option<Visibility>,
@@ -100,9 +117,13 @@ transaction! {
 
     create_post_tag(post_id: Uuid, tag_id: Uuid);
 
-    create_tag(name: &str) -> (Uuid,);
+    create_tag(name: &str, creator: Uuid) -> (Uuid,);
 
-    create_tag_alias(tag_id: Uuid, alias: &str) -> Option<TagName>;
+    create_user(name: &str) -> (Uuid,);
+
+    delete_entity(id: Uuid) -> bool;
+
+    delete_entity_alias(profile_id: Uuid, alias: &str) -> Option<ProfileName>;
 
     delete_post(id: Uuid) -> bool;
 
@@ -110,13 +131,11 @@ transaction! {
 
     delete_post_tag(post_id: Uuid, tag_id: Uuid) -> bool;
 
-    delete_tag(id: Uuid) -> bool;
-
-    delete_tag_alias(tag_id: Uuid, alias: &str) -> Option<TagName>;
-
     prune_objects() -> Vec<(Uuid,)>;
 
     publish_post(post_id: Uuid) -> (DateTime,);
+
+    update_entity_name(profile_id: Uuid, name: &str) -> Option<ProfileNameUpdate>;
 
     update_post_description(
         post_id: Uuid,
@@ -124,8 +143,6 @@ transaction! {
     ) -> Option<(DateTime,)>;
 
     update_post_title(post_id: Uuid, title: &str) -> Option<(DateTime,)>;
-
-    update_tag_name(tag_id: Uuid, name: &str) -> Option<TagNameUpdate>;
 }
 
 impl Clone for Database {

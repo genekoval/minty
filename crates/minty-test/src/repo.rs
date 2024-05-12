@@ -1,3 +1,5 @@
+use crate::users;
+
 use minty::{http, Repo, Url};
 use std::{
     env::{self, VarError},
@@ -17,7 +19,7 @@ pub fn repo() -> http::Repo {
         get_url()
     });
 
-    http::Repo::new(url)
+    http::Repo::new(url, Some(users::MINTY))
 }
 
 fn enable_logging() {

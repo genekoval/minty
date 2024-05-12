@@ -143,11 +143,20 @@ impl Repo {
         for object in objects {
             self.add_object(object).await?;
         }
-
         self.database.import(sqlx::types::Json(data)).await?;
 
-        for tag in &data.tags {
-            for export::Source { url, icon } in &tag.sources {
+        self.import_profile(&data.tags).await?;
+        self.import_profile(&data.users).await?;
+
+        Ok(())
+    }
+
+    pub async fn import_profile<P>(&self, entities: &[P]) -> Result<()>
+    where
+        P: export::Profile,
+    {
+        for entity in entities {
+            for export::Source { url, icon } in &entity.profile().sources {
                 let scheme = url.scheme();
                 let host = url.host_str().unwrap();
                 let resource = &url[url::Position::BeforePath..];
@@ -165,7 +174,9 @@ impl Repo {
                 let source =
                     self.database.create_source(site, resource).await?;
 
-                self.database.create_tag_source(tag.id, source.id).await?;
+                self.database
+                    .create_entity_link(entity.id(), source.id)
+                    .await?;
             }
         }
 
@@ -179,12 +190,13 @@ impl Repo {
 
     pub async fn add_comment(
         &self,
+        user_id: Uuid,
         post_id: Uuid,
         content: text::Comment,
     ) -> Result<CommentData> {
         Ok(self
             .database
-            .create_comment(post_id, content.as_ref())
+            .create_comment(user_id, post_id, content.as_ref())
             .await
             .map_err(|err| {
                 err.as_database_error()
@@ -199,6 +211,57 @@ impl Repo {
                     .unwrap_or_else(|| err.into())
             })?
             .into())
+    }
+
+    async fn add_entity_alias(
+        &self,
+        profile_id: Uuid,
+        alias: text::Name,
+        entity: &'static str,
+        index: &Index,
+    ) -> Result<ProfileName> {
+        let alias = alias.as_ref();
+        let mut tx = self.database.begin().await?;
+
+        let names = tx
+            .create_entity_alias(profile_id, alias)
+            .await?
+            .found(entity, profile_id)?;
+        self.search
+            .add_entity_alias(index, profile_id, alias)
+            .await?;
+
+        tx.commit().await?;
+        Ok(names.into())
+    }
+
+    async fn add_entity_link(
+        &self,
+        entity: &'static str,
+        profile_id: Uuid,
+        url: &Url,
+    ) -> Result<Source> {
+        let source = self.add_source(url).await?;
+
+        self.database
+            .create_entity_link(profile_id, source.id)
+            .await
+            .map_err(|err| {
+                err.as_database_error()
+                    .and_then(|e| e.constraint())
+                    .and_then(|constraint| match constraint {
+                        "entity_link_profile_id_fkey" => {
+                            Some(Error::NotFound {
+                                entity,
+                                id: profile_id,
+                            })
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| err.into())
+            })?;
+
+        Ok(source)
     }
 
     async fn add_object(
@@ -327,25 +390,16 @@ impl Repo {
 
     pub async fn add_reply(
         &self,
+        user_id: Uuid,
         parent_id: Uuid,
         content: text::Comment,
     ) -> Result<CommentData> {
         Ok(self
             .database
-            .create_reply(parent_id, content.as_ref())
+            .create_reply(user_id, parent_id, content.as_ref())
             .await?
             .found("comment", parent_id)?
             .into())
-    }
-
-    pub async fn add_tag(&self, name: text::TagName) -> Result<Uuid> {
-        let mut tx = self.database.begin().await?;
-
-        let id = tx.create_tag(name.as_ref()).await?.0;
-        self.search.add_tag_alias(id, name.as_ref()).await?;
-
-        tx.commit().await?;
-        Ok(id)
     }
 
     async fn add_site(&self, scheme: &str, host: &str) -> Result<i64> {
@@ -389,21 +443,28 @@ impl Repo {
         Ok(self.database.create_source(site, &resource).await?.into())
     }
 
+    pub async fn add_tag(
+        &self,
+        name: text::Name,
+        creator: Uuid,
+    ) -> Result<Uuid> {
+        let name = name.as_ref();
+        let mut tx = self.database.begin().await?;
+
+        let id = tx.create_tag(name, creator).await?.0;
+        self.search.add_tag_alias(id, name).await?;
+
+        tx.commit().await?;
+        Ok(id)
+    }
+
     pub async fn add_tag_alias(
         &self,
         tag_id: Uuid,
-        alias: text::TagName,
-    ) -> Result<TagName> {
-        let mut tx = self.database.begin().await?;
-
-        let names = tx
-            .create_tag_alias(tag_id, alias.as_ref())
-            .await?
-            .found("tag", tag_id)?;
-        self.search.add_tag_alias(tag_id, alias.as_ref()).await?;
-
-        tx.commit().await?;
-        Ok(names.into())
+        alias: text::Name,
+    ) -> Result<ProfileName> {
+        self.add_entity_alias(tag_id, alias, "tag", &self.search.indices.tag)
+            .await
     }
 
     pub async fn add_tag_source(
@@ -411,32 +472,47 @@ impl Repo {
         tag_id: Uuid,
         url: &Url,
     ) -> Result<Source> {
-        let source = self.add_source(url).await?;
-
-        self.database
-            .create_tag_source(tag_id, source.id)
-            .await
-            .map_err(|err| {
-                err.as_database_error()
-                    .and_then(|e| e.constraint())
-                    .and_then(|constraint| match constraint {
-                        "tag_source_tag_id_fkey" => Some(Error::NotFound {
-                            entity: "tag",
-                            id: tag_id,
-                        }),
-                        _ => None,
-                    })
-                    .unwrap_or_else(|| err.into())
-            })?;
-
-        Ok(source)
+        self.add_entity_link("tag", tag_id, url).await
     }
 
-    pub async fn create_post(&self, parts: &PostParts) -> Result<Uuid> {
+    pub async fn add_user(&self, name: text::Name) -> Result<Uuid> {
+        let name = name.as_ref();
+        let mut tx = self.database.begin().await?;
+
+        let id = tx.create_user(name).await?.0;
+        self.search.add_user_alias(id, name).await?;
+
+        tx.commit().await?;
+        Ok(id)
+    }
+
+    pub async fn add_user_alias(
+        &self,
+        user_id: Uuid,
+        alias: text::Name,
+    ) -> Result<ProfileName> {
+        self.add_entity_alias(user_id, alias, "user", &self.search.indices.user)
+            .await
+    }
+
+    pub async fn add_user_source(
+        &self,
+        user_id: Uuid,
+        url: &Url,
+    ) -> Result<Source> {
+        self.add_entity_link("user", user_id, url).await
+    }
+
+    pub async fn create_post(
+        &self,
+        user: Uuid,
+        parts: &PostParts,
+    ) -> Result<Uuid> {
         let mut tx = self.database.begin().await?;
 
         let post = tx
             .create_post(
+                user,
                 parts.title.as_ref().map(|t| t.as_ref()).unwrap_or(""),
                 parts.description.as_ref().map(|d| d.as_ref()).unwrap_or(""),
                 parts.visibility.map(db::Visibility::from_minty),
@@ -458,6 +534,90 @@ impl Repo {
         recursive: bool,
     ) -> Result<bool> {
         Ok(self.database.delete_comment(id, recursive).await?)
+    }
+
+    async fn delete_entity(
+        &self,
+        profile_id: Uuid,
+        entity: &'static str,
+        index: &Index,
+    ) -> Result<()> {
+        let mut tx = self.database.begin().await?;
+
+        tx.delete_entity(profile_id)
+            .await?
+            .found(entity, profile_id)?;
+        index.delete_doc(profile_id).await?;
+
+        tx.commit().await?;
+        Ok(())
+    }
+
+    async fn delete_entity_alias(
+        &self,
+        profile_id: Uuid,
+        alias: &str,
+        entity: &'static str,
+        index: &Index,
+    ) -> Result<ProfileName> {
+        let mut tx = self.database.begin().await?;
+
+        let names = tx
+            .delete_entity_alias(profile_id, alias)
+            .await?
+            .found(entity, profile_id)?;
+        self.search
+            .delete_entity_alias(index, profile_id, alias)
+            .await?;
+
+        tx.commit().await?;
+        Ok(names.into())
+    }
+
+    async fn delete_entity_sources<S>(
+        &self,
+        profile_id: Uuid,
+        sources: &[S],
+    ) -> Result<()>
+    where
+        S: AsRef<str>,
+    {
+        let ids: Vec<i64> = self
+            .database
+            .read_entity_sources(profile_id)
+            .await?
+            .into_iter()
+            .map(Into::<Source>::into)
+            .filter(|existing| {
+                let host = existing.url.host_str().unwrap();
+
+                for source in sources.iter().map(AsRef::<str>::as_ref) {
+                    match Url::parse(source).ok() {
+                        Some(url) => {
+                            if url == existing.url {
+                                return true;
+                            }
+                        }
+                        None => {
+                            if source == host {
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                false
+            })
+            .map(|source| source.id)
+            .collect();
+
+        for source_id in ids {
+            self.database
+                .delete_entity_link(profile_id, source_id)
+                .await?;
+        }
+
+        Ok(())
     }
 
     pub async fn delete_post(&self, id: Uuid) -> Result<()> {
@@ -509,30 +669,17 @@ impl Repo {
     }
 
     pub async fn delete_tag(&self, id: Uuid) -> Result<()> {
-        let mut tx = self.database.begin().await?;
-
-        tx.delete_tag(id).await?.found("tag", id)?;
-        self.search.delete_tag(id).await?;
-
-        tx.commit().await?;
-        Ok(())
+        self.delete_entity(id, "tag", &self.search.indices.tag)
+            .await
     }
 
     pub async fn delete_tag_alias(
         &self,
         tag_id: Uuid,
         alias: &str,
-    ) -> Result<TagName> {
-        let mut tx = self.database.begin().await?;
-
-        let names = tx
-            .delete_tag_alias(tag_id, alias)
-            .await?
-            .found("tag", tag_id)?;
-        self.search.delete_tag_alias(tag_id, alias).await?;
-
-        tx.commit().await?;
-        Ok(names.into())
+    ) -> Result<ProfileName> {
+        self.delete_entity_alias(tag_id, alias, "tag", &self.search.indices.tag)
+            .await
     }
 
     pub async fn delete_tag_source(
@@ -540,7 +687,7 @@ impl Repo {
         tag_id: Uuid,
         source_id: i64,
     ) -> Result<bool> {
-        Ok(self.database.delete_tag_source(tag_id, source_id).await?)
+        Ok(self.database.delete_entity_link(tag_id, source_id).await?)
     }
 
     pub async fn delete_tag_sources<S>(
@@ -551,42 +698,45 @@ impl Repo {
     where
         S: AsRef<str>,
     {
-        let ids: Vec<i64> = self
-            .database
-            .read_tag_sources(tag_id)
-            .await?
-            .into_iter()
-            .filter(|existing| {
-                let existing_host = &existing.site.host;
-                let existing_url = existing.url();
+        self.delete_entity_sources(tag_id, sources).await
+    }
 
-                for source in sources {
-                    let source = source.as_ref();
+    pub async fn delete_user(&self, id: Uuid) -> Result<()> {
+        self.delete_entity(id, "user", &self.search.indices.user)
+            .await
+    }
 
-                    match Url::parse(source).ok() {
-                        Some(url) => {
-                            if url == existing_url {
-                                return true;
-                            }
-                        }
-                        None => {
-                            if source == existing_host {
-                                return true;
-                            }
-                        }
-                    }
-                }
+    pub async fn delete_user_alias(
+        &self,
+        user_id: Uuid,
+        alias: &str,
+    ) -> Result<ProfileName> {
+        self.delete_entity_alias(
+            user_id,
+            alias,
+            "user",
+            &self.search.indices.user,
+        )
+        .await
+    }
 
-                false
-            })
-            .map(|source| source.id)
-            .collect();
+    pub async fn delete_user_source(
+        &self,
+        user_id: Uuid,
+        source_id: i64,
+    ) -> Result<bool> {
+        Ok(self.database.delete_entity_link(user_id, source_id).await?)
+    }
 
-        for source_id in ids {
-            self.database.delete_tag_source(tag_id, source_id).await?;
-        }
-
-        Ok(())
+    pub async fn delete_user_sources<S>(
+        &self,
+        user_id: Uuid,
+        sources: &[S],
+    ) -> Result<()>
+    where
+        S: AsRef<str>,
+    {
+        self.delete_entity_sources(user_id, sources).await
     }
 
     pub async fn get_comment(&self, id: Uuid) -> Result<Comment> {
@@ -647,6 +797,7 @@ impl Repo {
 
         Ok(Post {
             id: post.id,
+            poster: post.poster.map(Into::into),
             title: post.title,
             description: post.description,
             visibility: post.visibility.into(),
@@ -661,9 +812,18 @@ impl Repo {
 
     pub async fn get_posts(
         &self,
-        query: &PostQuery,
+        user_id: Option<Uuid>,
+        mut query: PostQuery,
     ) -> Result<SearchResult<PostPreview>> {
-        let results = self.search.find_posts(query).await?;
+        if user_id.is_none() && query.visibility != Visibility::Public {
+            return Err(Error::Unauthenticated);
+        }
+
+        if query.visibility == Visibility::Draft {
+            query.poster = user_id;
+        }
+
+        let results = self.search.find_posts(&query).await?;
         let posts = self.database.read_posts(&results.hits).await?;
         let posts = self.build_posts(posts).await?;
 
@@ -689,6 +849,7 @@ impl Repo {
             .into_iter()
             .map(|post| PostPreview {
                 id: post.id,
+                poster: post.poster.map(Into::into),
                 title: post.title,
                 preview: if post.preview.is_some() {
                     objects.next()
@@ -705,36 +866,54 @@ impl Repo {
     }
 
     pub async fn get_tag(&self, id: Uuid) -> Result<Tag> {
-        let mut tag: Tag =
-            self.database.read_tag(id).await?.found("tag", id)?.into();
-
-        tag.sources = self
-            .database
-            .read_tag_sources(id)
-            .await?
-            .into_iter()
-            .map(Into::into)
-            .collect();
-
-        Ok(tag)
+        Ok(self.database.read_tag(id).await?.found("tag", id)?.into())
     }
 
     pub async fn get_tags(
         &self,
-        query: &TagQuery,
+        query: &ProfileQuery,
     ) -> Result<SearchResult<TagPreview>> {
-        let results = self.search.find_tags(query).await?;
+        let results = self
+            .search
+            .find_entities(&self.search.indices.tag, query)
+            .await?;
         let tags = self
             .database
             .read_tag_previews(&results.hits)
             .await?
             .into_iter()
-            .map(|tag| tag.into())
+            .map(Into::into)
             .collect();
 
         Ok(SearchResult {
             total: results.total,
             hits: tags,
+        })
+    }
+
+    pub async fn get_user(&self, id: Uuid) -> Result<User> {
+        Ok(self.database.read_user(id).await?.found("user", id)?.into())
+    }
+
+    pub async fn get_users(
+        &self,
+        query: &ProfileQuery,
+    ) -> Result<SearchResult<UserPreview>> {
+        let results = self
+            .search
+            .find_entities(&self.search.indices.user, query)
+            .await?;
+        let users = self
+            .database
+            .read_user_previews(&results.hits)
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect();
+
+        Ok(SearchResult {
+            total: results.total,
+            hits: users,
         })
     }
 
@@ -759,6 +938,31 @@ impl Repo {
             .found("comment", comment_id)?;
 
         Ok(content.into())
+    }
+
+    pub async fn set_entity_name(
+        &self,
+        profile_id: Uuid,
+        new_name: text::Name,
+        entity: &'static str,
+        index: &Index,
+    ) -> Result<ProfileName> {
+        let new_name = new_name.as_ref();
+        let mut tx = self.database.begin().await?;
+
+        let update = tx
+            .update_entity_name(profile_id, new_name)
+            .await?
+            .found(entity, profile_id)?;
+
+        if let Some(old_name) = update.old_name {
+            self.search
+                .update_entity_name(profile_id, &old_name, new_name, index)
+                .await?;
+        }
+
+        tx.commit().await?;
+        Ok(update.names.into())
     }
 
     pub async fn set_post_description(
@@ -813,7 +1017,7 @@ impl Repo {
         description: text::Description,
     ) -> Result<String> {
         self.database
-            .update_tag_description(tag_id, description.as_ref())
+            .update_entity_description(tag_id, description.as_ref())
             .await?
             .found("tag", tag_id)?;
 
@@ -823,23 +1027,37 @@ impl Repo {
     pub async fn set_tag_name(
         &self,
         tag_id: Uuid,
-        new_name: text::TagName,
-    ) -> Result<TagName> {
-        let mut tx = self.database.begin().await?;
+        new_name: text::Name,
+    ) -> Result<ProfileName> {
+        self.set_entity_name(tag_id, new_name, "tag", &self.search.indices.tag)
+            .await
+    }
 
-        let update = tx
-            .update_tag_name(tag_id, new_name.as_ref())
+    pub async fn set_user_description(
+        &self,
+        user_id: Uuid,
+        description: text::Description,
+    ) -> Result<String> {
+        self.database
+            .update_entity_description(user_id, description.as_ref())
             .await?
-            .found("tag", tag_id)?;
+            .found("user", user_id)?;
 
-        if let Some(old_name) = update.old_name {
-            self.search
-                .update_tag_name(tag_id, &old_name, new_name.as_ref())
-                .await?;
-        }
+        Ok(description.into())
+    }
 
-        tx.commit().await?;
-        Ok(update.names.into())
+    pub async fn set_user_name(
+        &self,
+        user_id: Uuid,
+        new_name: text::Name,
+    ) -> Result<ProfileName> {
+        self.set_entity_name(
+            user_id,
+            new_name,
+            "user",
+            &self.search.indices.user,
+        )
+        .await
     }
 
     pub async fn regenerate_preview(
@@ -1049,6 +1267,26 @@ impl Repo {
         let handle = task::spawn(async move {
             let index = &repo.search.indices.tag;
             let stream = repo.database.read_tag_search();
+
+            repo.reindex(guard.task(), index, batch_size, stream).await
+        });
+
+        Ok((task, handle))
+    }
+
+    pub async fn reindex_users(
+        self: &Arc<Self>,
+        batch_size: usize,
+    ) -> Result<(Task, JoinHandle<Result<()>>)> {
+        let total = self.database.read_user_total().await?.try_into().unwrap();
+
+        let task = Task::new(total);
+        let guard = task.guard();
+        let repo = self.clone();
+
+        let handle = task::spawn(async move {
+            let index = &repo.search.indices.user;
+            let stream = repo.database.read_user_search();
 
             repo.reindex(guard.task(), index, batch_size, stream).await
         });

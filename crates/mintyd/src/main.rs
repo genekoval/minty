@@ -148,10 +148,14 @@ async fn run_command(
                 Reindex::Tags => {
                     reindex_tags(repo, *batch_size, *quiet).await?
                 }
+                Reindex::Users => {
+                    reindex_users(repo, *batch_size, *quiet).await?
+                }
             },
             None => {
                 reindex_posts(repo, *batch_size, *quiet).await?;
                 reindex_tags(repo, *batch_size, *quiet).await?;
+                reindex_users(repo, *batch_size, *quiet).await?;
             }
         },
         Command::Restore { filename } => repo.restore(filename).await?,
@@ -256,4 +260,12 @@ async fn reindex_tags(
     quiet: bool,
 ) -> Result {
     reindex("tag", quiet, repo.reindex_tags(batch_size).await?).await
+}
+
+async fn reindex_users(
+    repo: &Arc<Repo>,
+    batch_size: usize,
+    quiet: bool,
+) -> Result {
+    reindex("user", quiet, repo.reindex_users(batch_size).await?).await
 }

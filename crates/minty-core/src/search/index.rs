@@ -200,6 +200,7 @@ pub struct Indices {
     client: Elasticsearch,
     pub post: Index,
     pub tag: Index,
+    pub user: Index,
 }
 
 impl Indices {
@@ -211,7 +212,20 @@ impl Indices {
         Self {
             client: client.clone(),
             post: Index::new(client.clone(), namespace, "post", post, refresh),
-            tag: Index::new(client.clone(), namespace, "tag", tag, refresh),
+            tag: Index::new(
+                client.clone(),
+                namespace,
+                "tag",
+                entity_profile,
+                refresh,
+            ),
+            user: Index::new(
+                client.clone(),
+                namespace,
+                "user",
+                entity_profile,
+                refresh,
+            ),
         }
     }
 
@@ -238,8 +252,8 @@ impl Indices {
         Ok(())
     }
 
-    fn all(&self) -> [&Index; 2] {
-        [&self.post, &self.tag]
+    fn all(&self) -> [&Index; 3] {
+        [&self.post, &self.tag, &self.user]
     }
 }
 
@@ -247,6 +261,9 @@ fn post() -> Json {
     json!({
         "mappings": {
             "properties": {
+                "poster": {
+                    "type": "keyword"
+                },
                 "title": {
                     "type": "text",
                     "fields": {
@@ -275,7 +292,7 @@ fn post() -> Json {
     })
 }
 
-fn tag() -> Json {
+fn entity_profile() -> Json {
     json!({
         "mappings": {
             "properties": {

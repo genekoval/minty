@@ -4,7 +4,10 @@ use bytes::Bytes;
 use futures_core::{Stream, TryStream};
 use log::debug;
 use mime::{Mime, TEXT_PLAIN_UTF_8};
-use reqwest::{header::CONTENT_TYPE, Body, Method, Request, StatusCode};
+use reqwest::{
+    header::{HeaderMap, CONTENT_TYPE},
+    Body, Method, Request, StatusCode,
+};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{error, io};
 use tokio_stream::StreamExt;
@@ -112,6 +115,11 @@ impl RequestBuilder {
         self
     }
 
+    fn headers(mut self, headers: HeaderMap) -> Self {
+        self.inner = self.inner.headers(headers);
+        self
+    }
+
     fn content_type(mut self, mime: Mime) -> Self {
         self.inner = self.inner.header(CONTENT_TYPE, mime.as_ref());
         self
@@ -122,11 +130,19 @@ impl RequestBuilder {
         self.content_type(TEXT_PLAIN_UTF_8)
     }
 
-    pub fn serialize<T>(mut self, body: &T) -> Self
+    pub fn form<T>(mut self, form: &T) -> Self
     where
         T: Serialize + ?Sized,
     {
-        self.inner = self.inner.json(body);
+        self.inner = self.inner.form(form);
+        self
+    }
+
+    pub fn json<T>(mut self, json: &T) -> Self
+    where
+        T: Serialize + ?Sized,
+    {
+        self.inner = self.inner.json(json);
         self
     }
 
@@ -164,6 +180,8 @@ impl RequestBuilder {
 
         let kind = if status == StatusCode::NOT_FOUND {
             ErrorKind::NotFound
+        } else if status == StatusCode::UNAUTHORIZED {
+            ErrorKind::Unauthenticated
         } else if status.is_client_error() {
             ErrorKind::Client
         } else if status.is_server_error() {
@@ -184,15 +202,17 @@ impl RequestBuilder {
 
 #[derive(Clone, Debug)]
 pub struct Client {
-    url: Url,
     client: reqwest::Client,
+    url: Url,
+    headers: HeaderMap,
 }
 
 impl Client {
-    pub fn new(url: &Url) -> Self {
+    pub fn new(url: &Url, headers: HeaderMap) -> Self {
         Self {
-            url: url.clone(),
             client: reqwest::Client::new(),
+            url: url.clone(),
+            headers,
         }
     }
 
@@ -242,5 +262,6 @@ impl Client {
         let request = Request::new(method, url);
 
         RequestBuilder::from_parts(self.client.clone(), request)
+            .headers(self.headers.clone())
     }
 }

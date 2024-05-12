@@ -3,10 +3,13 @@ mod comments;
 mod object;
 mod post;
 mod posts;
+mod sign_up;
 mod tag;
 mod tags;
 mod text;
 mod timestamp;
+mod user;
+mod users;
 
 use super::{error::Result, AppState};
 
@@ -35,6 +38,9 @@ pub fn routes() -> Router {
         .nest("/object", object::routes())
         .nest("/post", post::routes())
         .nest("/posts", posts::routes())
+        .nest("/signup", sign_up::routes())
         .nest("/tag", tag::routes())
         .nest("/tags", tags::routes())
+        .nest("/user", user::routes())
+        .nest("/users", users::routes())
 }

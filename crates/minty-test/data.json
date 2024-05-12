@@ -2,6 +2,7 @@
   "posts": [
     {
       "id": "5cf6bc10-db1f-4159-ba96-5c075ce3a072",
+      "poster": "99786976-95bd-49ff-892e-cd76580aec5a",
       "title": "Big Buck Bunny",
       "description": "Big Buck Bunny, Sunflower version\n\n4K, Quad-Full-HD (3840x2160) 60 fps\n\nRetrieved from https://peach.blender.org/",
       "visibility": "public",
@@ -17,6 +18,7 @@
       "comments": [
         {
           "id": "76c9699d-9b69-4857-97d8-31afbe1a00c3",
+          "user": "99786976-95bd-49ff-892e-cd76580aec5a",
           "parent_id": null,
           "indent": 0,
           "content": "Big Buck Bunny (code-named Project Peach) is a 2008 animated comedy short film featuring animals of the forest, made by the Blender Institute, part of the Blender Foundation.",
@@ -26,6 +28,7 @@
     },
     {
       "id": "80e0c042-beef-4a30-99ac-07063327d01a",
+      "poster": "99786976-95bd-49ff-892e-cd76580aec5a",
       "title": "brown sand under blue sky during daytime",
       "description": "Sand Dune\n\nPhoto take by Eugene Ga in Merzouga, Morocco\n\nhttps://unsplash.com/photos/brown-sand-under-blue-sky-during-daytime-aL2jP0vi8nk",
       "visibility": "public",
@@ -42,6 +45,7 @@
     },
     {
       "id": "f4d63cb8-46bc-455f-94a0-86476940327a",
+      "poster": "99786976-95bd-49ff-892e-cd76580aec5a",
       "title": "Comments",
       "description": "A post containing various comment threads for testing.",
       "visibility": "public",
@@ -53,6 +57,7 @@
       "comments": [
         {
           "id": "483a1e30-9946-4721-b2b0-91dc726526ee",
+          "user": "99786976-95bd-49ff-892e-cd76580aec5a",
           "parent_id": null,
           "indent": 0,
           "content": "Hello, World!",
@@ -60,6 +65,7 @@
         },
         {
           "id": "013fcf3f-4df2-4c88-801f-da703e43a1c5",
+          "user": "99786976-95bd-49ff-892e-cd76580aec5a",
           "parent_id": null,
           "indent": 0,
           "content": "Second.",
@@ -67,6 +73,7 @@
         },
         {
           "id": "ae993efd-7fb0-4fd5-99a0-253553455f47",
+          "user": "99786976-95bd-49ff-892e-cd76580aec5a",
           "parent_id": null,
           "indent": 0,
           "content": "First.",
@@ -74,6 +81,7 @@
         },
         {
           "id": "c7234c95-4b9e-48f4-9945-64fe882247ae",
+          "user": "99786976-95bd-49ff-892e-cd76580aec5a",
           "parent_id": "013fcf3f-4df2-4c88-801f-da703e43a1c5",
           "indent": 1,
           "content": "Third.",
@@ -81,6 +89,7 @@
         },
         {
           "id": "db42d7a1-5c81-4684-940c-b37e200da435",
+          "user": "99786976-95bd-49ff-892e-cd76580aec5a",
           "parent_id": "483a1e30-9946-4721-b2b0-91dc726526ee",
           "indent": 1,
           "content": "Foo Bar",
@@ -88,6 +97,7 @@
         },
         {
           "id": "ef2913a5-96e7-4c40-bc68-b234f8c4ffd5",
+          "user": "99786976-95bd-49ff-892e-cd76580aec5a",
           "parent_id": "483a1e30-9946-4721-b2b0-91dc726526ee",
           "indent": 1,
           "content": "Hello to you too!",
@@ -95,6 +105,7 @@
         },
         {
           "id": "7b77b44f-1e3a-48cd-8399-6698ef7f2869",
+          "user": "99786976-95bd-49ff-892e-cd76580aec5a",
           "parent_id": "db42d7a1-5c81-4684-940c-b37e200da435",
           "indent": 2,
           "content": "Baz Quux",
@@ -104,6 +115,7 @@
     },
     {
       "id": "9bb115bc-9a32-4d13-9f0b-f38ce3a18bc0",
+      "poster": "99786976-95bd-49ff-892e-cd76580aec5a",
       "title": "C",
       "description": "A successor to the programming language B, C was originally developed at Bell Labs by Dennis Ritchie between 1972 and 1973 to construct utilities running on Unix.",
       "visibility": "public",
@@ -118,6 +130,7 @@
     },
     {
       "id": "e0fac289-d8b9-4435-b73e-d11007d879da",
+      "poster": "99786976-95bd-49ff-892e-cd76580aec5a",
       "title": "C++",
       "description": "A general-purpose programming language created by Danish computer scientist Bjarne Stroustrup as an extension of the C programming language, or \"C with Classes\".",
       "visibility": "public",
@@ -132,6 +145,7 @@
     },
     {
       "id": "21cfd03e-be9c-4549-9758-c0696088122b",
+      "poster": "99786976-95bd-49ff-892e-cd76580aec5a",
       "title": "Java",
       "description": "Java is a high-level, class-based, object-oriented programming language that is designed to have as few implementation dependencies as possible.",
       "visibility": "public",
@@ -146,6 +160,7 @@
     },
     {
       "id": "4a2c7232-8a70-46ba-957b-50293b08bb73",
+      "poster": "99786976-95bd-49ff-892e-cd76580aec5a",
       "title": "JavaScript",
       "description": "A programming language that is one of the core technologies of the World Wide Web, alongside HTML and CSS.",
       "visibility": "public",
@@ -160,6 +175,7 @@
     },
     {
       "id": "06b8413b-5dd7-4b87-a183-34552608ddeb",
+      "poster": "99786976-95bd-49ff-892e-cd76580aec5a",
       "title": "Rust",
       "description": "Rust enforces memory safety — that is, that all references point to valid memory — without requiring the use of a garbage collector or reference counting present in other memory-safe languages.",
       "visibility": "public",
@@ -182,45 +198,61 @@
         "Hello World"
       ],
       "description": "",
-      "avatar": null,
-      "banner": null,
       "sources": [
         {
           "url": "https://example.com/",
           "icon": null
         }
       ],
-      "created": "2024-04-11T05:07:28.500174-04:00"
+      "avatar": null,
+      "banner": null,
+      "created": "2024-04-11T05:07:28.500174-04:00",
+      "creator": "99786976-95bd-49ff-892e-cd76580aec5a"
     },
     {
       "id": "ceaa85e6-6a89-4053-b64b-dde3e817f45a",
       "name": "Photos",
       "aliases": [],
       "description": "",
+      "sources": [],
       "avatar": null,
       "banner": null,
-      "sources": [],
-      "created": "2024-04-09T00:48:47.869300-04:00"
+      "created": "2024-04-09T00:48:47.869300-04:00",
+      "creator": "99786976-95bd-49ff-892e-cd76580aec5a"
     },
     {
       "id": "7d0f4f2c-a08e-4a70-b71a-ae9ea54ffc6e",
       "name": "Programming Languages",
       "aliases": [],
       "description": "",
+      "sources": [],
       "avatar": null,
       "banner": null,
-      "sources": [],
-      "created": "2024-04-12T23:44:59.900081-04:00"
+      "created": "2024-04-12T23:44:59.900081-04:00",
+      "creator": "99786976-95bd-49ff-892e-cd76580aec5a"
     },
     {
       "id": "04a7b298-3d23-4916-a2c7-62fb201fc40d",
       "name": "Videos",
       "aliases": [],
       "description": "",
+      "sources": [],
       "avatar": null,
       "banner": null,
+      "created": "2024-04-07T02:01:00.830058-04:00",
+      "creator": "99786976-95bd-49ff-892e-cd76580aec5a"
+    }
+  ],
+  "users": [
+    {
+      "id": "99786976-95bd-49ff-892e-cd76580aec5a",
+      "name": "minty",
+      "aliases": [],
+      "description": "",
       "sources": [],
-      "created": "2024-04-07T02:01:00.830058-04:00"
+      "avatar": null,
+      "banner": null,
+      "created": "2024-05-07T23:57:28.960155-04:00"
     }
   ]
 }

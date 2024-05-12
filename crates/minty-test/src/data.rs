@@ -29,3 +29,9 @@ pub mod tags {
     pub const PHOTOS: Uuid = uuid!("ceaa85e6-6a89-4053-b64b-dde3e817f45a");
     pub const VIDEOS: Uuid = uuid!("04a7b298-3d23-4916-a2c7-62fb201fc40d");
 }
+
+pub mod users {
+    use super::*;
+
+    pub const MINTY: Uuid = uuid!("99786976-95bd-49ff-892e-cd76580aec5a");
+}

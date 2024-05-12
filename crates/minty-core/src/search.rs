@@ -11,8 +11,10 @@ use elasticsearch::{
     http::transport::{SingleNodeConnectionPool, TransportBuilder},
     Elasticsearch,
 };
-use minty::{DateTime, PostQuery, SearchResult, TagQuery, Uuid, Visibility};
-use serde_json::json;
+use minty::{
+    DateTime, PostQuery, ProfileQuery, SearchResult, Uuid, Visibility,
+};
+use serde_json::{json, Map, Value as Json};
 use std::result;
 
 #[derive(Debug)]
@@ -47,6 +49,31 @@ impl Search {
         self.indices.delete().await
     }
 
+    pub async fn add_entity_alias(
+        &self,
+        index: &Index,
+        id: Uuid,
+        alias: &str,
+    ) -> Result<()> {
+        let script = "if (!ctx._source.names.contains(params.alias)) {\
+                          ctx._source.names.add(params.alias);\
+                      }";
+
+        index
+            .update_doc(
+                id,
+                json!({
+                    "script": {
+                        "lang": "painless",
+                        "params": { "alias": alias },
+                        "source": script,
+                    },
+                    "upsert": { "names": [alias] }
+                }),
+            )
+            .await
+    }
+
     pub async fn add_post(&self, post: &PostSearch) -> Result<()> {
         self.indices.post.create_doc(post.id, post).await
     }
@@ -71,46 +98,29 @@ impl Search {
             .await
     }
 
-    pub async fn add_tag_alias(&self, tag: Uuid, alias: &str) -> Result<()> {
-        let script = "if (!ctx._source.names.contains(params.alias)) {\
-                          ctx._source.names.add(params.alias);\
-                      }";
-
-        self.indices
-            .tag
-            .update_doc(
-                tag,
-                json!({
-                    "script": {
-                        "lang": "painless",
-                        "params": { "alias": alias },
-                        "source": script,
-                    },
-                    "upsert": { "names": [alias] }
-                }),
-            )
-            .await
+    pub async fn add_tag_alias(&self, id: Uuid, alias: &str) -> Result<()> {
+        self.add_entity_alias(&self.indices.tag, id, alias).await
     }
 
-    pub async fn delete_post(&self, post: Uuid) -> Result<()> {
-        self.indices.post.delete_doc(post).await
+    pub async fn add_user_alias(&self, id: Uuid, alias: &str) -> Result<()> {
+        self.add_entity_alias(&self.indices.user, id, alias).await
     }
 
-    pub async fn delete_tag(&self, tag: Uuid) -> Result<()> {
-        self.indices.tag.delete_doc(tag).await
-    }
-
-    pub async fn delete_tag_alias(&self, tag: Uuid, alias: &str) -> Result<()> {
+    pub async fn delete_entity_alias(
+        &self,
+        index: &Index,
+        id: Uuid,
+        alias: &str,
+    ) -> Result<()> {
         let script = "if (ctx._source.names.contains(params.alias)) {\
                           ctx._source.names.remove(\
                               ctx._source.names.indexOf(params.alias)\
                           );\
                       }";
 
-        self.indices
-            .tag
+        index
             .update_doc(
-                tag,
+                id,
                 json!({
                     "script": {
                         "lang": "painless",
@@ -122,84 +132,16 @@ impl Search {
             .await
     }
 
-    pub async fn find_posts(
-        &self,
-        query: &PostQuery,
-    ) -> Result<SearchResult<Uuid>> {
-        let mut q = json!({
-            "_source": false,
-            "from": query.pagination.from,
-            "size": query.pagination.size,
-            "query": {
-                "bool": {
-                    "filter": [
-                        {
-                            "term": {
-                                "visibility": query.visibility
-                            }
-                        }
-                    ]
-                }
-            }
-        });
-
-        if !query.text.is_empty() || !query.tags.is_empty() {
-            let b = q
-                .get_mut("query")
-                .unwrap()
-                .get_mut("bool")
-                .unwrap()
-                .as_object_mut()
-                .unwrap();
-
-            if !query.text.is_empty() {
-                b.insert(
-                    "must".into(),
-                    json!({
-                        "multi_match": {
-                            "query": query.text,
-                            "fields": ["title^3", "description"]
-                        }
-                    }),
-                );
-            }
-
-            if !query.tags.is_empty() {
-                b.get_mut("filter").unwrap().as_array_mut().unwrap().push(
-                    json!({
-                        "terms_set": {
-                            "tags": {
-                                "terms": query.tags,
-                                "minimum_should_match_script": {
-                                    "source": query.tags.len().to_string()
-                                }
-                            }
-                        }
-
-                    }),
-                );
-            }
-        }
-
-        let value = match query.sort.value {
-            minty::PostSortValue::Created => "created",
-            minty::PostSortValue::Modified => "modified",
-            minty::PostSortValue::Relevance => "_score",
-            minty::PostSortValue::Title => "title.keyword",
-        };
-
-        q.as_object_mut()
-            .unwrap()
-            .insert("sort".into(), json!({ value: query.sort.order }));
-
-        self.indices.post.search(q).await
+    pub async fn delete_post(&self, post: Uuid) -> Result<()> {
+        self.indices.post.delete_doc(post).await
     }
 
-    pub async fn find_tags(
+    pub async fn find_entities(
         &self,
-        query: &TagQuery,
+        index: &Index,
+        query: &ProfileQuery,
     ) -> Result<SearchResult<Uuid>> {
-        self.indices.tag.search(json!({
+        index.search(json!({
             "_source": false,
             "from": query.pagination.from,
             "size": query.pagination.size,
@@ -220,6 +162,77 @@ impl Search {
                 }
             }
         })).await
+    }
+
+    pub async fn find_posts(
+        &self,
+        query: &PostQuery,
+    ) -> Result<SearchResult<Uuid>> {
+        let mut filter: Vec<Json> = vec![json!({
+            "term": {
+                "visibility": query.visibility
+            }
+        })];
+
+        if let Some(poster) = query.poster {
+            filter.push(json!({
+                "term": {
+                    "poster": {
+                        "value": poster
+                    }
+                }
+            }))
+        }
+
+        if !query.tags.is_empty() {
+            filter.push(json!({
+                "terms_set": {
+                    "tags": {
+                        "terms": query.tags,
+                        "minimum_should_match_script": {
+                            "source": query.tags.len().to_string()
+                        }
+                    }
+                }
+            }));
+        }
+
+        let mut bool = Map::new();
+
+        bool.insert("filter".into(), Json::Array(filter));
+
+        if !query.text.is_empty() {
+            bool.insert(
+                "must".into(),
+                json!({
+                    "multi_match": {
+                        "query": query.text,
+                        "fields": ["title^3", "description"]
+                    }
+                }),
+            );
+        }
+
+        let sort = match query.sort.value {
+            minty::PostSortValue::Created => "created",
+            minty::PostSortValue::Modified => "modified",
+            minty::PostSortValue::Relevance => "_score",
+            minty::PostSortValue::Title => "title.keyword",
+        };
+
+        let query = json!({
+            "_source": false,
+            "from": query.pagination.from,
+            "size": query.pagination.size,
+            "query": {
+                "bool": bool
+            },
+            "sort": {
+                sort: query.sort.order
+            }
+        });
+
+        self.indices.post.search(query).await
     }
 
     pub async fn publish_post(
@@ -257,6 +270,37 @@ impl Search {
                     "script": {
                         "lang": "painless",
                         "params": { "tag": tag },
+                        "source": script
+                    }
+                }),
+            )
+            .await
+    }
+
+    pub async fn update_entity_name(
+        &self,
+        id: Uuid,
+        old: &str,
+        new: &str,
+        index: &Index,
+    ) -> Result<()> {
+        let script = "if (ctx._source.names.contains(params.old)) {\
+                          ctx._source.names.remove(\
+                              ctx._source.names.indexOf(params.old)\
+                          );\
+                          ctx._source.names.add(params.new);\
+                      }";
+
+        index
+            .update_doc(
+                id,
+                json!({
+                    "script": {
+                        "lang": "painless",
+                        "params": {
+                            "old": old,
+                            "new": new,
+                        },
                         "source": script
                     }
                 }),
@@ -314,37 +358,6 @@ impl Search {
                     "doc": {
                         "title": title,
                         "modified": modified
-                    }
-                }),
-            )
-            .await
-    }
-
-    pub async fn update_tag_name(
-        &self,
-        tag: Uuid,
-        old: &str,
-        new: &str,
-    ) -> Result<()> {
-        let script = "if (ctx._source.names.contains(params.old)) {\
-                          ctx._source.names.remove(\
-                              ctx._source.names.indexOf(params.old)\
-                          );\
-                          ctx._source.names.add(params.new);\
-                      }";
-
-        self.indices
-            .tag
-            .update_doc(
-                tag,
-                json!({
-                    "script": {
-                        "lang": "painless",
-                        "params": {
-                            "old": old,
-                            "new": new,
-                        },
-                        "source": script
                     }
                 }),
             )

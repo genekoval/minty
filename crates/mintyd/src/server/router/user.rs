@@ -9,37 +9,31 @@ use axum::{
     Json,
 };
 use minty::{
-    http::query::SetProfileName, text, ProfileName, Source, Tag, Url, Uuid,
+    http::query::SetProfileName, text, ProfileName, Source, Url, Uuid,
 };
 
 async fn add_source(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<Uuid>,
+    User(user): User,
     Json(url): Json<Url>,
 ) -> Result<Json<Source>> {
-    Ok(Json(repo.add_tag_source(tag, &url).await?))
-}
-
-async fn add_tag(
-    State(AppState { repo }): State<AppState>,
-    User(user): User,
-    Path(tag): Path<text::Name>,
-) -> Result<String> {
-    Ok(repo.add_tag(tag, user).await?.to_string())
+    Ok(Json(repo.add_user_source(user, &url).await?))
 }
 
 async fn delete_alias(
     State(AppState { repo }): State<AppState>,
-    Path((tag, name)): Path<(Uuid, String)>,
+    Path(name): Path<String>,
+    User(user): User,
 ) -> Result<Json<ProfileName>> {
-    Ok(Json(repo.delete_tag_alias(tag, &name).await?))
+    Ok(Json(repo.delete_user_alias(user, &name).await?))
 }
 
 async fn delete_source(
     State(AppState { repo }): State<AppState>,
-    Path((tag, source)): Path<(Uuid, i64)>,
+    Path(source): Path<i64>,
+    User(user): User,
 ) -> Result<StatusCode> {
-    let status = if repo.delete_tag_source(tag, source).await? {
+    let status = if repo.delete_user_source(user, source).await? {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::NOT_FOUND
@@ -50,47 +44,55 @@ async fn delete_source(
 
 async fn delete_sources(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<Uuid>,
+    User(user): User,
     Json(sources): Json<Vec<String>>,
 ) -> Result<StatusCode> {
-    repo.delete_tag_sources(tag, &sources).await?;
+    repo.delete_user_sources(user, &sources).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn delete_tag(
+async fn delete_user(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<Uuid>,
+    User(user): User,
 ) -> Result<StatusCode> {
-    repo.delete_tag(tag).await?;
+    repo.delete_user(user).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn get_tag(
+async fn get_authenticated_user(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<Uuid>,
-) -> Result<Json<Tag>> {
-    Ok(Json(repo.get_tag(tag).await?))
+    User(user): User,
+) -> Result<Json<minty::User>> {
+    Ok(Json(repo.get_user(user).await?))
+}
+
+async fn get_user(
+    State(AppState { repo }): State<AppState>,
+    Path(user): Path<Uuid>,
+) -> Result<Json<minty::User>> {
+    Ok(Json(repo.get_user(user).await?))
 }
 
 async fn set_description(
     State(AppState { repo }): State<AppState>,
-    Path(tag): Path<Uuid>,
+    User(user): User,
     Text(description): Text<text::Description>,
 ) -> Result<String> {
-    Ok(repo.set_tag_description(tag, description).await?)
+    Ok(repo.set_user_description(user, description).await?)
 }
 
 async fn set_name(
     State(AppState { repo }): State<AppState>,
-    Path((tag, name)): Path<(Uuid, text::Name)>,
+    Path(name): Path<text::Name>,
     Query(SetProfileName { main }): Query<SetProfileName>,
+    User(user): User,
 ) -> Result<Json<ProfileName>> {
     let main = main.unwrap_or(false);
 
     let result = if main {
-        repo.set_tag_name(tag, name).await
+        repo.set_user_name(user, name).await
     } else {
-        repo.add_tag_alias(tag, name).await
+        repo.add_user_alias(user, name).await
     }?;
 
     Ok(Json(result))
@@ -98,9 +100,10 @@ async fn set_name(
 
 pub fn routes() -> Router {
     Router::new()
-        .route("/:tag", get(get_tag).post(add_tag).delete(delete_tag))
-        .route("/:tag/name/:name", put(set_name).delete(delete_alias))
-        .route("/:tag/description", put(set_description))
-        .route("/:tag/source", post(add_source).delete(delete_sources))
-        .route("/:tag/source/:source", delete(delete_source))
+        .route("/", get(get_authenticated_user).delete(delete_user))
+        .route("/description", put(set_description))
+        .route("/name/:name", put(set_name).delete(delete_alias))
+        .route("/source", post(add_source).delete(delete_sources))
+        .route("/source/:source", delete(delete_source))
+        .route("/:user", get(get_user))
 }

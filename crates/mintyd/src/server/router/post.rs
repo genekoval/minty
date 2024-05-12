@@ -1,5 +1,7 @@
 use super::{text::Text, timestamp::Timestamp, AppState, Result, Router};
 
+use crate::server::extract::User;
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -45,9 +47,10 @@ async fn add_tag(
 
 async fn create_post(
     State(AppState { repo }): State<AppState>,
+    User(user): User,
     Json(parts): Json<PostParts>,
 ) -> Result<String> {
-    Ok(repo.create_post(&parts).await?.to_string())
+    Ok(repo.create_post(user, &parts).await?.to_string())
 }
 
 async fn delete_objects(

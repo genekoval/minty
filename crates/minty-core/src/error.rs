@@ -8,6 +8,9 @@ pub enum Error {
     #[error("{0}")]
     InvalidInput(String),
 
+    #[error("not authenticated")]
+    Unauthenticated,
+
     #[error("SQL error: {0}")]
     Sql(#[from] sqlx::Error),
 

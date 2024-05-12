@@ -13,6 +13,7 @@ chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
 crossterm = { workspace = true }
 dmon = { workspace = true }
+headers = { workspace = true }
 log = { workspace = true, features = ["serde"] }
 ratatui = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

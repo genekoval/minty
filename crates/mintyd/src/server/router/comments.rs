@@ -1,5 +1,7 @@
 use super::{text::Text, AppState, Result, Router};
 
+use crate::server::extract::User;
+
 use axum::{
     extract::{Path, State},
     routing::get,
@@ -9,10 +11,11 @@ use minty::{text, CommentData, Uuid};
 
 async fn add_comment(
     State(AppState { repo }): State<AppState>,
+    User(user): User,
     Path(post): Path<Uuid>,
     Text(content): Text<text::Comment>,
 ) -> Result<Json<CommentData>> {
-    Ok(Json(repo.add_comment(post, content).await?))
+    Ok(Json(repo.add_comment(user, post, content).await?))
 }
 
 async fn get_comments(

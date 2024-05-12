@@ -33,8 +33,41 @@ CREATE TABLE object_preview_error (
     message         text NOT NULL
 );
 
+CREATE TABLE entity_profile (
+    profile_id      uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    description     text NOT NULL DEFAULT '',
+    avatar          uuid REFERENCES object_ref ON DELETE NO ACTION,
+    banner          uuid REFERENCES object_ref ON DELETE NO ACTION,
+    created         timestamptz NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE entity_name (
+    profile_id      uuid NOT NULL REFERENCES entity_profile ON DELETE CASCADE,
+    name            text NOT NULL,
+    main            boolean NOT NULL DEFAULT false,
+
+    PRIMARY KEY (profile_id, name)
+);
+
+CREATE TABLE entity_link (
+    profile_id      uuid NOT NULL REFERENCES entity_profile ON DELETE CASCADE,
+    source_id       bigint NOT NULL REFERENCES source ON DELETE NO ACTION,
+
+    PRIMARY KEY (profile_id, source_id)
+);
+
+CREATE TABLE user_account (
+    user_id         uuid PRIMARY KEY REFERENCES entity_profile ON DELETE CASCADE
+);
+
+CREATE TABLE tag (
+    tag_id         uuid PRIMARY KEY REFERENCES entity_profile ON DELETE CASCADE,
+    creator        uuid REFERENCES user_account ON DELETE SET NULL
+);
+
 CREATE TABLE post (
     post_id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    poster          uuid REFERENCES user_account ON DELETE SET NULL,
     title           text NOT NULL DEFAULT '',
     description     text NOT NULL DEFAULT '',
     objects         uuid[] NOT NULL DEFAULT '{}',
@@ -60,6 +93,7 @@ CREATE TABLE related_post (
 
 CREATE TABLE post_comment (
     comment_id      uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id         uuid REFERENCES user_account ON DELETE SET NULL,
     post_id         uuid NOT NULL REFERENCES post ON DELETE CASCADE,
     parent_id       uuid REFERENCES post_comment ON DELETE CASCADE,
     indent          smallint NOT NULL DEFAULT 0,
@@ -67,32 +101,9 @@ CREATE TABLE post_comment (
     date_created    timestamptz NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE tag (
-    tag_id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    description     text NOT NULL DEFAULT '',
-    avatar          uuid REFERENCES object_ref ON DELETE NO ACTION,
-    banner          uuid REFERENCES object_ref ON DELETE NO ACTION,
-    date_created    timestamptz NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE tag_name (
-    tag_id          uuid NOT NULL REFERENCES tag ON DELETE CASCADE,
-    value           text NOT NULL,
-    main            boolean NOT NULL DEFAULT false,
-
-    PRIMARY KEY (tag_id, value)
-);
-
 CREATE TABLE post_tag (
     post_id         uuid NOT NULL REFERENCES post ON DELETE CASCADE,
     tag_id          uuid NOT NULL REFERENCES tag ON DELETE CASCADE,
 
     PRIMARY KEY (post_id, tag_id)
-);
-
-CREATE TABLE tag_source (
-    tag_id          uuid NOT NULL REFERENCES tag ON DELETE CASCADE,
-    source_id       bigint NOT NULL REFERENCES source ON DELETE NO ACTION,
-
-    PRIMARY KEY (tag_id, source_id)
 );

@@ -1,4 +1,4 @@
-use minty_test::{not_found, objects, posts, repo, tags};
+use minty_test::{not_found, objects, posts, repo, tags, users};
 
 use minty::{
     text::{Description, PostTitle},
@@ -126,6 +126,7 @@ async fn create_post() {
 
     let Post {
         id,
+        poster,
         title,
         description,
         visibility,
@@ -138,8 +139,9 @@ async fn create_post() {
     } = repo.get_post(post_id).await.unwrap();
 
     assert_eq!(id, post_id);
+    assert_eq!(poster.map(|user| user.id), Some(users::MINTY));
     assert_eq!(title, TITLE);
-    assert_eq!(description, description);
+    assert_eq!(description, DESCRIPTION);
     assert_eq!(Visibility::Public, visibility);
     assert_eq!(created, modified);
     assert_eq!(comment_count, 0);

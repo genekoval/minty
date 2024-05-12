@@ -1,12 +1,12 @@
 --{{{( Types )
 
-CREATE TYPE tag_name AS (
+CREATE TYPE profile_name AS (
     name            text,
     aliases         text[]
 );
 
-CREATE TYPE tag_name_update AS (
-    names           tag_name,
+CREATE TYPE profile_name_update AS (
+    names           profile_name,
     old_name        text
 );
 
@@ -50,23 +50,159 @@ LEFT JOIN (
 ) icons USING (object_id)
 LEFT JOIN (
     SELECT avatar AS object_id
-    FROM data.tag
+    FROM data.entity_profile
 ) avatars USING (object_id)
 LEFT JOIN (
     SELECT banner AS object_id
-    FROM data.tag
+    FROM data.entity_profile
 ) banners USING (object_id)
 GROUP BY object_id;
+
+CREATE VIEW source AS
+SELECT
+    source_id,
+    scheme || '://' || host || resource AS url,
+    icon
+FROM data.source
+JOIN data.site USING (site_id);
+
+CREATE VIEW entity_link AS
+SELECT
+    profile_id,
+    array_agg(source) AS sources
+FROM data.entity_link
+JOIN source USING (source_id)
+GROUP BY profile_id, source.*;
+
+CREATE VIEW entity_name AS
+SELECT
+    profile_id,
+    name,
+    coalesce(aliases, '{}') AS aliases
+FROM (
+    SELECT profile_id, name
+    FROM data.entity_name
+    WHERE main = true
+) AS main
+LEFT JOIN (
+    SELECT profile_id, array_agg(name ORDER BY name) AS aliases
+    FROM data.entity_name
+    WHERE main = false
+    GROUP BY profile_id
+) AS alias USING (profile_id);
+
+CREATE VIEW entity_profile AS
+SELECT
+    profile_id,
+    name,
+    aliases,
+    description,
+    coalesce(sources, '{}') AS sources,
+    avatar,
+    banner,
+    created
+FROM data.entity_profile
+JOIN entity_name USING (profile_id)
+LEFT JOIN entity_link USING (profile_id);
+
+CREATE VIEW user_account AS
+SELECT
+    user_id,
+    name,
+    aliases,
+    description,
+    sources,
+    avatar,
+    banner,
+    created,
+    coalesce(post_count, 0) AS post_count,
+    coalesce(comment_count, 0) AS comment_count,
+    coalesce(tag_count, 0) AS tag_count
+FROM data.user_account
+JOIN entity_profile ON user_id = profile_id
+LEFT JOIN (
+    SELECT
+        poster AS user_id,
+        count(*)::int4 AS post_count
+    FROM data.post
+    WHERE visibility = 'public'
+    GROUP BY poster
+) posts USING (user_id)
+LEFT JOIN (
+    SELECT
+        user_id,
+        count(*)::int4 AS comment_count
+    FROM data.post_comment
+    GROUP BY user_id
+) comments USING (user_id)
+LEFT JOIN (
+    SELECT
+        creator AS user_id,
+        count(*)::int4 AS tag_count
+    FROM data.tag
+    GROUP BY creator
+) tags USING (user_id);
+
+CREATE VIEW user_preview AS
+SELECT
+    user_id,
+    name,
+    avatar
+FROM data.user_account
+JOIN data.entity_profile ON user_id = profile_id
+JOIN (
+    SELECT profile_id, name
+    FROM data.entity_name
+    WHERE main = true
+) name USING (profile_id);
+
+CREATE VIEW tag AS
+SELECT
+    tag_id,
+    entity.name,
+    aliases,
+    description,
+    sources,
+    entity.avatar,
+    banner,
+    created,
+    ROW(user_preview.*)::user_preview AS creator,
+    coalesce(post_count, 0) AS post_count
+FROM data.tag t
+JOIN entity_profile entity ON tag_id = profile_id
+LEFT JOIN user_preview ON creator = user_id
+LEFT JOIN (
+    SELECT
+        tag_id,
+        count(*)::int4 AS post_count
+    FROM data.post_tag
+    GROUP BY tag_id
+) p USING (tag_id);
+
+CREATE VIEW tag_preview AS
+SELECT
+    tag_id,
+    name,
+    avatar
+FROM data.tag
+JOIN data.entity_profile ON tag_id = profile_id
+JOIN (
+    SELECT profile_id, name
+    FROM data.entity_name
+    WHERE main = true
+) name USING (profile_id);
 
 CREATE VIEW post_preview AS
 SELECT
     post_id,
+    ROW(user_preview.*)::user_preview AS poster,
     title,
     preview,
     coalesce(comment_count, 0)::int4 AS comment_count,
     coalesce(object_count, 0)::int4 AS object_count,
     post.date_created AS date_created
 FROM data.post
+LEFT JOIN user_preview ON poster = user_id
 LEFT JOIN (
     SELECT
         post_id,
@@ -94,20 +230,6 @@ LEFT JOIN (
     ) post
     JOIN data.object USING (object_id)
 ) previews USING (post_id);
-
-CREATE VIEW tag_preview AS
-SELECT
-    tag_id,
-    name,
-    avatar
-FROM data.tag
-LEFT JOIN (
-    SELECT
-        tag_id,
-        value AS name
-    FROM data.tag_name
-    WHERE main = true
-) AS main USING (tag_id);
 
 CREATE FUNCTION read_objects(objects uuid[]) RETURNS object[] AS $$
 DECLARE result object[];
@@ -157,6 +279,7 @@ $$ LANGUAGE plpgsql;
 CREATE VIEW post AS
 SELECT
     post_id,
+    ROW(user_preview.*)::user_preview AS poster,
     title,
     description,
     read_objects(objects) AS objects,
@@ -167,6 +290,7 @@ SELECT
     date_created,
     date_modified
 FROM data.post
+LEFT JOIN user_preview ON poster = user_id
 LEFT JOIN (
     SELECT post_id, count(comment_id) AS comment_count
     FROM data.post_comment
@@ -177,12 +301,14 @@ LEFT JOIN (
 CREATE VIEW post_comment AS
 SELECT
     comment_id,
+    ROW(user_preview.*)::user_preview AS user,
     post_id,
     parent_id,
     indent,
     content,
     date_created
-FROM data.post_comment;
+FROM data.post_comment
+LEFT JOIN user_preview USING (user_id);
 
 CREATE VIEW post_object_ref_view AS
 SELECT
@@ -195,6 +321,7 @@ GROUP BY object_id;
 CREATE VIEW post_search AS
 SELECT
     post_id,
+    poster,
     title,
     description,
     visibility,
@@ -216,62 +343,27 @@ GROUP BY site_id;
 CREATE VIEW source_ref_view AS
 SELECT
     source_id,
-    count(object) + count(tag) AS reference_count
+    count(object) + count(entity) AS reference_count
 FROM data.source
 LEFT JOIN data.object object USING (source_id)
-LEFT JOIN data.tag_source tag USING (source_id)
+LEFT JOIN data.entity_link entity USING (source_id)
 GROUP BY source_id;
-
-CREATE VIEW source AS
-SELECT
-    source_id,
-    resource,
-    site
-FROM data.source
-JOIN data.site site USING (site_id);
-
-CREATE VIEW tag_name_view AS
-SELECT
-    tag_id,
-    name,
-    coalesce(aliases, '{}') AS aliases
-FROM (
-    SELECT
-        tag_id,
-        value AS name
-    FROM data.tag_name
-    WHERE main = true
-) AS main
-LEFT JOIN (
-    SELECT
-        tag_id,
-        array_agg(value ORDER BY value) AS aliases
-    FROM data.tag_name
-    WHERE main = false
-    GROUP BY tag_id
-) AS alias USING (tag_id);
 
 CREATE VIEW tag_search AS
 SELECT
     tag_id,
-    array_agg(value) AS names
-FROM data.tag_name
-GROUP BY tag_id;
-
-CREATE VIEW tag AS
-SELECT
-    tag_id,
-    name,
-    aliases,
-    description,
-    avatar,
-    banner,
-    count(post_id)::int4 AS post_count,
-    date_created
+    array_agg(name) AS names
 FROM data.tag
-LEFT JOIN tag_name_view USING (tag_id)
-LEFT JOIN data.post_tag USING (tag_id)
-GROUP BY tag_id, name, aliases;
+JOIN data.entity_name ON tag_id = profile_id
+GROUP BY tag_id, profile_id;
+
+CREATE VIEW user_search AS
+SELECT
+    user_id,
+    array_agg(name) AS names
+FROM data.user_account
+JOIN data.entity_name ON user_id = profile_id
+GROUP BY user_id, profile_id;
 
 --}}}
 
@@ -297,24 +389,67 @@ RETURNS anyarray AS $$
 $$ LANGUAGE sql;
 
 CREATE FUNCTION create_comment(
+    a_user_id       uuid,
     a_post_id       uuid,
     a_content       text
 ) RETURNS SETOF post_comment AS $$
 BEGIN
     RETURN QUERY
-    INSERT INTO data.post_comment (
-        post_id,
-        content
-    ) VALUES (
-        a_post_id,
-        a_content
-    ) RETURNING
+    WITH new_comment AS (
+        INSERT INTO data.post_comment (
+            user_id,
+            post_id,
+            content
+        ) VALUES (
+            a_user_id,
+            a_post_id,
+            a_content
+        ) RETURNING *
+    )
+    SELECT
         comment_id,
+        ROW(user_preview.*)::user_preview AS user,
         post_id,
         parent_id,
         indent,
         content,
-        date_created AS date_created;
+        date_created
+    FROM new_comment
+    JOIN user_preview USING (user_id);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION create_entity(a_name text) RETURNS uuid AS $$
+    WITH profile AS (
+        INSERT INTO data.entity_profile DEFAULT VALUES RETURNING profile_id
+    )
+    INSERT INTO data.entity_name (profile_id, name, main)
+    SELECT profile_id, a_name, true FROM profile
+    RETURNING profile_id;
+$$ LANGUAGE SQL;
+
+CREATE FUNCTION create_entity_alias(a_profile_id uuid, a_alias text)
+RETURNS SETOF profile_name AS $$
+BEGIN
+    INSERT INTO data.entity_name (profile_id, name)
+    VALUES (a_profile_id, a_alias)
+    ON CONFLICT DO NOTHING;
+
+    RETURN QUERY
+    SELECT name, aliases
+    FROM entity_name
+    WHERE profile_id = a_profile_id;
+
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION create_entity_link(a_profile_id uuid, a_source_id bigint)
+RETURNS void AS $$
+BEGIN
+    INSERT INTO data.entity_link(profile_id, source_id)
+    VALUES (a_profile_id, a_source_id)
+    ON CONFLICT DO NOTHING;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -376,6 +511,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION create_post(
+    poster uuid,
     title text,
     description text,
     visibility data.visibility,
@@ -387,11 +523,13 @@ DECLARE new_post post_search%ROWTYPE;
 BEGIN
     WITH new AS (
         INSERT INTO data.post (
+            poster,
             title,
             description,
             objects,
             visibility
         ) VALUES (
+            poster,
             coalesce(title, ''),
             coalesce(description, ''),
             coalesce(objects, '{}'),
@@ -401,6 +539,7 @@ BEGIN
     )
     SELECT
         post_id,
+        new.poster,
         new.title,
         new.description,
         new.visibility,
@@ -497,25 +636,40 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION create_reply(
+    a_user_id       uuid,
     a_parent_id     uuid,
     a_content       text
 ) RETURNS SETOF post_comment AS $$
 BEGIN
     RETURN QUERY
-    INSERT INTO data.post_comment(
+    WITH new_comment AS (
+        INSERT INTO data.post_comment(
+            user_id,
+            post_id,
+            parent_id,
+            indent,
+            content
+        )
+        SELECT
+            a_user_id,
+            parent.post_id,
+            a_parent_id,
+            parent.indent + 1,
+            a_content
+        FROM data.post_comment parent
+        WHERE comment_id = a_parent_id
+        RETURNING *
+    )
+    SELECT
+        comment_id,
+        ROW(user_preview.*)::user_preview AS user,
         post_id,
         parent_id,
         indent,
-        content
-    )
-    SELECT
-        parent.post_id,
-        a_parent_id,
-        parent.indent + 1,
-        a_content
-    FROM data.post_comment parent
-    WHERE comment_id = a_parent_id
-    RETURNING *;
+        content,
+        date_created
+    FROM new_comment
+    JOIN user_preview USING (user_id);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -554,72 +708,27 @@ BEGIN
     ) ON CONFLICT DO NOTHING;
 
     RETURN QUERY
-    SELECT *
-    FROM source
-    WHERE (site).site_id = a_site_id AND resource = a_resource;
+    SELECT
+        source_id,
+        scheme || '://' || host || resource AS url,
+        icon
+    FROM data.source
+    JOIN data.site USING (site_id)
+    WHERE site_id = a_site_id AND resource = a_resource;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION create_tag(
-    name            text
-) RETURNS uuid AS $$
-DECLARE
-    id              uuid;
-BEGIN
-    WITH new_tag AS (
-        INSERT INTO data.tag DEFAULT VALUES
-        RETURNING *
-    )
-    SELECT INTO id
-        tag_id
-    FROM new_tag;
+CREATE FUNCTION create_tag(a_name text, a_creator uuid) RETURNS uuid AS $$
+    INSERT INTO data.tag (tag_id, creator)
+    SELECT create_entity(a_name), a_creator
+    RETURNING tag_id;
+$$ LANGUAGE SQL;
 
-    INSERT INTO data.tag_name (
-        tag_id,
-        value,
-        main
-    ) VALUES (
-        id,
-        name,
-        true
-    );
-
-    RETURN id;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION create_tag_alias(
-    a_tag_id        uuid,
-    a_alias         text
-) RETURNS SETOF tag_name AS $$
-BEGIN
-    INSERT INTO data.tag_name (tag_id, value)
-    VALUES (a_tag_id, a_alias)
-    ON CONFLICT DO NOTHING;
-
-    RETURN QUERY
-    SELECT t.name, t.aliases
-    FROM tag_name_view t
-    WHERE tag_id = a_tag_id;
-
-    EXCEPTION WHEN foreign_key_violation THEN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION create_tag_source(
-    a_tag_id        uuid,
-    a_source_id     bigint
-) RETURNS void AS $$
-BEGIN
-    INSERT INTO data.tag_source (
-        tag_id,
-        source_id
-    ) VALUES (
-        a_tag_id,
-        a_source_id
-    ) ON CONFLICT DO NOTHING;
-END;
-$$ LANGUAGE plpgsql;
+CREATE FUNCTION create_user(a_name text) RETURNS uuid AS $$
+    INSERT INTO data.user_account (user_id)
+    SELECT create_entity(a_name)
+    RETURNING user_id;
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION delete_comment(a_comment_id uuid, recursive boolean)
 RETURNS boolean AS $$
@@ -647,6 +756,40 @@ BEGIN
     END IF;
 
     RETURN l_found;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION delete_entity(a_profile_id uuid) RETURNS boolean AS $$
+BEGIN
+    DELETE FROM data.entity_profile
+    WHERE profile_id = a_profile_id;
+
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION delete_entity_alias(a_profile_id uuid, a_alias text)
+RETURNS SETOF profile_name AS $$
+BEGIN
+    DELETE FROM data.entity_name
+    WHERE profile_id = a_profile_id
+        AND main = false
+        AND name = a_alias;
+
+    RETURN QUERY
+    SELECT name, aliases
+    FROM entity_name
+    WHERE profile_id = a_profile_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION delete_entity_link(a_profile_id uuid, a_source_id bigint)
+RETURNS boolean AS $$
+BEGIN
+    DELETE FROM data.entity_link
+    WHERE profile_id = a_profile_id AND source_id = a_source_id;
+
+    RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -696,46 +839,6 @@ CREATE FUNCTION delete_related_post(
 BEGIN
     DELETE FROM data.related_post
     WHERE post_id = a_post_id AND related = a_related;
-
-    RETURN FOUND;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION delete_tag(
-    a_tag_id        uuid
-) RETURNS boolean AS $$
-BEGIN
-    DELETE FROM data.tag
-    WHERE tag_id = a_tag_id;
-
-    RETURN FOUND;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION delete_tag_alias(
-    a_tag_id        uuid,
-    a_alias         text
-) RETURNS SETOF tag_name AS $$
-BEGIN
-    DELETE FROM data.tag_name
-    WHERE tag_id = a_tag_id
-        AND main = false
-        AND value = a_alias;
-
-    RETURN QUERY
-    SELECT t.name, t.aliases
-    FROM tag_name_view t
-    WHERE tag_id = a_tag_id;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION delete_tag_source(
-    a_tag_id        uuid,
-    a_source_id     bigint
-) RETURNS bool AS $$
-BEGIN
-    DELETE FROM data.tag_source
-    WHERE tag_id = a_tag_id AND source_id = a_source_id;
 
     RETURN FOUND;
 END;
@@ -847,6 +950,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE FUNCTION read_entity_sources(a_profile_id uuid)
+RETURNS SETOF source AS $$
+BEGIN
+    RETURN QUERY
+    SELECT source.*
+    FROM data.entity_link
+    JOIN source USING (source_id)
+    WHERE profile_id = a_profile_id
+    ORDER BY url;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE FUNCTION read_object_preview_errors()
 RETURNS SETOF object_preview_error AS $$
 BEGIN
@@ -951,19 +1066,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION read_tag_sources(
-    a_tag_id        uuid
-) RETURNS SETOF source AS $$
-BEGIN
-    RETURN QUERY
-    SELECT source.*
-    FROM data.tag_source
-    JOIN source USING (source_id)
-    WHERE tag_id = a_tag_id
-    ORDER BY (site).host;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE FUNCTION read_tag_search()
 RETURNS SETOF tag_search AS $$
 BEGIN
@@ -971,6 +1073,33 @@ BEGIN
     SELECT *
     FROM tag_search
     ORDER BY tag_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION read_user(a_user_id uuid) RETURNS SETOF user_account AS $$
+    SELECT * FROM user_account WHERE user_id = a_user_id;
+$$ LANGUAGE SQL;
+
+CREATE FUNCTION read_user_previews(a_users uuid[])
+RETURNS SETOF user_preview AS $$
+    SELECT user_preview.*
+    FROM (
+        SELECT
+            ordinality,
+            unnest AS user_id
+        FROM unnest(a_users) WITH ORDINALITY
+    ) users
+    JOIN user_preview USING (user_id)
+    ORDER BY ordinality;
+$$ LANGUAGE SQL;
+
+CREATE FUNCTION read_user_search()
+RETURNS SETOF user_search AS $$
+BEGIN
+    RETURN QUERY
+    SELECT *
+    FROM user_search
+    ORDER BY user_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1016,6 +1145,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE FUNCTION read_user_total() RETURNS int8 AS $$
+BEGIN
+    RETURN (SELECT count(*) FROM data.user_account);
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE FUNCTION stream_objects()
 RETURNS SETOF object AS $$
 BEGIN
@@ -1036,6 +1171,56 @@ BEGIN
     WHERE comment_id = a_comment_id;
 
     RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION update_entity_description(a_profile_id uuid, a_description text)
+RETURNS boolean AS $$
+BEGIN
+    UPDATE data.entity_profile
+    SET description = a_description
+    WHERE profile_id = a_profile_id;
+
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
+/**
+ * Updates an entity's main name.
+ * If the new name already exists as an alias, the alias and the main name are
+ * swapped. Otherwise, the main name is replaced with the new value.
+ */
+CREATE FUNCTION update_entity_name(a_profile_id uuid, a_name text)
+RETURNS SETOF profile_name_update AS $$
+DECLARE l_old_name text;
+BEGIN
+    IF EXISTS (
+        SELECT FROM data.entity_name
+        WHERE profile_id = a_profile_id AND name = a_name AND main = false
+    ) THEN
+        UPDATE data.entity_name
+        SET main = false
+        WHERE profile_id = a_profile_id AND main = true;
+
+        UPDATE data.entity_name
+        SET main = true
+        WHERE profile_id = a_profile_id AND name = a_name;
+    ELSE
+        SELECT INTO l_old_name name
+        FROM data.entity_name
+        WHERE profile_id = a_profile_id AND main = true;
+
+        UPDATE data.entity_name
+        SET name = a_name
+        WHERE profile_id = a_profile_id AND main = true;
+    END IF;
+
+    RETURN QUERY
+    SELECT
+        ROW(name, aliases)::profile_name,
+        l_old_name
+    FROM entity_name
+    WHERE profile_id = a_profile_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1089,69 +1274,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION update_tag_description(a_tag_id uuid, a_description text)
-RETURNS boolean AS $$
-BEGIN
-    UPDATE data.tag
-    SET description = a_description
-    WHERE tag_id = a_tag_id;
-
-    RETURN FOUND;
-END;
-$$ LANGUAGE plpgsql;
-
-/**
- * Updates a tag's main name.
- * If the new name already exists as an alias, the alias and the main name are
- * swapped. Otherwise, the main name is replaced with the new value.
- */
-CREATE FUNCTION update_tag_name(
-    -- The tag for which to update the main name.
-    a_tag_id        uuid,
-    -- The new main name.
-    a_name          text
-) RETURNS SETOF tag_name_update AS $$
-DECLARE
-    l_old_name      text;
-BEGIN
-    IF EXISTS (
-        SELECT FROM data.tag_name
-        WHERE tag_id = a_tag_id AND value = a_name AND main = false
-    ) THEN
-        UPDATE data.tag_name
-        SET main = false
-        WHERE tag_id = a_tag_id AND main = true;
-
-        UPDATE data.tag_name
-        SET main = true
-        WHERE tag_id = a_tag_id AND value = a_name;
-    ELSE
-        SELECT INTO l_old_name value
-        FROM data.tag_name
-        WHERE tag_id = a_tag_id AND main = true;
-
-        UPDATE data.tag_name
-        SET value = a_name
-        WHERE tag_id = a_tag_id AND main = true;
-    END IF;
-
-    RETURN QUERY
-    SELECT
-        ROW(t.name, t.aliases)::tag_name,
-        l_old_name
-    FROM tag_name_view t
-    WHERE tag_id = a_tag_id;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION import(data jsonb) RETURNS void AS $$
+CREATE FUNCTION import_entity(data jsonb) RETURNS void AS $$
 BEGIN
     PERFORM create_object_refs(ARRAY[avatar, banner])
-    FROM jsonb_to_recordset(data -> 'tags') AS (avatar uuid, banner uuid);
+    FROM jsonb_to_recordset(data) AS (avatar uuid, banner uuid);
 
-    INSERT INTO data.tag (tag_id, description, avatar, banner, date_created)
+    INSERT INTO data.entity_profile (
+        profile_id,
+        description,
+        avatar,
+        banner,
+        created
+    )
     SELECT *
-    FROM jsonb_to_recordset(data -> 'tags') AS (
+    FROM jsonb_to_recordset(data) AS (
         id uuid,
         description text,
         avatar uuid,
@@ -1159,16 +1295,32 @@ BEGIN
         created timestamptz
     );
 
-    INSERT INTO data.tag_name (tag_id, value, main)
+    INSERT INTO data.entity_name (profile_id, name, main)
     SELECT id, name, true
-    FROM jsonb_to_recordset(data -> 'tags') AS (id uuid, name text);
+    FROM jsonb_to_recordset(data) AS (id uuid, name text);
 
-    INSERT INTO data.tag_name (tag_id, value)
+    INSERT INTO data.entity_name (profile_id, name)
     SELECT id, unnest(aliases)
-    FROM jsonb_to_recordset(data -> 'tags') AS (id uuid, aliases text[]);
+    FROM jsonb_to_recordset(data) AS (id uuid, aliases text[]);
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION import(data jsonb) RETURNS void AS $$
+BEGIN
+    PERFORM import_entity(data -> 'users');
+
+    INSERT INTO data.user_account (user_id)
+    SELECT id FROM jsonb_to_recordset(data -> 'users') AS (id uuid);
+
+    PERFORM import_entity(data -> 'tags');
+
+    INSERT INTO data.tag (tag_id, creator)
+    SELECT id, creator
+    FROM jsonb_to_recordset(data -> 'tags') AS (id uuid, creator uuid);
 
     INSERT INTO data.post (
         post_id,
+        poster,
         title,
         description,
         objects,
@@ -1179,6 +1331,7 @@ BEGIN
     SELECT *
     FROM jsonb_to_recordset(data -> 'posts') AS (
         id uuid,
+        poster uuid,
         title text,
         description text,
         objects uuid[],
@@ -1201,19 +1354,21 @@ BEGIN
 
     INSERT INTO data.post_comment (
         comment_id,
+        user_id,
         post_id,
         parent_id,
         indent,
         content,
         date_created
     )
-    SELECT comment_id, post_id, parent_id, indent, content, created
+    SELECT comment_id, "user", post_id, parent_id, indent, content, created
     FROM jsonb_to_recordset(data -> 'posts') AS (id uuid, comments jsonb),
         LATERAL (SELECT id AS post_id),
         LATERAL (
             SELECT id AS comment_id, *
             FROM jsonb_to_recordset(comments) AS (
                 id uuid,
+                "user" uuid,
                 parent_id uuid,
                 indent smallint,
                 content text,
@@ -1231,6 +1386,7 @@ SELECT json_build_object(
             FROM (
                 SELECT
                     post_id AS id,
+                    poster,
                     title,
                     description,
                     visibility,
@@ -1260,6 +1416,7 @@ SELECT json_build_object(
                         post_id,
                         json_agg(json_build_object(
                             'id', comment_id,
+                            'user', user_id,
                             'parent_id', parent_id,
                             'indent', indent,
                             'content', content,
@@ -1285,26 +1442,32 @@ SELECT json_build_object(
                     name,
                     aliases,
                     description,
+                    sources,
                     avatar,
                     banner,
-                    coalesce(source, '[]'::json) AS sources,
-                    date_created AS created
-                FROM data.tag
-                LEFT JOIN tag_name_view USING (tag_id)
-                LEFT JOIN (
-                    SELECT
-                        tag_id,
-                        json_agg(json_build_object(
-                            'url', scheme || '://' || host || resource,
-                            'icon', icon
-                        )) source
-                    FROM data.tag_source
-                    JOIN data.source USING (source_id)
-                    JOIN data.site USING (site_id)
-                    GROUP BY tag_id
-                ) ts USING (tag_id)
+                    created,
+                    (creator).user_id AS creator
+                FROM tag
                 ORDER BY name
             ) t
+        ), '[]'::json))
+    ),
+    'users', (
+        SELECT (coalesce((
+            SELECT json_agg(u)
+            FROM (
+                SELECT
+                    user_id AS id,
+                    name,
+                    aliases,
+                    description,
+                    sources,
+                    avatar,
+                    banner,
+                    created
+                FROM user_account
+                ORDER BY name
+            ) u
         ), '[]'::json))
     )
 )

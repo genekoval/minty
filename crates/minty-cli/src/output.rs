@@ -2,6 +2,7 @@ mod about;
 mod bytes;
 mod color;
 mod comment;
+mod entity;
 mod icon;
 mod metadata;
 mod num;
@@ -9,7 +10,9 @@ mod object;
 mod post;
 mod search_result;
 mod tag;
+mod text;
 mod time;
+mod user;
 mod view;
 
 pub use about::About;
