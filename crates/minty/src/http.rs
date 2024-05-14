@@ -168,6 +168,16 @@ impl crate::Repo for Repo {
             .await
     }
 
+    async fn authenticate(&self, login: &Login) -> Result<Uuid> {
+        self.client
+            .post("login")
+            .form(login)
+            .send()
+            .await?
+            .uuid()
+            .await
+    }
+
     async fn create_post(&self, parts: &PostParts) -> Result<Uuid> {
         self.client
             .post("post")
@@ -528,6 +538,15 @@ impl crate::Repo for Repo {
             .await
     }
 
+    async fn set_user_email(&self, email: text::Email) -> Result<()> {
+        self.client
+            .put("user/email")
+            .text(email.into())
+            .send()
+            .await?;
+        Ok(())
+    }
+
     async fn set_user_name(&self, new_name: text::Name) -> Result<ProfileName> {
         let query = query::SetProfileName::main(true);
 
@@ -538,6 +557,15 @@ impl crate::Repo for Repo {
             .await?
             .deserialize()
             .await
+    }
+
+    async fn set_user_password(&self, password: text::Password) -> Result<()> {
+        self.client
+            .put("user/password")
+            .text(password.into())
+            .send()
+            .await?;
+        Ok(())
     }
 
     async fn sign_up(&self, info: &SignUp) -> Result<Uuid> {

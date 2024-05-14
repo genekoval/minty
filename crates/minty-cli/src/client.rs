@@ -6,6 +6,7 @@ use crate::{
 };
 
 use minty::{http, model::*, text, Repo};
+use rpassword::prompt_password;
 use serde_json as json;
 use std::{
     io::{stdin, IsTerminal, Read},
@@ -153,6 +154,14 @@ impl Client {
 
     pub async fn add_user_source(&self, url: &Url) -> Result {
         self.repo.add_user_source(url).await?;
+        Ok(())
+    }
+
+    pub async fn authenticate(&self, email: String) -> Result {
+        let password = prompt_password("Password: ")?;
+        let login = Login { email, password };
+        let id = self.repo.authenticate(&login).await?;
+        println!("{id}");
         Ok(())
     }
 
@@ -528,11 +537,38 @@ impl Client {
         Ok(())
     }
 
+    pub async fn set_user_email(&self, email: text::Email) -> Result {
+        self.repo.set_user_email(email).await?;
+        Ok(())
+    }
+
     pub async fn set_user_name(&self, name: text::Name) -> Result {
         self.print(self.repo.set_user_name(name).await?)
     }
 
-    pub async fn sign_up(&self, info: SignUp) -> Result {
+    pub async fn set_user_password(&self) -> Result {
+        let password = prompt_password("Password: ")?
+            .try_into()
+            .map_err(|err| format!("{err}"))?;
+        self.repo.set_user_password(password).await?;
+        Ok(())
+    }
+
+    pub async fn sign_up(
+        &self,
+        username: text::Name,
+        email: text::Email,
+    ) -> Result {
+        let password = prompt_password("Password: ")?
+            .try_into()
+            .map_err(|err| format!("{err}"))?;
+
+        let info = SignUp {
+            username,
+            email,
+            password,
+        };
+
         let id = self.repo.sign_up(&info).await?;
         println!("{id}");
         Ok(())

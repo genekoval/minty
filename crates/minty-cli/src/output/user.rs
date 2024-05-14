@@ -10,6 +10,7 @@ impl HumanReadable for User {
 
         Metadata::new()
             .row("ID", icon::POUND, self.id)
+            .row("Email", icon::EMAIL, &self.email)
             .row("Posts", icon::DOCUMENT, self.post_count)
             .row("Comments", icon::COMMENT, self.comment_count)
             .row("Tags", icon::TAG, self.tag_count)

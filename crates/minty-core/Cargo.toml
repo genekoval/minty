@@ -5,6 +5,7 @@ edition.workspace = true
 repository.workspace = true
 
 [dependencies]
+argon2 = { workspace = true }
 bytes = { workspace = true }
 bytesize = { workspace = true }
 chrono = { workspace = true }

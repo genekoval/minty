@@ -58,6 +58,13 @@ pub struct EntityProfile {
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct Login {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Modification<T> {
     pub date_modified: DateTime,
     pub new_value: T,
@@ -352,6 +359,8 @@ pub struct SearchResult<T> {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct SignUp {
     pub username: text::Name,
+    pub email: text::Email,
+    pub password: text::Password,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -405,6 +414,7 @@ impl PartialEq for TagPreview {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct User {
     pub id: Uuid,
+    pub email: String,
     pub profile: EntityProfile,
     pub post_count: u32,
     pub comment_count: u32,

@@ -246,6 +246,8 @@
   "users": [
     {
       "id": "99786976-95bd-49ff-892e-cd76580aec5a",
+      "email": "minty@example.com",
+      "password": "$argon2id$v=19$m=19456,t=2,p=1$l5wX+Rot3RRzyN4JFJMHKQ$mTZbLtNo3zyfJinzsgqgYdSuj/N1jz6i1AWLCGOna2o",
       "name": "minty",
       "aliases": [],
       "description": "",

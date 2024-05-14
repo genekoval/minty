@@ -1,9 +1,7 @@
 use minty_cli::*;
 
 use clap::Parser;
-use minty::{
-    Pagination, PostParts, PostQuery, ProfileQuery, SignUp, Uuid, Visibility,
-};
+use minty::{Pagination, PostParts, PostQuery, ProfileQuery, Uuid, Visibility};
 use std::process::ExitCode;
 
 type Result = minty_cli::Result<()>;
@@ -59,21 +57,24 @@ async fn run_command(args: Cli, client: Client) -> Result {
         Command::About => client.about().await,
         Command::Comment { id, command } => comment(id, command, client).await,
         Command::Comments { post } => client.get_comments(post).await,
+        Command::Email { email } => client.set_user_email(email).await,
         Command::Export => client.export().await,
         Command::Find {
             command,
             from,
             size,
         } => find(command, Pagination { from, size }, client).await,
+        Command::Login { email } => client.authenticate(email).await,
         Command::Me { command } => me(command, client).await,
         Command::New { command } => new(command, client).await,
         Command::Obj { id, command } => object(id, command, client).await,
+        Command::Password => client.set_user_password().await,
         Command::Post { id, command } => post(id, command, client).await,
         Command::Reply { comment, content } => {
             client.reply(comment, content).await
         }
-        Command::Signup { username } => {
-            client.sign_up(SignUp { username }).await
+        Command::Signup { username, email } => {
+            client.sign_up(username, email).await
         }
         Command::Tag { id, command } => tag(id, command, client).await,
         Command::User { id } => client.get_user(id).await,
@@ -148,12 +149,12 @@ async fn me(command: Option<Me>, client: Client) -> Result {
     };
 
     match command {
-        Me::Rename { name } => client.set_user_name(name).await,
         Me::Aka { alias } => client.add_user_alias(alias).await,
         Me::Desc { description } => {
             client.set_user_description(description).await
         }
         Me::Ln { url } => client.add_user_source(&url).await,
+        Me::Rename { name } => client.set_user_name(name).await,
         Me::Rm { force, command } => match command {
             Some(command) => me_rm(command, client).await,
             None => client.delete_user(force).await,

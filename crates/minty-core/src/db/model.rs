@@ -340,6 +340,12 @@ impl From<Tag> for minty::Tag {
     }
 }
 
+#[derive(Clone, Debug, FromRow)]
+pub struct Password {
+    pub user_id: Uuid,
+    pub password: String,
+}
+
 #[derive(Clone, Debug, FromRow, Type)]
 #[sqlx(type_name = "profile_name")]
 pub struct ProfileName {
@@ -435,6 +441,7 @@ impl Id for TagSearch {
 pub struct User {
     #[sqlx(rename = "user_id")]
     pub id: Uuid,
+    pub email: String,
     #[sqlx(flatten)]
     pub profile: EntityProfile,
     #[sqlx(try_from = "i32")]
@@ -449,6 +456,7 @@ impl From<User> for minty::User {
     fn from(value: User) -> Self {
         Self {
             id: value.id,
+            email: value.email,
             profile: value.profile.into(),
             post_count: value.post_count,
             comment_count: value.comment_count,

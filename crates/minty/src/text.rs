@@ -1,17 +1,21 @@
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use regex::Regex;
 use std::{
     error::Error as StdError,
     fmt::{self, Display},
     result,
     str::FromStr,
+    sync::OnceLock,
 };
 
 #[derive(Clone, Copy, Debug)]
 pub enum ErrorKind {
     ContainsNewlines,
     Empty,
+    Invalid,
+    TooShort(usize),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -24,11 +28,17 @@ impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ErrorKind::*;
 
+        let ctx = self.context;
+
         match self.kind {
             ContainsNewlines => {
-                write!(f, "{} must not contain newlines", self.context)
+                write!(f, "{ctx} must not contain newlines")
             }
-            Empty => write!(f, "{} must not be empty", self.context),
+            Empty => write!(f, "{ctx} must not be empty"),
+            Invalid => write!(f, "invalid {ctx}"),
+            TooShort(min) => {
+                write!(f, "{ctx} must be at least {min} characters")
+            }
         }
     }
 }
@@ -70,6 +80,29 @@ impl Text {
             Err(self.error(ErrorKind::ContainsNewlines))
         } else {
             Ok(self)
+        }
+    }
+
+    fn password_length(self) -> Result<Self> {
+        const MIN: usize = 8;
+
+        let len = self.string.len();
+
+        if len < MIN {
+            Err(self.error(ErrorKind::TooShort(MIN)))
+        } else {
+            Ok(self)
+        }
+    }
+
+    fn valid_email(self) -> Result<Self> {
+        static REGEX: OnceLock<Regex> = OnceLock::new();
+        let re = REGEX.get_or_init(|| Regex::new(r"^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").unwrap());
+
+        if re.is_match(&self.string) {
+            Ok(self)
+        } else {
+            Err(self.error(ErrorKind::Invalid))
         }
     }
 }
@@ -141,5 +174,7 @@ macro_rules! text {
 
 text!(Comment, "comment", not_empty);
 text!(Description, "description");
-text!(PostTitle, "post title", no_newlines);
+text!(Email, "email address", valid_email);
 text!(Name, "name", not_empty, no_newlines);
+text!(Password, "password", no_newlines, password_length);
+text!(PostTitle, "post title", no_newlines);

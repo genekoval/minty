@@ -1,5 +1,6 @@
 mod comment;
 mod comments;
+mod login;
 mod object;
 mod post;
 mod posts;
@@ -35,6 +36,7 @@ pub fn routes() -> Router {
         .route("/export", get(export))
         .nest("/comment", comment::routes())
         .nest("/comments", comments::routes())
+        .nest("/login", login::routes())
         .nest("/object", object::routes())
         .nest("/post", post::routes())
         .nest("/posts", posts::routes())

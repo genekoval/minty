@@ -141,17 +141,35 @@ pub enum Command {
         id: Uuid,
     },
 
-    /// Modify the logged in user
+    /// View or modify the logged in user
     Me {
         #[command(subcommand)]
         command: Option<Me>,
+    },
+
+    /// Log into a user account
+    Login {
+        /// Email address of the user to log in as
+        email: String,
     },
 
     /// Create a new account
     Signup {
         /// New user's display name
         username: text::Name,
+
+        /// New user's email address
+        email: text::Email,
     },
+
+    /// Change your email address
+    Email {
+        /// The new email address
+        email: text::Email,
+    },
+
+    /// Change your password
+    Password,
 
     /// Fetch the entire repo as a JSON object
     Export,

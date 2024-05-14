@@ -57,7 +57,9 @@ CREATE TABLE entity_link (
 );
 
 CREATE TABLE user_account (
-    user_id         uuid PRIMARY KEY REFERENCES entity_profile ON DELETE CASCADE
+    user_id         uuid PRIMARY KEY REFERENCES entity_profile ON DELETE CASCADE,
+    email           text UNIQUE NOT NULL,
+    password        text NOT NULL
 );
 
 CREATE TABLE tag (

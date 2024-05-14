@@ -81,11 +81,15 @@ database! {
 
     read_user(id: Uuid) -> Option<User>;
 
+    read_user_password(email: &str) -> Option<Password>;
+
     read_user_previews(users: &[Uuid]) -> Vec<UserPreview>;
 
     read_user_search() -> Stream<UserSearch>;
 
     read_user_total() -> i64;
+
+    stream_objects() -> Stream<Object>;
 
     update_comment(comment_id: Uuid, content: &str) -> bool;
 
@@ -93,7 +97,9 @@ database! {
 
     update_object_preview(object_id: Uuid, preview_id: Option<Uuid>);
 
-    stream_objects() -> Stream<Object>;
+    update_user_email(user_id: Uuid, email: &str) -> bool;
+
+    update_user_password(user_id: Uuid, password: &str) -> bool;
 }
 
 transaction! {
@@ -119,7 +125,7 @@ transaction! {
 
     create_tag(name: &str, creator: Uuid) -> (Uuid,);
 
-    create_user(name: &str) -> (Uuid,);
+    create_user(name: &str, email: &str, passowrd: &str) -> (Uuid,);
 
     delete_entity(id: Uuid) -> bool;
 

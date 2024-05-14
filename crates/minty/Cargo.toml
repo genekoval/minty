@@ -8,6 +8,7 @@ repository.workspace = true
 bytes = { workspace = true }
 chrono = { workspace = true }
 futures-core = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true, features = ["derive"], optional = true }
 url = { workspace = true }
 uuid = { workspace = true }

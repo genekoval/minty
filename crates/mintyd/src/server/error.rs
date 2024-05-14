@@ -27,6 +27,10 @@ impl IntoResponse for Error {
                 return (StatusCode::NOT_FOUND, error.to_string())
                     .into_response()
             }
+            AlreadyExists { .. } => {
+                return (StatusCode::CONFLICT, error.to_string())
+                    .into_response()
+            }
             Unauthenticated => return StatusCode::UNAUTHORIZED.into_response(),
             _ => error!("{error}"),
         }

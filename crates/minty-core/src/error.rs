@@ -5,6 +5,12 @@ pub enum Error {
     #[error("{entity} with ID '{id}' not found")]
     NotFound { entity: &'static str, id: Uuid },
 
+    #[error("{entity} with {identifier} already exists")]
+    AlreadyExists {
+        entity: &'static str,
+        identifier: String,
+    },
+
     #[error("{0}")]
     InvalidInput(String),
 

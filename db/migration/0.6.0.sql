@@ -22,7 +22,9 @@ CREATE TABLE entity_link (
 );
 
 CREATE TABLE user_account (
-    user_id         uuid PRIMARY KEY REFERENCES entity_profile ON DELETE CASCADE
+    user_id         uuid PRIMARY KEY REFERENCES entity_profile ON DELETE CASCADE,
+    email           text UNIQUE NOT NULL,
+    password        text NOT NULL
 );
 
 WITH profile AS (
@@ -32,8 +34,13 @@ WITH profile AS (
     SELECT profile_id, 'minty', true
     FROM profile
 )
-INSERT INTO user_account (user_id)
-SELECT profile_id FROM profile;
+INSERT INTO user_account (user_id, email, password)
+SELECT
+    profile_id,
+    'minty@example.com',
+    -- password is 'password'
+    '$argon2id$v=19$m=19456,t=2,p=1$l5wX+Rot3RRzyN4JFJMHKQ$mTZbLtNo3zyfJinzsgqgYdSuj/N1jz6i1AWLCGOna2o'
+FROM profile;
 
 INSERT INTO entity_profile (profile_id, description, avatar, banner, created)
 SELECT tag_id, description, avatar, banner, date_created

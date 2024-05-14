@@ -1,4 +1,5 @@
 use crate::{
+    auth::Auth,
     comment,
     conf::RepoConfig,
     db::{self, Database, Id},
@@ -25,6 +26,7 @@ use tokio::{
 use tokio_util::task::TaskTracker;
 
 pub struct Repo {
+    auth: Auth,
     bucket: Bucket,
     database: Database,
     db_support: pgtools::Database,
@@ -67,6 +69,7 @@ impl Repo {
             database,
             db_support,
             favicons,
+            auth: Auth::new(),
             search: Search::new(&config.search)?,
         })
     }
@@ -475,11 +478,32 @@ impl Repo {
         self.add_entity_link("tag", tag_id, url).await
     }
 
-    pub async fn add_user(&self, name: text::Name) -> Result<Uuid> {
-        let name = name.as_ref();
+    pub async fn add_user(&self, info: SignUp) -> Result<Uuid> {
+        let name = info.username.as_ref();
+        let email = info.email.as_ref();
+        let password = self.auth.hash_password(info.password)?;
+
         let mut tx = self.database.begin().await?;
 
-        let id = tx.create_user(name).await?.0;
+        let id = tx
+            .create_user(name, email, &password)
+            .await
+            .map_err(|err| {
+                err.as_database_error()
+                    .and_then(|e| e.constraint())
+                    .and_then(|constraint| match constraint {
+                        "user_account_email_key" => {
+                            Some(Error::AlreadyExists {
+                                entity: "user",
+                                identifier: format!("email address '{email}'"),
+                            })
+                        }
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| err.into())
+            })?
+            .0;
+
         self.search.add_user_alias(id, name).await?;
 
         tx.commit().await?;
@@ -501,6 +525,22 @@ impl Repo {
         url: &Url,
     ) -> Result<Source> {
         self.add_entity_link("user", user_id, url).await
+    }
+
+    pub async fn authenticate(&self, login: &Login) -> Result<Uuid> {
+        let Some(user) = self.database.read_user_password(&login.email).await?
+        else {
+            return Err(Error::Unauthenticated);
+        };
+
+        let authenticated =
+            self.auth.verify_password(&login.password, &user.password)?;
+
+        if authenticated {
+            Ok(user.user_id)
+        } else {
+            Err(Error::Unauthenticated)
+        }
     }
 
     pub async fn create_post(
@@ -1044,6 +1084,34 @@ impl Repo {
             .found("user", user_id)?;
 
         Ok(description.into())
+    }
+
+    pub async fn set_user_email(
+        &self,
+        user_id: Uuid,
+        email: text::Email,
+    ) -> Result<()> {
+        self.database
+            .update_user_email(user_id, email.as_ref())
+            .await?
+            .found("user", user_id)?;
+
+        Ok(())
+    }
+
+    pub async fn set_user_password(
+        &self,
+        user_id: Uuid,
+        password: text::Password,
+    ) -> Result<()> {
+        let password = self.auth.hash_password(password)?;
+
+        self.database
+            .update_user_password(user_id, &password)
+            .await?
+            .found("user", user_id)?;
+
+        Ok(())
     }
 
     pub async fn set_user_name(

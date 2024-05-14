@@ -27,6 +27,9 @@ pub const COMMENT: Icon = Icon('\u{f017a}');
 /// nf-md-file_document 󰈙
 pub const DOCUMENT: Icon = Icon('\u{f0219}');
 
+/// nf-md-email 󰇮
+pub const EMAIL: Icon = Icon('\u{f01ee}');
+
 /// nf-md-eye 󰈈
 pub const EYE: Icon = Icon('\u{f0208}');
 

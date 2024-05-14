@@ -58,6 +58,8 @@ pub trait Repo {
         objects: &[Uuid],
     ) -> Result<DateTime>;
 
+    async fn authenticate(&self, login: &Login) -> Result<Uuid>;
+
     async fn create_post(&self, parts: &PostParts) -> Result<Uuid>;
 
     async fn delete_comment(&self, id: Uuid, recursive: bool) -> Result<()>;
@@ -187,7 +189,11 @@ pub trait Repo {
         description: text::Description,
     ) -> Result<String>;
 
+    async fn set_user_email(&self, email: text::Email) -> Result<()>;
+
     async fn set_user_name(&self, new_name: text::Name) -> Result<ProfileName>;
+
+    async fn set_user_password(&self, password: text::Password) -> Result<()>;
 
     async fn sign_up(&self, info: &SignUp) -> Result<Uuid>;
 }

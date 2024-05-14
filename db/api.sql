@@ -1,5 +1,10 @@
 --{{{( Types )
 
+CREATE TYPE password AS (
+    user_id         uuid,
+    password        text
+);
+
 CREATE TYPE profile_name AS (
     name            text,
     aliases         text[]
@@ -108,6 +113,7 @@ LEFT JOIN entity_link USING (profile_id);
 CREATE VIEW user_account AS
 SELECT
     user_id,
+    email,
     name,
     aliases,
     description,
@@ -724,9 +730,13 @@ CREATE FUNCTION create_tag(a_name text, a_creator uuid) RETURNS uuid AS $$
     RETURNING tag_id;
 $$ LANGUAGE SQL;
 
-CREATE FUNCTION create_user(a_name text) RETURNS uuid AS $$
-    INSERT INTO data.user_account (user_id)
-    SELECT create_entity(a_name)
+CREATE FUNCTION create_user(
+    a_name text,
+    a_email text,
+    a_password text
+) RETURNS uuid AS $$
+    INSERT INTO data.user_account (user_id, email, password)
+    SELECT create_entity(a_name), a_email, a_password
     RETURNING user_id;
 $$ LANGUAGE SQL;
 
@@ -1080,6 +1090,10 @@ CREATE FUNCTION read_user(a_user_id uuid) RETURNS SETOF user_account AS $$
     SELECT * FROM user_account WHERE user_id = a_user_id;
 $$ LANGUAGE SQL;
 
+CREATE FUNCTION read_user_password(a_email text) RETURNS SETOF password AS $$
+    SELECT user_id, password FROM data.user_account WHERE email = a_email;
+$$ LANGUAGE SQL;
+
 CREATE FUNCTION read_user_previews(a_users uuid[])
 RETURNS SETOF user_preview AS $$
     SELECT user_preview.*
@@ -1274,6 +1288,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE FUNCTION update_user_email(a_user_id uuid, a_email text)
+RETURNS bool AS $$
+BEGIN
+    UPDATE data.user_account
+    SET email = a_email
+    WHERE user_id = a_user_id;
+
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION update_user_password(a_user_id uuid, a_password text)
+RETURNS bool AS $$
+BEGIN
+    UPDATE data.user_account
+    SET password = a_password
+    WHERE user_id = a_user_id;
+
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE FUNCTION import_entity(data jsonb) RETURNS void AS $$
 BEGIN
     PERFORM create_object_refs(ARRAY[avatar, banner])
@@ -1309,8 +1345,13 @@ CREATE FUNCTION import(data jsonb) RETURNS void AS $$
 BEGIN
     PERFORM import_entity(data -> 'users');
 
-    INSERT INTO data.user_account (user_id)
-    SELECT id FROM jsonb_to_recordset(data -> 'users') AS (id uuid);
+    INSERT INTO data.user_account (user_id, email, password)
+    SELECT id, email, password
+    FROM jsonb_to_recordset(data -> 'users') AS (
+        id uuid,
+        email text,
+        password text
+    );
 
     PERFORM import_entity(data -> 'tags');
 
@@ -1458,6 +1499,8 @@ SELECT json_build_object(
             FROM (
                 SELECT
                     user_id AS id,
+                    email,
+                    password,
                     name,
                     aliases,
                     description,
@@ -1465,7 +1508,8 @@ SELECT json_build_object(
                     avatar,
                     banner,
                     created
-                FROM user_account
+                FROM data.user_account
+                JOIN entity_profile on user_id = profile_id
                 ORDER BY name
             ) u
         ), '[]'::json))

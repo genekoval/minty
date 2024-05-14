@@ -1,15 +1,15 @@
 use super::{AppState, Result, Router};
 
 use axum::{extract::State, routing::post, Form};
-use minty::SignUp;
+use minty::Login;
 
-async fn sign_up(
+async fn login(
     State(AppState { repo }): State<AppState>,
-    Form(sign_up): Form<SignUp>,
+    Form(login): Form<Login>,
 ) -> Result<String> {
-    Ok(repo.add_user(sign_up).await?.to_string())
+    Ok(repo.authenticate(&login).await?.to_string())
 }
 
 pub fn routes() -> Router {
-    Router::new().route("/", post(sign_up))
+    Router::new().route("/", post(login))
 }

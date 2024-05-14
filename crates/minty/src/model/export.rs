@@ -76,6 +76,8 @@ impl Profile for Tag {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct User {
     pub id: Uuid,
+    pub email: String,
+    pub password: String,
     #[serde(flatten)]
     pub profile: EntityProfile,
 }
