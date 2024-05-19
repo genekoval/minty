@@ -1,46 +1,95 @@
+mod credentials;
+mod file;
+
+use credentials::Credentials;
+use file::File;
+
 use crate::{Error, Result};
 
 use log::LevelFilter;
-use minty::Url;
+use minty::{text::Email, Url};
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
-    env, fs,
+    collections::BTreeMap,
+    env,
     path::{Path, PathBuf},
 };
 use timber::Sink;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Config {
+    pub credentials: Option<PathBuf>,
+
     #[serde(default)]
     pub log: Log,
 
-    pub servers: HashMap<String, Server>,
+    pub servers: BTreeMap<String, Url>,
+
+    pub users: BTreeMap<String, Email>,
 }
 
-impl Config {
+#[derive(Debug)]
+pub struct ConfigFile(File<Config>);
+
+impl ConfigFile {
     pub fn read(path: Option<PathBuf>) -> Result<Self> {
         let Some(path) = path.or_else(find_config) else {
             return Err(Error::Config("could not find a config file".into()));
         };
 
-        let data = fs::read_to_string(&path).map_err(|err| {
-            Error::Config(format!(
-                "failed to read config file '{}': {err}",
-                path.display()
-            ))
-        })?;
+        let file = File::read("config", path)?;
 
-        toml::from_str(&data).map_err(|err| {
-            Error::Config(format!(
-                "config file '{}' contains errors: {err}",
-                path.display()
-            ))
-        })
+        Ok(Self(file))
     }
 
     pub fn set_logger(&self) -> Result<()> {
-        self.log.set_logger()
+        self.0.data().log.set_logger()
+    }
+
+    pub fn server(&self, alias: &str) -> Option<&Url> {
+        self.0.data().servers.get(alias)
+    }
+
+    pub fn user(&self, alias: &str) -> Option<&Email> {
+        self.0.data().users.get(alias)
+    }
+
+    pub fn credentials(
+        &self,
+        server: &Url,
+        email: &str,
+    ) -> Result<Option<String>> {
+        Ok(self.read_credentials()?.data().get(server, email))
+    }
+
+    pub fn set_credentials(
+        &self,
+        server: Url,
+        email: String,
+        secret: String,
+    ) -> Result<()> {
+        let mut file = self.read_credentials()?;
+        file.data_mut().insert(server, email, secret);
+        file.write()?;
+        file.set_permissions(0o600)
+    }
+
+    pub fn remove_credentials(&self, server: &Url, email: &str) -> Result<()> {
+        let mut file = self.read_credentials()?;
+        let credentials = file.data_mut();
+
+        credentials.remove(server, email);
+
+        if credentials.is_empty() {
+            file.remove()
+        } else {
+            file.write()
+        }
+    }
+
+    fn read_credentials(&self) -> Result<File<Credentials>> {
+        let credentials = self.0.data().credentials.clone();
+        self.0.read_relative("credentials", credentials)
     }
 }
 
@@ -78,11 +127,6 @@ impl Default for Log {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Server {
-    pub url: Url,
-}
-
 fn find_config() -> Option<PathBuf> {
     search_xdg_config_home().or_else(search_home)
 }
@@ -93,18 +137,8 @@ fn search_home() -> Option<PathBuf> {
     let home = Path::new(&home);
     let config = home.join(".config");
 
-    let path = config.join("minty/minty.toml");
-    if path.is_file() {
-        return Some(path);
-    }
-
-    let path = config.join("minty.toml");
-    if path.is_file() {
-        return Some(path);
-    }
-
-    let path = home.join(".minty.toml");
-    if path.is_file() {
+    let path = config.join("minty");
+    if path.is_dir() {
         return Some(path);
     }
 
@@ -114,10 +148,9 @@ fn search_home() -> Option<PathBuf> {
 fn search_xdg_config_home() -> Option<PathBuf> {
     let config = env::var_os("XDG_CONFIG_HOME")?;
 
-    let path = Path::new(&config).join("minty/minty.toml");
-
-    if path.is_file() {
-        return Some(path);
+    let confdir = Path::new(&config).join("minty");
+    if confdir.is_dir() {
+        return Some(confdir);
     }
 
     None

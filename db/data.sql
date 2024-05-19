@@ -109,3 +109,8 @@ CREATE TABLE post_tag (
 
     PRIMARY KEY (post_id, tag_id)
 );
+
+CREATE TABLE user_session (
+    session_id      bytea PRIMARY KEY,
+    user_id         uuid NOT NULL REFERENCES user_account ON DELETE CASCADE
+);

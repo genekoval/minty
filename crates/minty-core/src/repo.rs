@@ -1,5 +1,5 @@
 use crate::{
-    auth::Auth,
+    auth::{Auth, SessionId},
     comment,
     conf::RepoConfig,
     db::{self, Database, Id},
@@ -528,9 +528,11 @@ impl Repo {
     }
 
     pub async fn authenticate(&self, login: &Login) -> Result<Uuid> {
+        const ERROR: Option<&str> = Some("invalid credentials");
+
         let Some(user) = self.database.read_user_password(&login.email).await?
         else {
-            return Err(Error::Unauthenticated);
+            return Err(Error::Unauthenticated(ERROR));
         };
 
         let authenticated =
@@ -539,7 +541,7 @@ impl Repo {
         if authenticated {
             Ok(user.user_id)
         } else {
-            Err(Error::Unauthenticated)
+            Err(Error::Unauthenticated(ERROR))
         }
     }
 
@@ -566,6 +568,17 @@ impl Repo {
 
         tx.commit().await?;
         Ok(post.id)
+    }
+
+    pub async fn create_user_session(
+        &self,
+        user_id: Uuid,
+    ) -> Result<SessionId> {
+        let session = SessionId::new();
+        self.database
+            .create_user_session(user_id, session.as_bytes())
+            .await?;
+        Ok(session)
     }
 
     pub async fn delete_comment(
@@ -760,6 +773,13 @@ impl Repo {
         .await
     }
 
+    pub async fn delete_user_session(&self, session: SessionId) -> Result<()> {
+        self.database
+            .delete_user_session(session.as_bytes())
+            .await?;
+        Ok(())
+    }
+
     pub async fn delete_user_source(
         &self,
         user_id: Uuid,
@@ -856,7 +876,7 @@ impl Repo {
         mut query: PostQuery,
     ) -> Result<SearchResult<PostPreview>> {
         if user_id.is_none() && query.visibility != Visibility::Public {
-            return Err(Error::Unauthenticated);
+            return Err(Error::Unauthenticated(None));
         }
 
         if query.visibility == Visibility::Draft {
@@ -933,6 +953,11 @@ impl Repo {
 
     pub async fn get_user(&self, id: Uuid) -> Result<User> {
         Ok(self.database.read_user(id).await?.found("user", id)?.into())
+    }
+
+    pub async fn get_user_session(&self, session: SessionId) -> Result<Uuid> {
+        let (id,) = self.database.read_user_session(session.as_bytes()).await?;
+        Ok(id)
     }
 
     pub async fn get_users(

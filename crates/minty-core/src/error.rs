@@ -14,8 +14,11 @@ pub enum Error {
     #[error("{0}")]
     InvalidInput(String),
 
-    #[error("not authenticated")]
-    Unauthenticated,
+    #[error("authentication required{}", match .0 {
+        Some(message) => format!(": {message}"),
+        None => "".into(),
+    })]
+    Unauthenticated(Option<&'static str>),
 
     #[error("SQL error: {0}")]
     Sql(#[from] sqlx::Error),

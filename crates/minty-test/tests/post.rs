@@ -9,7 +9,7 @@ use uuid::uuid;
 
 #[test]
 async fn add_post_tag() {
-    let repo = repo();
+    let repo = repo().await;
 
     let mut id = uuid!("b53b3334-4448-433d-bcb7-de424be0cf06");
     let mut tag = uuid!("e1db9c45-5993-42bf-b1be-29373baef6bf");
@@ -32,7 +32,7 @@ async fn add_post_tag() {
 
 #[test]
 async fn add_related_post() {
-    let repo = repo();
+    let repo = repo().await;
 
     let mut id = uuid!("16357a95-02ea-457d-895f-de46cf06a1ec");
     let mut related = uuid!("fb04b233-a059-4619-8401-c8d06aa4aee9");
@@ -66,7 +66,7 @@ async fn add_related_post() {
 async fn append_post_objects() {
     use objects::*;
 
-    let repo = repo();
+    let repo = repo().await;
 
     let id = repo.create_post(&Default::default()).await.unwrap();
     let mut post = repo.get_post(id).await.unwrap();
@@ -110,7 +110,7 @@ async fn create_post() {
     const POST: Uuid = posts::BUNNY;
     const TAG: Uuid = tags::VIDEOS;
 
-    let repo = repo();
+    let repo = repo().await;
 
     let post_id = repo
         .create_post(&PostParts {
@@ -158,7 +158,7 @@ async fn create_post() {
 
 #[test]
 async fn delete_post() {
-    let repo = repo();
+    let repo = repo().await;
 
     let id = repo
         .create_post(&PostParts {
@@ -179,7 +179,7 @@ async fn delete_post_objects() {
 
     const OBJECTS: [Uuid; 2] = [BUNNY, SAND];
 
-    let repo = repo();
+    let repo = repo().await;
 
     for count in 1..=2 {
         let id = repo
@@ -208,7 +208,7 @@ async fn delete_post_objects() {
 
 #[test]
 async fn delete_post_tag() {
-    let repo = repo();
+    let repo = repo().await;
 
     let tag = tags::VIDEOS;
     let id = repo
@@ -227,7 +227,7 @@ async fn delete_post_tag() {
 
 #[test]
 async fn delete_related_post() {
-    let repo = repo();
+    let repo = repo().await;
 
     let related = posts::BUNNY;
     let id = repo
@@ -251,7 +251,7 @@ async fn delete_related_post() {
 async fn insert_post_objects() {
     use objects::*;
 
-    let repo = repo();
+    let repo = repo().await;
 
     let id = repo
         .create_post(&PostParts {
@@ -274,7 +274,7 @@ async fn insert_post_objects() {
 
 #[test]
 async fn publish_post() {
-    let repo = repo();
+    let repo = repo().await;
     let id = repo
         .create_post(&PostParts {
             visibility: Some(Visibility::Draft),
@@ -303,7 +303,7 @@ async fn publish_post() {
 async fn set_post_description() {
     const DESCRIPTION: &str = "Test description";
 
-    let repo = repo();
+    let repo = repo().await;
     let id = repo.create_post(&Default::default()).await.unwrap();
     let description = Description::new(DESCRIPTION).unwrap();
     let update = repo.set_post_description(id, description).await.unwrap();
@@ -319,7 +319,7 @@ async fn set_post_description() {
 async fn set_post_title() {
     const TITLE: &str = "Test title";
 
-    let repo = repo();
+    let repo = repo().await;
     let id = repo.create_post(&Default::default()).await.unwrap();
     let title = PostTitle::new(TITLE).unwrap();
     let update = repo.set_post_title(id, title).await.unwrap();

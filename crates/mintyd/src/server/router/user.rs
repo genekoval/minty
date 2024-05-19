@@ -1,6 +1,6 @@
 use super::{text::Text, AppState, Result, Router};
 
-use crate::server::extract::User;
+use crate::server::extract::{Session, User};
 
 use axum::{
     extract::{Path, Query, State},
@@ -9,7 +9,7 @@ use axum::{
     Json,
 };
 use minty::{
-    http::query::SetProfileName, text, ProfileName, Source, Url, Uuid,
+    http::query::SetProfileName, text, Login, ProfileName, Source, Url, Uuid,
 };
 
 async fn add_source(
@@ -20,12 +20,29 @@ async fn add_source(
     Ok(Json(repo.add_user_source(user, &url).await?))
 }
 
+async fn create_session(
+    State(AppState { repo }): State<AppState>,
+    Json(login): Json<Login>,
+) -> Result<String> {
+    let user_id = repo.authenticate(&login).await?;
+    let session = repo.create_user_session(user_id).await?;
+    Ok(session.to_string())
+}
+
 async fn delete_alias(
     State(AppState { repo }): State<AppState>,
     Path(name): Path<String>,
     User(user): User,
 ) -> Result<Json<ProfileName>> {
     Ok(Json(repo.delete_user_alias(user, &name).await?))
+}
+
+async fn delete_session(
+    State(AppState { repo }): State<AppState>,
+    Session(session): Session,
+) -> Result<StatusCode> {
+    repo.delete_user_session(session).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn delete_source(
@@ -123,6 +140,7 @@ pub fn routes() -> Router {
         .route("/email", put(set_email))
         .route("/name/:name", put(set_name).delete(delete_alias))
         .route("/password", put(set_password))
+        .route("/session", post(create_session).delete(delete_session))
         .route("/source", post(add_source).delete(delete_sources))
         .route("/source/:source", delete(delete_source))
         .route("/:user", get(get_user))

@@ -35,11 +35,15 @@ database! {
 
     create_source(site_id: i64, resource: &str) -> Source;
 
+    create_user_session(user_id: Uuid, session_id: &[u8]);
+
     delete_comment(id: Uuid, recursive: bool) -> bool;
 
     delete_entity_link(profile_id: Uuid, source_id: i64) -> bool;
 
     delete_related_post(post_id: Uuid, related: Uuid) -> bool;
+
+    delete_user_session(session_id: &[u8]);
 
     export() -> (Json<Data>,);
 
@@ -86,6 +90,8 @@ database! {
     read_user_previews(users: &[Uuid]) -> Vec<UserPreview>;
 
     read_user_search() -> Stream<UserSearch>;
+
+    read_user_session(session_id: &[u8]) -> (Uuid,);
 
     read_user_total() -> i64;
 

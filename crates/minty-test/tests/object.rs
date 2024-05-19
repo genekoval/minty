@@ -22,7 +22,7 @@ const VIDEO_SIZE: u64 = 673_223_862;
 
 #[test]
 async fn get_object() {
-    let repo = repo();
+    let repo = repo().await;
 
     let object = repo.get_object(VIDEO).await.unwrap();
 
@@ -41,7 +41,7 @@ async fn get_object() {
 
 #[test]
 async fn get_object_data() {
-    let repo = repo();
+    let repo = repo().await;
 
     let id = uuid!("f0379789-9af1-4f73-88ae-9edf6cf6751f");
     not_found!(
@@ -71,7 +71,7 @@ async fn video_preview() {
 }
 
 async fn test_preview(object: Uuid, expected_hash: &str) {
-    let repo = repo();
+    let repo = repo().await;
     let preview = repo.get_object(object).await.unwrap().preview_id.unwrap();
     let (_, stream) = repo.get_object_data(preview).await.unwrap();
     let hash = sha256sum(stream).await;

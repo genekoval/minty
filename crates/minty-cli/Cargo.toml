@@ -19,7 +19,7 @@ textwrap = { workspace = true, features = ["terminal_size"] }
 timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["fs", "io-std", "rt"] }
 tokio-util = { workspace = true, features = ["io"] }
-toml = { workspace = true, features = ["parse"] }
+toml = { workspace = true }
 
 [dependencies.minty]
 path = "../minty"

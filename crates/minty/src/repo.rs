@@ -6,7 +6,7 @@ use std::{error::Error, io};
 
 #[allow(async_fn_in_trait)]
 pub trait Repo {
-    fn new(url: &Url, user_id: Option<Uuid>) -> Self;
+    fn new(url: &Url, session: Option<String>) -> Self;
 
     fn url(&self) -> &Url;
 
@@ -58,7 +58,7 @@ pub trait Repo {
         objects: &[Uuid],
     ) -> Result<DateTime>;
 
-    async fn authenticate(&self, login: &Login) -> Result<Uuid>;
+    async fn authenticate(&self, login: &Login) -> Result<String>;
 
     async fn create_post(&self, parts: &PostParts) -> Result<Uuid>;
 
@@ -195,5 +195,7 @@ pub trait Repo {
 
     async fn set_user_password(&self, password: text::Password) -> Result<()>;
 
-    async fn sign_up(&self, info: &SignUp) -> Result<Uuid>;
+    async fn sign_out(&self) -> Result<()>;
+
+    async fn sign_up(&self, info: &SignUp) -> Result<String>;
 }

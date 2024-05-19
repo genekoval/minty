@@ -1,4 +1,4 @@
-use crate::{Config, Result};
+use crate::{ConfigFile, Result};
 
 use clap::{Parser, Subcommand};
 use minty::{text, PostSort, Url, Uuid};
@@ -28,9 +28,15 @@ pub struct Cli {
     /// The configured server to use
     pub server: String,
 
-    #[arg(long, value_name = "ID", env = "MINTY_USER", global = true)]
-    /// Your user ID
-    pub user: Option<Uuid>,
+    #[arg(
+        long,
+        value_name = "ALIAS",
+        env = "MINTY_USER",
+        global = true,
+        default_value = "default"
+    )]
+    /// The configured user to act as
+    pub user: String,
 
     #[arg(short = 'H', long, env = "MINTY_HUMAN_READABLE", global = true)]
     /// Print data in a human-readable format
@@ -148,18 +154,15 @@ pub enum Command {
     },
 
     /// Log into a user account
-    Login {
-        /// Email address of the user to log in as
-        email: String,
-    },
+    Login,
+
+    /// Close the current session
+    Logout,
 
     /// Create a new account
     Signup {
         /// New user's display name
         username: text::Name,
-
-        /// New user's email address
-        email: text::Email,
     },
 
     /// Change your email address
@@ -494,8 +497,8 @@ pub enum TagRm {
 }
 
 impl Cli {
-    pub fn config(&self) -> Result<Config> {
-        Config::read(self.config.clone())
+    pub fn config(&self) -> Result<ConfigFile> {
+        ConfigFile::read(self.config.clone())
     }
 }
 

@@ -1,5 +1,6 @@
 use axum::{
-    http::StatusCode,
+    body::Body,
+    http::{header::WWW_AUTHENTICATE, StatusCode},
     response::{IntoResponse, Response},
 };
 use log::error;
@@ -31,7 +32,23 @@ impl IntoResponse for Error {
                 return (StatusCode::CONFLICT, error.to_string())
                     .into_response()
             }
-            Unauthenticated => return StatusCode::UNAUTHORIZED.into_response(),
+            Unauthenticated(message) => {
+                return Response::builder()
+                    .status(StatusCode::UNAUTHORIZED)
+                    .header(
+                        WWW_AUTHENTICATE,
+                        format!(
+                            "Key{}",
+                            match message {
+                                Some(message) =>
+                                    format!(r#" error="{message}""#),
+                                None => "".into(),
+                            }
+                        ),
+                    )
+                    .body(Body::empty())
+                    .unwrap()
+            }
             _ => error!("{error}"),
         }
 

@@ -96,7 +96,7 @@ where
     T: AsRef<[Uuid]>,
 {
     let expected = expected.as_ref();
-    let repo = repo();
+    let repo = repo().await;
 
     query.tags.push(LANGUAGES);
 

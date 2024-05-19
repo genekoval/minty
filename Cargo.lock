@@ -1722,6 +1722,7 @@ name = "minty-core"
 version = "0.6.1-dev"
 dependencies = [
  "argon2",
+ "base64 0.22.0",
  "bytes",
  "bytesize",
  "chrono",
@@ -1734,6 +1735,7 @@ dependencies = [
  "log",
  "minty",
  "pgtools",
+ "rand",
  "reqwest 0.12.4",
  "scraper",
  "serde",

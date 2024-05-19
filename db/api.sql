@@ -740,6 +740,12 @@ CREATE FUNCTION create_user(
     RETURNING user_id;
 $$ LANGUAGE SQL;
 
+CREATE FUNCTION create_user_session(a_user_id uuid, a_session_id bytea)
+RETURNS void AS $$
+    INSERT INTO data.user_session (session_id, user_id)
+    VALUES (a_session_id, a_user_id);
+$$ LANGUAGE SQL;
+
 CREATE FUNCTION delete_comment(a_comment_id uuid, recursive boolean)
 RETURNS boolean AS $$
 DECLARE
@@ -853,6 +859,11 @@ BEGIN
     RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION delete_user_session(a_session_id bytea) RETURNS void AS $$
+    DELETE FROM data.user_session
+    WHERE session_id = a_session_id;
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION prune() RETURNS void AS $$
 BEGIN
@@ -1116,6 +1127,10 @@ BEGIN
     ORDER BY user_id;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION read_user_session(a_session_id bytea) RETURNS uuid AS $$
+    SELECT user_id FROM data.user_session WHERE session_id = a_session_id;
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION read_object(
     a_object_id     uuid

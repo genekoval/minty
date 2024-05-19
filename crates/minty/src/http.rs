@@ -3,7 +3,6 @@ pub mod query;
 mod client;
 
 use client::Client;
-use reqwest::header::{HeaderMap, HeaderValue, COOKIE};
 
 use crate::{model::*, text, Result};
 
@@ -17,16 +16,9 @@ pub struct Repo {
 }
 
 impl crate::Repo for Repo {
-    fn new(url: &Url, user_id: Option<Uuid>) -> Self {
-        let mut headers = HeaderMap::new();
-
-        if let Some(user_id) = user_id {
-            let user = format!("user={user_id}");
-            headers.insert(COOKIE, HeaderValue::from_str(&user).unwrap());
-        }
-
+    fn new(url: &Url, session: Option<String>) -> Self {
         Self {
-            client: Client::new(url, headers),
+            client: Client::new(url, session),
         }
     }
 
@@ -168,13 +160,13 @@ impl crate::Repo for Repo {
             .await
     }
 
-    async fn authenticate(&self, login: &Login) -> Result<Uuid> {
+    async fn authenticate(&self, login: &Login) -> Result<String> {
         self.client
-            .post("login")
-            .form(login)
+            .post("user/session")
+            .json(login)
             .send()
             .await?
-            .uuid()
+            .text()
             .await
     }
 
@@ -568,13 +560,18 @@ impl crate::Repo for Repo {
         Ok(())
     }
 
-    async fn sign_up(&self, info: &SignUp) -> Result<Uuid> {
+    async fn sign_out(&self) -> Result<()> {
+        self.client.delete("user/session").send().await?;
+        Ok(())
+    }
+
+    async fn sign_up(&self, info: &SignUp) -> Result<String> {
         self.client
             .post("signup")
             .form(info)
             .send()
             .await?
-            .uuid()
+            .text()
             .await
     }
 }

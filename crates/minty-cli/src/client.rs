@@ -1,9 +1,6 @@
 mod ask;
 
-use crate::{
-    conf::Server,
-    output::{About, Output, Print},
-};
+use crate::output::{About, Output, Print};
 
 use minty::{http, model::*, text, Repo};
 use rpassword::prompt_password;
@@ -27,15 +24,19 @@ pub struct Client {
 impl Client {
     pub fn new(
         alias: &str,
-        server: &Server,
-        user: Option<Uuid>,
+        server: &Url,
+        session: Option<String>,
         output: Output,
     ) -> Self {
         Self {
             server: alias.into(),
-            repo: http::Repo::new(&server.url, user),
+            repo: http::Repo::new(server, session),
             output,
         }
+    }
+
+    pub fn url(&self) -> &Url {
+        self.repo.url()
     }
 
     fn print<T: Print>(&self, t: T) -> Result {
@@ -157,12 +158,10 @@ impl Client {
         Ok(())
     }
 
-    pub async fn authenticate(&self, email: String) -> Result {
-        let password = prompt_password("Password: ")?;
+    pub async fn authenticate(&self, email: String) -> crate::Result<String> {
+        let password = prompt_password(format!("Password for '{email}': "))?;
         let login = Login { email, password };
-        let id = self.repo.authenticate(&login).await?;
-        println!("{id}");
-        Ok(())
+        Ok(self.repo.authenticate(&login).await?)
     }
 
     pub async fn create_post(&self, parts: PostParts) -> Result {
@@ -554,11 +553,16 @@ impl Client {
         Ok(())
     }
 
+    pub async fn sign_out(&self) -> Result {
+        self.repo.sign_out().await?;
+        Ok(())
+    }
+
     pub async fn sign_up(
         &self,
         username: text::Name,
         email: text::Email,
-    ) -> Result {
+    ) -> crate::Result<String> {
         let password = prompt_password("Password: ")?
             .try_into()
             .map_err(|err| format!("{err}"))?;
@@ -569,9 +573,7 @@ impl Client {
             password,
         };
 
-        let id = self.repo.sign_up(&info).await?;
-        println!("{id}");
-        Ok(())
+        Ok(self.repo.sign_up(&info).await?)
     }
 
     async fn upload_file(&self, path: PathBuf) -> crate::Result<Uuid> {

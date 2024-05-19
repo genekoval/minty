@@ -27,6 +27,11 @@ CREATE TABLE user_account (
     password        text NOT NULL
 );
 
+CREATE TABLE user_session (
+    session_id      bytea PRIMARY KEY,
+    user_id         uuid NOT NULL REFERENCES user_account ON DELETE CASCADE
+);
+
 WITH profile AS (
     INSERT INTO entity_profile DEFAULT VALUES RETURNING profile_id
 ), name AS (

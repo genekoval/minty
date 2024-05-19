@@ -1,25 +1,38 @@
-use crate::users;
-
-use minty::{http, Repo, Url};
+use minty::{http, Login, Repo, Url};
 use std::{
     env::{self, VarError},
     path::PathBuf,
     sync::OnceLock,
 };
 use timber::Sink;
+use tokio::sync::OnceCell;
 
 const LOG_VAR: &str = "MINTY_TEST_LOG";
 const URL_VAR: &str = "MINTY_TEST_URL";
 
-pub fn repo() -> http::Repo {
+pub async fn repo() -> http::Repo {
     static URL: OnceLock<Url> = OnceLock::new();
+    let url = URL.get_or_init(get_url);
 
-    let url = URL.get_or_init(|| {
-        enable_logging();
-        get_url()
-    });
+    static SESSION: OnceCell<String> = OnceCell::const_new();
+    let session = SESSION
+        .get_or_init(|| async { authenticate(url).await })
+        .await
+        .clone();
 
-    http::Repo::new(url, Some(users::MINTY))
+    http::Repo::new(url, Some(session))
+}
+
+async fn authenticate(url: &Url) -> String {
+    let login = Login {
+        email: "minty@example.com".into(),
+        password: "password".into(),
+    };
+
+    http::Repo::new(url, None)
+        .authenticate(&login)
+        .await
+        .unwrap()
 }
 
 fn enable_logging() {
@@ -31,6 +44,8 @@ fn enable_logging() {
 
 #[must_use]
 fn get_url() -> Url {
+    enable_logging();
+
     let env = env::var(URL_VAR).unwrap_or_else(|err| match err {
         VarError::NotPresent => {
             panic!("environment variable '{URL_VAR}' not set")

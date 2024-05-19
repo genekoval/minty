@@ -12,6 +12,7 @@ mod repo;
 mod search;
 mod task;
 
+pub use auth::{Base64DecodeError, SessionId};
 pub use error::{Error, Result};
 pub use model::About;
 pub use repo::Repo;

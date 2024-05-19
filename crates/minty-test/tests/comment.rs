@@ -11,7 +11,7 @@ const POST: Uuid = posts::BUNNY;
 async fn add_comment() {
     const CONTENT: &str = "A top-level comment.";
 
-    let repo = repo();
+    let repo = repo().await;
     let content = text::Comment::new(CONTENT).unwrap();
     let comment = repo.add_comment(POST, content.clone()).await.unwrap();
 
@@ -26,7 +26,7 @@ async fn add_comment() {
 async fn add_reply() {
     const CONTENT: &str = "A reply.";
 
-    let repo = repo();
+    let repo = repo().await;
     let content = text::Comment::new(CONTENT).unwrap();
     let comment = repo.add_reply(COMMENT, content.clone()).await.unwrap();
 
@@ -42,7 +42,7 @@ async fn delete_comment() {
     const ROOT: &str = "A root comment.";
     const REPLY: &str = "A reply.";
 
-    let repo = repo();
+    let repo = repo().await;
     let build_tree = || async {
         let mut content = text::Comment::new(ROOT).unwrap();
         let comment = repo.add_comment(POST, content).await.unwrap();
@@ -94,7 +94,7 @@ async fn get_comment() {
     const CONTENT: &str = "Getting info about a comment.";
     const REPLY: &str = "This is a reply.";
 
-    let repo = repo();
+    let repo = repo().await;
     let mut content = text::Comment::new(CONTENT).unwrap();
     let mut data = repo.add_comment(POST, content).await.unwrap();
     let comment = repo.get_comment(data.id).await.unwrap();
@@ -135,6 +135,7 @@ async fn get_comments() {
     ];
 
     let comments: Vec<_> = repo()
+        .await
         .get_comments(POST)
         .await
         .unwrap()
@@ -152,7 +153,7 @@ async fn set_comment_content() {
 
     let original = text::Comment::new(ORIGINAL).unwrap();
     let edit = text::Comment::new(EDIT).unwrap();
-    let repo = repo();
+    let repo = repo().await;
     let id = repo.add_comment(POST, original.clone()).await.unwrap().id;
     let content = repo.set_comment_content(id, edit).await.unwrap();
 

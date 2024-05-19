@@ -5,7 +5,7 @@ use futures_core::{Stream, TryStream};
 use log::debug;
 use mime::{Mime, TEXT_PLAIN_UTF_8};
 use reqwest::{
-    header::{HeaderMap, CONTENT_TYPE},
+    header::{AUTHORIZATION, CONTENT_TYPE},
     Body, Method, Request, StatusCode,
 };
 use serde::{de::DeserializeOwned, Serialize};
@@ -107,16 +107,16 @@ impl RequestBuilder {
         }
     }
 
+    pub fn key_auth(mut self, key: &str) -> Self {
+        self.inner = self.inner.header(AUTHORIZATION, format!("Key {key}"));
+        self
+    }
+
     pub fn query<T>(mut self, query: &T) -> Self
     where
         T: Serialize,
     {
         self.inner = self.inner.query(query);
-        self
-    }
-
-    fn headers(mut self, headers: HeaderMap) -> Self {
-        self.inner = self.inner.headers(headers);
         self
     }
 
@@ -204,15 +204,15 @@ impl RequestBuilder {
 pub struct Client {
     client: reqwest::Client,
     url: Url,
-    headers: HeaderMap,
+    session: Option<String>,
 }
 
 impl Client {
-    pub fn new(url: &Url, headers: HeaderMap) -> Self {
+    pub fn new(url: &Url, session: Option<String>) -> Self {
         Self {
             client: reqwest::Client::new(),
             url: url.clone(),
-            headers,
+            session,
         }
     }
 
@@ -260,8 +260,12 @@ impl Client {
         }
 
         let request = Request::new(method, url);
+        let builder = RequestBuilder::from_parts(self.client.clone(), request);
 
-        RequestBuilder::from_parts(self.client.clone(), request)
-            .headers(self.headers.clone())
+        if let Some(session) = self.session.as_deref() {
+            builder.key_auth(session)
+        } else {
+            builder
+        }
     }
 }
