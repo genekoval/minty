@@ -17,15 +17,15 @@ async fn add_source(
     User(user): User,
     Json(url): Json<Url>,
 ) -> Result<Json<Source>> {
-    Ok(Json(repo.add_user_source(user, &url).await?))
+    Ok(Json(repo.user(user).add_source(&url).await?))
 }
 
 async fn create_session(
     State(AppState { repo }): State<AppState>,
     Json(login): Json<Login>,
 ) -> Result<String> {
-    let user_id = repo.authenticate(&login).await?;
-    let session = repo.create_user_session(user_id).await?;
+    let user_id = repo.users().authenticate(&login).await?;
+    let session = repo.user(user_id).create_session().await?;
     Ok(session.to_string())
 }
 
@@ -34,14 +34,14 @@ async fn delete_alias(
     Path(name): Path<String>,
     User(user): User,
 ) -> Result<Json<ProfileName>> {
-    Ok(Json(repo.delete_user_alias(user, &name).await?))
+    Ok(Json(repo.user(user).delete_alias(&name).await?))
 }
 
 async fn delete_session(
     State(AppState { repo }): State<AppState>,
     Session(session): Session,
 ) -> Result<StatusCode> {
-    repo.delete_user_session(session).await?;
+    repo.users().delete_session(session).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -50,7 +50,7 @@ async fn delete_source(
     Path(source): Path<i64>,
     User(user): User,
 ) -> Result<StatusCode> {
-    let status = if repo.delete_user_source(user, source).await? {
+    let status = if repo.user(user).delete_source(source).await? {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::NOT_FOUND
@@ -64,7 +64,7 @@ async fn delete_sources(
     User(user): User,
     Json(sources): Json<Vec<String>>,
 ) -> Result<StatusCode> {
-    repo.delete_user_sources(user, &sources).await?;
+    repo.user(user).delete_sources(&sources).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -72,7 +72,7 @@ async fn delete_user(
     State(AppState { repo }): State<AppState>,
     User(user): User,
 ) -> Result<StatusCode> {
-    repo.delete_user(user).await?;
+    repo.user(user).delete().await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -80,14 +80,14 @@ async fn get_authenticated_user(
     State(AppState { repo }): State<AppState>,
     User(user): User,
 ) -> Result<Json<minty::User>> {
-    Ok(Json(repo.get_user(user).await?))
+    Ok(Json(repo.user(user).get().await?))
 }
 
 async fn get_user(
     State(AppState { repo }): State<AppState>,
     Path(user): Path<Uuid>,
 ) -> Result<Json<minty::User>> {
-    Ok(Json(repo.get_user(user).await?))
+    Ok(Json(repo.user(user).get().await?))
 }
 
 async fn set_description(
@@ -95,7 +95,7 @@ async fn set_description(
     User(user): User,
     Text(description): Text<text::Description>,
 ) -> Result<String> {
-    Ok(repo.set_user_description(user, description).await?)
+    Ok(repo.user(user).set_description(description).await?)
 }
 
 async fn set_email(
@@ -103,7 +103,7 @@ async fn set_email(
     User(user): User,
     Text(email): Text<text::Email>,
 ) -> Result<StatusCode> {
-    repo.set_user_email(user, email).await?;
+    repo.user(user).set_email(email).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -116,9 +116,9 @@ async fn set_name(
     let main = main.unwrap_or(false);
 
     let result = if main {
-        repo.set_user_name(user, name).await
+        repo.user(user).set_name(name).await
     } else {
-        repo.add_user_alias(user, name).await
+        repo.user(user).add_alias(name).await
     }?;
 
     Ok(Json(result))
@@ -129,7 +129,7 @@ async fn set_password(
     User(user): User,
     Text(password): Text<text::Password>,
 ) -> Result<StatusCode> {
-    repo.set_user_password(user, password).await?;
+    repo.user(user).set_password(password).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

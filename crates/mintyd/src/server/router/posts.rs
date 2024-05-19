@@ -14,7 +14,7 @@ async fn get_posts(
     OptionalUser(user): OptionalUser,
     Query(query): Query<PostQuery>,
 ) -> Result<Json<SearchResult<PostPreview>>> {
-    Ok(Json(repo.get_posts(user, query.into()).await?))
+    Ok(Json(repo.posts().find(user, query.into()).await?))
 }
 
 pub fn routes() -> Router {

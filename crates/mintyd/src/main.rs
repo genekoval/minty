@@ -123,7 +123,8 @@ async fn run_command(
         Command::Regen { command } => match command {
             Regen::Previews { object, command } => match object {
                 Some(object) => {
-                    let preview = repo.regenerate_preview(*object).await?;
+                    let preview =
+                        repo.object(*object).regenerate_preview().await?;
                     match preview {
                         Some(id) => println!("{id}"),
                         None => println!("<no preview>"),
@@ -172,6 +173,7 @@ async fn regenerate_previews(
     args: &RegenPreviewsAll,
 ) -> Result {
     let (task, handle) = repo
+        .tasks()
         .regenerate_previews(args.batch_size, args.max_tasks)
         .await?;
 
@@ -251,7 +253,7 @@ async fn reindex_posts(
     batch_size: usize,
     quiet: bool,
 ) -> Result {
-    reindex("post", quiet, repo.reindex_posts(batch_size).await?).await
+    reindex("post", quiet, repo.tasks().reindex_posts(batch_size).await?).await
 }
 
 async fn reindex_tags(
@@ -259,7 +261,7 @@ async fn reindex_tags(
     batch_size: usize,
     quiet: bool,
 ) -> Result {
-    reindex("tag", quiet, repo.reindex_tags(batch_size).await?).await
+    reindex("tag", quiet, repo.tasks().reindex_tags(batch_size).await?).await
 }
 
 async fn reindex_users(
@@ -267,5 +269,5 @@ async fn reindex_users(
     batch_size: usize,
     quiet: bool,
 ) -> Result {
-    reindex("user", quiet, repo.reindex_users(batch_size).await?).await
+    reindex("user", quiet, repo.tasks().reindex_users(batch_size).await?).await
 }

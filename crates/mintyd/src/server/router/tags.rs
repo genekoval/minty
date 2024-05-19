@@ -11,7 +11,7 @@ async fn get_tags(
     State(AppState { repo }): State<AppState>,
     Query(query): Query<ProfileQuery>,
 ) -> Result<Json<SearchResult<TagPreview>>> {
-    Ok(Json(repo.get_tags(&query.into()).await?))
+    Ok(Json(repo.tags().find(&query.into()).await?))
 }
 
 pub fn routes() -> Router {

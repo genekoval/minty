@@ -17,7 +17,7 @@ async fn add_object(
     request: Request,
 ) -> Result<Json<ObjectPreview>> {
     let stream = request.into_body().into_data_stream();
-    let object = repo.add_object_stream(SyncStream::new(stream)).await?;
+    let object = repo.objects().upload(SyncStream::new(stream)).await?;
 
     Ok(Json(object))
 }
@@ -26,7 +26,7 @@ async fn get_object(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Object>> {
-    Ok(Json(repo.get_object(id).await?))
+    Ok(Json(repo.object(id).get().await?))
 }
 
 async fn get_object_data(
@@ -34,7 +34,7 @@ async fn get_object_data(
     Path(id): Path<Uuid>,
 ) -> Result<Response> {
     let (ObjectSummary { media_type, size }, stream) =
-        repo.get_object_data(id).await?;
+        repo.object(id).get_data().await?;
 
     let headers = [
         (CONTENT_LENGTH, size.to_string()),

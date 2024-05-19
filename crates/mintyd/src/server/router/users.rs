@@ -11,7 +11,7 @@ async fn get_users(
     State(AppState { repo }): State<AppState>,
     Query(query): Query<ProfileQuery>,
 ) -> Result<Json<SearchResult<UserPreview>>> {
-    Ok(Json(repo.get_users(&query.into()).await?))
+    Ok(Json(repo.users().find(&query.into()).await?))
 }
 
 pub fn routes() -> Router {

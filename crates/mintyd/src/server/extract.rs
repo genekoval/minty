@@ -127,7 +127,7 @@ async fn try_get_user(
         return Ok(None);
     };
 
-    let id = repo.get_user_session(session).await?;
+    let id = repo.users().get_session(session).await?;
 
     Ok(Some(id))
 }

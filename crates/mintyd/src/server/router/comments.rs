@@ -15,14 +15,14 @@ async fn add_comment(
     Path(post): Path<Uuid>,
     Text(content): Text<text::Comment>,
 ) -> Result<Json<CommentData>> {
-    Ok(Json(repo.add_comment(user, post, content).await?))
+    Ok(Json(repo.post(post).add_comment(user, content).await?))
 }
 
 async fn get_comments(
     State(AppState { repo }): State<AppState>,
     Path(post): Path<Uuid>,
 ) -> Result<Json<Vec<CommentData>>> {
-    Ok(Json(repo.get_comments(post).await?))
+    Ok(Json(repo.post(post).get_comments().await?))
 }
 
 pub fn routes() -> Router {

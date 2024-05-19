@@ -17,7 +17,7 @@ async fn add_source(
     Path(tag): Path<Uuid>,
     Json(url): Json<Url>,
 ) -> Result<Json<Source>> {
-    Ok(Json(repo.add_tag_source(tag, &url).await?))
+    Ok(Json(repo.tag(tag).add_source(&url).await?))
 }
 
 async fn add_tag(
@@ -25,21 +25,21 @@ async fn add_tag(
     User(user): User,
     Path(tag): Path<text::Name>,
 ) -> Result<String> {
-    Ok(repo.add_tag(tag, user).await?.to_string())
+    Ok(repo.tags().add(tag, user).await?.to_string())
 }
 
 async fn delete_alias(
     State(AppState { repo }): State<AppState>,
     Path((tag, name)): Path<(Uuid, String)>,
 ) -> Result<Json<ProfileName>> {
-    Ok(Json(repo.delete_tag_alias(tag, &name).await?))
+    Ok(Json(repo.tag(tag).delete_alias(&name).await?))
 }
 
 async fn delete_source(
     State(AppState { repo }): State<AppState>,
     Path((tag, source)): Path<(Uuid, i64)>,
 ) -> Result<StatusCode> {
-    let status = if repo.delete_tag_source(tag, source).await? {
+    let status = if repo.tag(tag).delete_source(source).await? {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::NOT_FOUND
@@ -53,7 +53,7 @@ async fn delete_sources(
     Path(tag): Path<Uuid>,
     Json(sources): Json<Vec<String>>,
 ) -> Result<StatusCode> {
-    repo.delete_tag_sources(tag, &sources).await?;
+    repo.tag(tag).delete_sources(&sources).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -61,7 +61,7 @@ async fn delete_tag(
     State(AppState { repo }): State<AppState>,
     Path(tag): Path<Uuid>,
 ) -> Result<StatusCode> {
-    repo.delete_tag(tag).await?;
+    repo.tag(tag).delete().await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -69,7 +69,7 @@ async fn get_tag(
     State(AppState { repo }): State<AppState>,
     Path(tag): Path<Uuid>,
 ) -> Result<Json<Tag>> {
-    Ok(Json(repo.get_tag(tag).await?))
+    Ok(Json(repo.tag(tag).get().await?))
 }
 
 async fn set_description(
@@ -77,7 +77,7 @@ async fn set_description(
     Path(tag): Path<Uuid>,
     Text(description): Text<text::Description>,
 ) -> Result<String> {
-    Ok(repo.set_tag_description(tag, description).await?)
+    Ok(repo.tag(tag).set_description(description).await?)
 }
 
 async fn set_name(
@@ -88,9 +88,9 @@ async fn set_name(
     let main = main.unwrap_or(false);
 
     let result = if main {
-        repo.set_tag_name(tag, name).await
+        repo.tag(tag).set_name(name).await
     } else {
-        repo.add_tag_alias(tag, name).await
+        repo.tag(tag).add_alias(name).await
     }?;
 
     Ok(Json(result))
