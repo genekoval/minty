@@ -5,13 +5,36 @@ pub use pgtools::{
 
 use minty::Url;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{num::NonZeroUsize, path::PathBuf};
+
+const DEFAULT_CACHE_SIZE: NonZeroUsize =
+    unsafe { NonZeroUsize::new_unchecked(10_000) };
 
 const DEFAULT_SQL_DIRECTORY: &str =
     match option_env!("MINTY_DEFAULT_SQL_DIRECTORY") {
         Some(dir) => dir,
         None => "db",
     };
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CacheConfig {
+    #[serde(default = "CacheConfig::default_cache_size")]
+    pub sessions: NonZeroUsize,
+}
+
+impl CacheConfig {
+    fn default_cache_size() -> NonZeroUsize {
+        DEFAULT_CACHE_SIZE
+    }
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self {
+            sessions: DEFAULT_CACHE_SIZE,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DatabaseConfig {
@@ -73,6 +96,8 @@ impl From<SearchAuth> for elasticsearch::auth::Credentials {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RepoConfig {
+    #[serde(default)]
+    pub cache: CacheConfig,
     pub database: DatabaseConfig,
     pub objects: BucketConfig,
     pub search: SearchConfig,

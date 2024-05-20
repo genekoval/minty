@@ -1733,6 +1733,7 @@ dependencies = [
  "futures-core",
  "graphicsmagick-sys",
  "log",
+ "lru",
  "minty",
  "pgtools",
  "rand",

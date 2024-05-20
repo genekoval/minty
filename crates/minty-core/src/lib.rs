@@ -1,6 +1,7 @@
 pub mod conf;
 
 mod auth;
+mod cache;
 mod comment;
 mod db;
 mod error;

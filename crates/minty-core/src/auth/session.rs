@@ -1,3 +1,5 @@
+pub use base64::DecodeSliceError as Base64DecodeError;
+
 use base64::{engine::general_purpose::STANDARD_NO_PAD as Base64, Engine};
 use rand::{rngs::OsRng, RngCore};
 use std::{
@@ -6,15 +8,14 @@ use std::{
     str::{self, FromStr},
 };
 
-pub use base64::DecodeSliceError as Base64DecodeError;
-
 /// The number of bytes in a session ID.
 const SESSION_ID_LENGTH: usize = 32;
 
 // Every 3 bytes of binary data encodes to 4 base64 characters
 const SESSION_ID_STR_LEN: usize = SESSION_ID_LENGTH.div_ceil(3) * 4;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[repr(transparent)]
 pub struct SessionId([u8; SESSION_ID_LENGTH]);
 
 impl SessionId {

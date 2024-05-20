@@ -24,9 +24,7 @@ async fn create_session(
     State(AppState { repo }): State<AppState>,
     Json(login): Json<Login>,
 ) -> Result<String> {
-    let user_id = repo.users().authenticate(&login).await?;
-    let session = repo.user(user_id).create_session().await?;
-    Ok(session.to_string())
+    Ok(repo.users().authenticate(&login).await?.to_string())
 }
 
 async fn delete_alias(

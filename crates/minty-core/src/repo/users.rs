@@ -1,7 +1,8 @@
 use super::Repo;
 
-use crate::{Error, Result, SessionId};
+use crate::{db::Password, Error, Result, SessionId};
 
+use log::debug;
 use minty::{Login, ProfileQuery, SearchResult, SignUp, UserPreview, Uuid};
 
 pub struct Users<'a> {
@@ -45,22 +46,20 @@ impl<'a> Users<'a> {
         Ok(id)
     }
 
-    pub async fn authenticate(&self, login: &Login) -> Result<Uuid> {
+    pub async fn authenticate(&self, login: &Login) -> Result<SessionId> {
         const ERROR: Option<&str> = Some("invalid credentials");
 
-        let Some(user) =
+        let Some(Password { user_id, password }) =
             self.repo.database.read_user_password(&login.email).await?
         else {
             return Err(Error::Unauthenticated(ERROR));
         };
 
-        let authenticated = self
-            .repo
-            .auth
-            .verify_password(&login.password, &user.password)?;
+        let authenticated =
+            self.repo.auth.verify_password(&login.password, &password)?;
 
         if authenticated {
-            Ok(user.user_id)
+            self.repo.user(user_id).create_session().await
         } else {
             Err(Error::Unauthenticated(ERROR))
         }
@@ -71,6 +70,9 @@ impl<'a> Users<'a> {
             .database
             .delete_user_session(session.as_bytes())
             .await?;
+
+        self.repo.sessions.remove(session);
+
         Ok(())
     }
 
@@ -99,11 +101,19 @@ impl<'a> Users<'a> {
     }
 
     pub async fn get_session(&self, session: SessionId) -> Result<Uuid> {
-        let (id,) = self
+        if let Some(user_id) = self.repo.sessions.get(session) {
+            debug!("session cache hit for user {user_id}");
+            return Ok(user_id);
+        }
+
+        let (user_id,) = self
             .repo
             .database
             .read_user_session(session.as_bytes())
             .await?;
-        Ok(id)
+
+        self.repo.sessions.insert(session, user_id);
+
+        Ok(user_id)
     }
 }

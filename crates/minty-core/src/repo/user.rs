@@ -30,10 +30,14 @@ impl<'a> User<'a> {
 
     pub async fn create_session(&self) -> Result<SessionId> {
         let session = SessionId::new();
+
         self.repo
             .database
             .create_user_session(self.id, session.as_bytes())
             .await?;
+
+        self.repo.sessions.insert(session, self.id);
+
         Ok(session)
     }
 

@@ -28,6 +28,7 @@ use links::Links;
 
 use crate::{
     auth::Auth,
+    cache::SessionStore,
     conf::RepoConfig,
     db::{self, Database},
     error::Result,
@@ -49,6 +50,7 @@ pub struct Repo {
     db_support: pgtools::Database,
     favicons: Favicons,
     search: Search,
+    sessions: SessionStore,
 }
 
 impl Repo {
@@ -88,6 +90,7 @@ impl Repo {
             favicons,
             auth: Auth::new(),
             search: Search::new(&config.search)?,
+            sessions: SessionStore::new(config.cache.sessions),
         })
     }
 
