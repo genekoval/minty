@@ -103,17 +103,17 @@ impl<'a> Users<'a> {
     pub async fn get_session(&self, session: SessionId) -> Result<Uuid> {
         if let Some(user_id) = self.repo.sessions.get(session) {
             debug!("session cache hit for user {user_id}");
-            return Ok(user_id);
-        }
-
-        let (user_id,) = self
+            Ok(user_id)
+        } else if let (Some(user_id),) = self
             .repo
             .database
             .read_user_session(session.as_bytes())
-            .await?;
-
-        self.repo.sessions.insert(session, user_id);
-
-        Ok(user_id)
+            .await?
+        {
+            self.repo.sessions.insert(session, user_id);
+            Ok(user_id)
+        } else {
+            Err(Error::Unauthenticated(None))
+        }
     }
 }

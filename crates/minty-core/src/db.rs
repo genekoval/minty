@@ -91,7 +91,7 @@ database! {
 
     read_user_search() -> Stream<UserSearch>;
 
-    read_user_session(session_id: &[u8]) -> (Uuid,);
+    read_user_session(session_id: &[u8]) -> (Option<Uuid>,);
 
     read_user_total() -> i64;
 
