@@ -442,6 +442,7 @@ pub struct User {
     #[sqlx(rename = "user_id")]
     pub id: Uuid,
     pub email: String,
+    pub admin: bool,
     #[sqlx(flatten)]
     pub profile: EntityProfile,
     #[sqlx(try_from = "i32")]
@@ -457,6 +458,7 @@ impl From<User> for minty::User {
         Self {
             id: value.id,
             email: value.email,
+            admin: value.admin,
             profile: value.profile.into(),
             post_count: value.post_count,
             comment_count: value.comment_count,

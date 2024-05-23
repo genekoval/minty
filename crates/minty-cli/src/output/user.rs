@@ -6,6 +6,10 @@ use std::io::{Result, Write};
 
 impl HumanReadable for User {
     fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
+        if self.admin {
+            write!(w, "{} ", icon::SEAL.fg::<color::Admin>())?;
+        }
+
         self.profile.human_readable(w, indent)?;
 
         Metadata::new()

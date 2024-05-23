@@ -93,6 +93,16 @@ impl<'a> User<'a> {
         Ok(description.into())
     }
 
+    pub async fn set_admin(&self, admin: bool) -> Result<()> {
+        self.repo
+            .database
+            .update_admin(self.id, admin)
+            .await?
+            .found("user", self.id)?;
+
+        Ok(())
+    }
+
     pub async fn set_email(&self, email: Email) -> Result<()> {
         self.repo
             .database

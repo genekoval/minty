@@ -174,6 +174,18 @@ pub enum Command {
     /// Change your password
     Password,
 
+    /// Grant privileges to another user
+    Grant {
+        #[command(subcommand)]
+        command: Grant,
+    },
+
+    /// Revoke privileges from another user
+    Revoke {
+        #[command(subcommand)]
+        command: Revoke,
+    },
+
     /// Fetch the entire repo as a JSON object
     Export,
 }
@@ -493,6 +505,24 @@ pub enum TagRm {
     Link {
         /// Tag links to delete
         sources: Vec<String>,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Grant {
+    /// Grant another user administrator privileges
+    Admin {
+        /// The user's ID
+        id: Uuid,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Revoke {
+    /// Revoke another user's administrator privileges
+    Admin {
+        /// The user's ID
+        id: Uuid,
     },
 }
 

@@ -415,6 +415,7 @@ impl PartialEq for TagPreview {
 pub struct User {
     pub id: Uuid,
     pub email: String,
+    pub admin: bool,
     pub profile: EntityProfile,
     pub post_count: u32,
     pub comment_count: u32,

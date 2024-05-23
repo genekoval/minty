@@ -97,6 +97,8 @@ database! {
 
     stream_objects() -> Stream<Object>;
 
+    update_admin(user_id: Uuid, admin: bool) -> bool;
+
     update_comment(comment_id: Uuid, content: &str) -> bool;
 
     update_entity_description(profile_id: Uuid, description: &str) -> bool;

@@ -425,6 +425,14 @@ impl crate::Repo for Repo {
             .await
     }
 
+    async fn grant_admin(&self, user_id: Uuid) -> Result<()> {
+        self.client
+            .put(format!("user/{user_id}/admin"))
+            .send()
+            .await?;
+        Ok(())
+    }
+
     async fn insert_post_objects(
         &self,
         post_id: Uuid,
@@ -442,6 +450,14 @@ impl crate::Repo for Repo {
 
     async fn publish_post(&self, post_id: Uuid) -> Result<()> {
         self.client.put(format!("post/{post_id}")).send().await?;
+        Ok(())
+    }
+
+    async fn revoke_admin(&self, user_id: Uuid) -> Result<()> {
+        self.client
+            .delete(format!("user/{user_id}/admin"))
+            .send()
+            .await?;
         Ok(())
     }
 

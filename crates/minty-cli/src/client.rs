@@ -536,6 +536,16 @@ impl Client {
         Ok(())
     }
 
+    pub async fn set_user_admin(&self, user: Uuid, admin: bool) -> Result {
+        if admin {
+            self.repo.grant_admin(user).await?;
+        } else {
+            self.repo.revoke_admin(user).await?;
+        }
+
+        Ok(())
+    }
+
     pub async fn set_user_email(&self, email: text::Email) -> Result {
         self.repo.set_user_email(email).await?;
         Ok(())

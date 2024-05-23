@@ -45,6 +45,9 @@ pub const PENCIL: Icon = Icon('\u{f03eb}');
 /// nf-md-pound 󰐣
 pub const POUND: Icon = Icon('\u{f0423}');
 
+/// nf-md-seal 󰑺
+pub const SEAL: Icon = Icon('\u{f047a}');
+
 /// nf-md-tag 󰓹
 pub const TAG: Icon = Icon('\u{f04f9}');
 

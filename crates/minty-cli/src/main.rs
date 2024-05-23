@@ -67,6 +67,7 @@ impl Client {
                 from,
                 size,
             } => self.find(command, Pagination { from, size }).await,
+            Command::Grant { command } => self.grant(command).await,
             Command::Login => self.login(args.user).await,
             Command::Logout => self.logout(args.user).await,
             Command::Me { command } => self.me(command).await,
@@ -77,6 +78,7 @@ impl Client {
             Command::Reply { comment, content } => {
                 self.client.reply(comment, content).await
             }
+            Command::Revoke { command } => self.revoke(command).await,
             Command::Signup { username } => {
                 self.sign_up(username, args.user).await
             }
@@ -143,6 +145,12 @@ impl Client {
                     })
                     .await
             }
+        }
+    }
+
+    async fn grant(&self, command: Grant) -> Result {
+        match command {
+            Grant::Admin { id } => self.client.set_user_admin(id, true).await,
         }
     }
 
@@ -300,6 +308,12 @@ impl Client {
             PostRm::Tag { tags } => {
                 self.client.delete_post_tags(id, tags).await
             }
+        }
+    }
+
+    async fn revoke(&self, command: Revoke) -> Result {
+        match command {
+            Revoke::Admin { id } => self.client.set_user_admin(id, false).await,
         }
     }
 

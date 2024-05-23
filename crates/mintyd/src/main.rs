@@ -92,6 +92,7 @@ async fn run_command(
     repo: &Arc<Repo>,
 ) -> Result {
     match &args.command {
+        Command::Admin { id } => repo.user(*id).set_admin(true).await?,
         Command::Dump { filename } => repo.dump(filename).await?,
         Command::Init { overwrite } => {
             if *overwrite {

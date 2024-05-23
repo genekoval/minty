@@ -114,6 +114,7 @@ CREATE VIEW user_account AS
 SELECT
     user_id,
     email,
+    admin,
     name,
     aliases,
     description,
@@ -1187,6 +1188,17 @@ BEGIN
     SELECT *
     FROM object
     ORDER BY object_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION update_admin(a_user_id uuid, a_admin boolean)
+RETURNS boolean AS $$
+BEGIN
+    UPDATE data.user_account
+    SET admin = a_admin
+    WHERE user_id = a_user_id;
+
+    RETURN FOUND;
 END;
 $$ LANGUAGE plpgsql;
 

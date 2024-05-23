@@ -145,6 +145,8 @@ pub trait Repo {
         query: &ProfileQuery,
     ) -> Result<SearchResult<UserPreview>>;
 
+    async fn grant_admin(&self, user_id: Uuid) -> Result<()>;
+
     async fn insert_post_objects(
         &self,
         post_id: Uuid,
@@ -153,6 +155,8 @@ pub trait Repo {
     ) -> Result<DateTime>;
 
     async fn publish_post(&self, post_id: Uuid) -> Result<()>;
+
+    async fn revoke_admin(&self, user_id: Uuid) -> Result<()>;
 
     async fn set_comment_content(
         &self,

@@ -88,6 +88,22 @@ async fn get_user(
     Ok(Json(repo.user(user).get().await?))
 }
 
+async fn grant_admin(
+    State(AppState { repo }): State<AppState>,
+    Path(user): Path<Uuid>,
+) -> Result<StatusCode> {
+    repo.user(user).set_admin(true).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn revoke_admin(
+    State(AppState { repo }): State<AppState>,
+    Path(user): Path<Uuid>,
+) -> Result<StatusCode> {
+    repo.user(user).set_admin(false).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 async fn set_description(
     State(AppState { repo }): State<AppState>,
     User(user): User,
@@ -142,4 +158,5 @@ pub fn routes() -> Router {
         .route("/source", post(add_source).delete(delete_sources))
         .route("/source/:source", delete(delete_source))
         .route("/:user", get(get_user))
+        .route("/:user/admin", put(grant_admin).delete(revoke_admin))
 }

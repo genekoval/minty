@@ -73,6 +73,12 @@ pub enum Command {
         command: Option<Reindex>,
     },
 
+    /// Grant administrator privileges to a user
+    Admin {
+        /// The user's ID
+        id: Uuid,
+    },
+
     /// Start the web server
     Serve {
         #[arg(short, long)]
