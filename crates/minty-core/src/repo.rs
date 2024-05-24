@@ -28,7 +28,7 @@ use links::Links;
 
 use crate::{
     auth::Auth,
-    cache::SessionStore,
+    cache::Cache,
     conf::RepoConfig,
     db::{self, Database},
     error::Result,
@@ -46,11 +46,11 @@ use std::{path::Path, result, sync::Arc};
 pub struct Repo {
     auth: Auth,
     bucket: Bucket,
+    cache: Cache,
     database: Database,
     db_support: pgtools::Database,
     favicons: Favicons,
     search: Search,
-    sessions: SessionStore,
 }
 
 impl Repo {
@@ -79,18 +79,17 @@ impl Repo {
             },
         )?;
 
-        let database = Database::new(pool);
         let bucket = Bucket::new(&config.objects).await?;
         let favicons = Favicons::new(bucket.clone());
 
         Ok(Self {
+            auth: Auth::new(),
             bucket,
-            database,
+            cache: Cache::new(&config.cache),
+            database: Database::new(pool),
             db_support,
             favicons,
-            auth: Auth::new(),
             search: Search::new(&config.search)?,
-            sessions: SessionStore::new(config.cache.sessions),
         })
     }
 

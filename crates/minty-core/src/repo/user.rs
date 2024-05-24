@@ -36,7 +36,7 @@ impl<'a> User<'a> {
             .create_user_session(self.id, session.as_bytes())
             .await?;
 
-        self.repo.sessions.insert(session, self.id);
+        self.repo.cache.sessions().insert(session, self.id).await;
 
         Ok(session)
     }

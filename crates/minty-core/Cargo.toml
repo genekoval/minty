@@ -17,7 +17,7 @@ futures = { workspace = true }
 futures-core = { workspace = true }
 graphicsmagick-sys = { workspace = true }
 log = { workspace = true }
-lru = { workspace = true }
+moka = { workspace = true }
 pgtools = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }

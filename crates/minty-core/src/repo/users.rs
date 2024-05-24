@@ -71,7 +71,7 @@ impl<'a> Users<'a> {
             .delete_user_session(session.as_bytes())
             .await?;
 
-        self.repo.sessions.remove(session);
+        self.repo.cache.sessions().remove(session).await;
 
         Ok(())
     }
@@ -101,7 +101,9 @@ impl<'a> Users<'a> {
     }
 
     pub async fn get_session(&self, session: SessionId) -> Result<Uuid> {
-        if let Some(user_id) = self.repo.sessions.get(session) {
+        if let Some(user_id) =
+            self.repo.cache.sessions().get_user(session).await
+        {
             debug!("session cache hit for user {user_id}");
             Ok(user_id)
         } else if let (Some(user_id),) = self
@@ -110,7 +112,7 @@ impl<'a> Users<'a> {
             .read_user_session(session.as_bytes())
             .await?
         {
-            self.repo.sessions.insert(session, user_id);
+            self.repo.cache.sessions().insert(session, user_id).await;
             Ok(user_id)
         } else {
             Err(Error::Unauthenticated(None))
