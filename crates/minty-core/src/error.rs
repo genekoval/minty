@@ -20,6 +20,9 @@ pub enum Error {
     })]
     Unauthenticated(Option<&'static str>),
 
+    #[error("permission denied")]
+    Unauthorized,
+
     #[error("SQL error: {0}")]
     Sql(#[from] sqlx::Error),
 

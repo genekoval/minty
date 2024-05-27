@@ -49,6 +49,10 @@ impl IntoResponse for Error {
                     .body(Body::empty())
                     .unwrap()
             }
+            Unauthorized => {
+                return (StatusCode::FORBIDDEN, error.to_string())
+                    .into_response()
+            }
             _ => error!("{error}"),
         }
 
