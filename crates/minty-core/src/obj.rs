@@ -1,10 +1,10 @@
-use crate::{conf::BucketConfig, db, Error, Result};
+use crate::{conf::BucketConfig, Error, Result};
 
 use bytes::Bytes;
 use fstore::{http::Client, Object, RemoveResult};
 use futures::Stream;
 use futures_core::TryStream;
-use minty::{ObjectPreview, ObjectSummary, Uuid};
+use minty::{ObjectSummary, Uuid};
 use std::{error, io, result};
 
 #[derive(Clone, Debug)]
@@ -84,26 +84,6 @@ impl Bucket {
         };
 
         Ok((summary, stream))
-    }
-
-    pub async fn get_object_previews(
-        &self,
-        objects: Vec<db::Object>,
-    ) -> Result<Vec<ObjectPreview>> {
-        let mut result: Vec<ObjectPreview> = Vec::with_capacity(objects.len());
-
-        for object in objects {
-            let metadata = self.bucket.get_object(object.id).await?;
-
-            result.push(ObjectPreview {
-                id: object.id,
-                preview_id: object.preview_id,
-                r#type: metadata.r#type,
-                subtype: metadata.subtype,
-            });
-        }
-
-        Ok(result)
     }
 
     pub async fn remove_objects(

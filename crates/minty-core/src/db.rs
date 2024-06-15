@@ -23,7 +23,7 @@ database! {
 
     create_object_preview_error(object_id: Uuid, message: &str);
 
-    create_related_post(post_id: Uuid, related: Uuid);
+    create_related_post(post_id: Uuid, related: Uuid) -> (Vec<Uuid>,);
 
     create_reply(
         user_id: Uuid,
@@ -41,7 +41,7 @@ database! {
 
     delete_entity_link(profile_id: Uuid, source_id: i64) -> bool;
 
-    delete_related_post(post_id: Uuid, related: Uuid) -> bool;
+    delete_related_post(post_id: Uuid, related: Uuid) -> (Option<Vec<Uuid>>,);
 
     delete_user_session(session_id: &[u8]);
 
@@ -51,7 +51,7 @@ database! {
 
     prune();
 
-    read_comment(id: Uuid) -> Option<Comment>;
+    read_comment_post(id: Uuid) -> (Option<Uuid>,);
 
     read_comments(post_id: Uuid) -> Vec<Comment>;
 
@@ -59,15 +59,15 @@ database! {
 
     read_object(object_id: Uuid) -> Option<Object>;
 
-    read_object_posts(object_id: Uuid) -> Vec<PostPreview>;
-
     read_object_preview_errors() -> Vec<ObjectError>;
 
     read_object_total() -> i64;
 
+    read_objects(objects: &[Uuid]) -> Vec<Object>;
+
     read_post(id: Uuid) -> Option<Post>;
 
-    read_posts(posts: &[Uuid]) -> Vec<PostPreview>;
+    read_posts(posts: &[Uuid]) -> Vec<Post>;
 
     read_post_search() -> Stream<PostSearch>;
 
@@ -77,23 +77,23 @@ database! {
 
     read_tag(id: Uuid) -> Option<Tag>;
 
-    read_tag_previews(tags: &[Uuid]) -> Vec<TagPreview>;
-
     read_tag_search() -> Stream<TagSearch>;
 
     read_tag_total() -> i64;
 
+    read_tags(tags: &[Uuid]) -> Vec<Tag>;
+
     read_user(id: Uuid) -> Option<User>;
 
     read_user_password(email: &str) -> Option<Password>;
-
-    read_user_previews(users: &[Uuid]) -> Vec<UserPreview>;
 
     read_user_search() -> Stream<UserSearch>;
 
     read_user_session(session_id: &[u8]) -> (Option<Uuid>,);
 
     read_user_total() -> i64;
+
+    read_users(users: &[Uuid]) -> Vec<User>;
 
     stream_objects() -> Stream<Object>;
 
@@ -121,19 +121,19 @@ transaction! {
         objects: &[Uuid],
         posts: &[Uuid],
         tags: &[Uuid]
-    ) -> PostSearch;
+    ) -> Post;
 
     create_post_objects(
         post_id: Uuid,
         objects: &[Uuid],
         destination: Option<Uuid>,
-    ) -> (DateTime,);
+    ) -> PostObjects;
 
     create_post_tag(post_id: Uuid, tag_id: Uuid);
 
-    create_tag(name: &str, creator: Uuid) -> (Uuid,);
+    create_tag(name: &str, creator: Uuid) -> Tag;
 
-    create_user(name: &str, email: &str, passowrd: &str) -> (Uuid,);
+    create_user(name: &str, email: &str, passowrd: &str) -> User;
 
     delete_entity(id: Uuid) -> bool;
 

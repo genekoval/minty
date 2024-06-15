@@ -28,9 +28,10 @@ pub struct About {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Comment {
     pub id: Uuid,
+    pub user: Option<UserPreview>,
     pub post_id: Uuid,
     pub parent_id: Option<Uuid>,
-    pub level: u16,
+    pub level: u8,
     pub content: String,
     pub created: DateTime,
 }
@@ -39,6 +40,7 @@ pub struct Comment {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct CommentData {
     pub id: Uuid,
+    pub user: Option<UserPreview>,
     pub content: String,
     pub level: u8,
     pub created: DateTime,
@@ -54,6 +56,35 @@ pub struct EntityProfile {
     pub avatar: Option<Uuid>,
     pub banner: Option<Uuid>,
     pub created: DateTime,
+}
+
+impl EntityProfile {
+    pub fn add_source(&mut self, source: Source) {
+        if let Err(index) =
+            self.sources.binary_search_by(|s| s.url.cmp(&source.url))
+        {
+            self.sources.insert(index, source);
+        }
+    }
+
+    pub fn delete_source(&mut self, id: i64) {
+        if let Some(index) =
+            self.sources.iter().position(|source| source.id == id)
+        {
+            self.sources.remove(index);
+        }
+    }
+
+    pub fn delete_sources(&mut self, ids: &[i64]) {
+        for id in ids.iter().copied() {
+            self.delete_source(id);
+        }
+    }
+
+    pub fn set_names(&mut self, names: &ProfileName) {
+        self.name.clone_from(&names.name);
+        self.aliases.clone_from(&names.aliases);
+    }
 }
 
 #[derive(Clone, Debug)]

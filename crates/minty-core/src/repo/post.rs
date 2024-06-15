@@ -1,20 +1,37 @@
 use super::Repo;
 
-use crate::{comment, error::Found, Error, Result};
+use crate::{
+    cache::{self, PostComments},
+    db::PostObjects,
+    error::Found,
+    Cached, Error, Result,
+};
 
 use minty::{
     text::{self, Description, PostTitle},
     CommentData, DateTime, Modification, Uuid,
 };
+use std::sync::Arc;
 
 pub struct Post<'a> {
     repo: &'a Repo,
-    id: Uuid,
+    post: Arc<Cached<cache::Post>>,
 }
 
 impl<'a> Post<'a> {
-    pub(super) fn new(repo: &'a Repo, id: Uuid) -> Self {
-        Self { repo, id }
+    pub(super) fn new(repo: &'a Repo, post: Arc<Cached<cache::Post>>) -> Self {
+        Self { repo, post }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.post.id
+    }
+
+    async fn comments<F, R>(&self, f: F) -> Result<R>
+    where
+        F: Fn(PostComments<'_>) -> R,
+    {
+        self.post.comments(&self.post, &self.repo.cache, f).await
     }
 
     pub async fn add_comment(
@@ -22,10 +39,10 @@ impl<'a> Post<'a> {
         user_id: Uuid,
         content: text::Comment,
     ) -> Result<CommentData> {
-        Ok(self
+        let comment = self
             .repo
             .database
-            .create_comment(user_id, self.id, content.as_ref())
+            .create_comment(user_id, self.post.id, content.as_ref())
             .await
             .map_err(|err| {
                 err.as_database_error()
@@ -33,13 +50,26 @@ impl<'a> Post<'a> {
                     .and_then(|constraint| match constraint {
                         "post_comment_post_id_fkey" => Some(Error::NotFound {
                             entity: "post",
-                            id: self.id,
+                            id: self.post.id,
                         }),
                         _ => None,
                     })
                     .unwrap_or_else(|| err.into())
-            })?
-            .into())
+            })?;
+
+        let user = self.repo.cache.users().get(user_id).await?;
+        let result = CommentData {
+            id: comment.id,
+            user: user.as_ref().and_then(|user| user.preview()),
+            content: comment.content.clone(),
+            level: comment.level.try_into().unwrap(),
+            created: comment.created,
+        };
+
+        self.post
+            .add_comment(&self.post, &self.repo.cache, comment, user);
+
+        Ok(result)
     }
 
     pub async fn add_objects(
@@ -49,54 +79,66 @@ impl<'a> Post<'a> {
     ) -> Result<DateTime> {
         let mut tx = self.repo.database.begin().await?;
 
-        let modified = tx
-            .create_post_objects(self.id, objects, destination)
-            .await?
-            .0;
+        let PostObjects { modified, objects } = tx
+            .create_post_objects(self.post.id, objects, destination)
+            .await?;
+
         self.repo
             .search
-            .update_post_modified(self.id, modified)
+            .update_post_modified(self.post.id, modified)
             .await?;
 
         tx.commit().await?;
+
+        let objects = self.repo.cache.objects().get_multiple(&objects).await?;
+        self.post.add_objects(objects, modified);
+
         Ok(modified)
     }
 
-    pub async fn add_tag(&self, tag_id: Uuid) -> Result<()> {
+    pub async fn add_tag(&self, tag: Uuid) -> Result<()> {
+        let tag = self.repo.cache.tags().get(tag).await?.found("tag", tag)?;
         let mut tx = self.repo.database.begin().await?;
 
-        tx.create_post_tag(self.id, tag_id).await.map_err(|err| {
-            err.as_database_error()
-                .and_then(|e| e.constraint())
-                .and_then(|constraint| match constraint {
-                    "post_tag_post_id_fkey" => Some(Error::NotFound {
-                        entity: "post",
-                        id: self.id,
-                    }),
-                    "post_tag_tag_id_fkey" => Some(Error::NotFound {
-                        entity: "tag",
-                        id: tag_id,
-                    }),
-                    _ => None,
-                })
-                .unwrap_or_else(|| err.into())
-        })?;
-        self.repo.search.add_post_tag(self.id, tag_id).await?;
+        tx.create_post_tag(self.post.id, tag.id)
+            .await
+            .map_err(|err| {
+                err.as_database_error()
+                    .and_then(|e| e.constraint())
+                    .and_then(|constraint| match constraint {
+                        "post_tag_post_id_fkey" => Some(Error::NotFound {
+                            entity: "post",
+                            id: self.post.id,
+                        }),
+                        "post_tag_tag_id_fkey" => Some(Error::NotFound {
+                            entity: "tag",
+                            id: tag.id,
+                        }),
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| err.into())
+            })?;
+
+        self.repo.search.add_post_tag(self.post.id, tag.id).await?;
 
         tx.commit().await?;
+
+        self.post.add_tag(tag);
+
         Ok(())
     }
 
     pub async fn add_related_post(&self, related: Uuid) -> Result<()> {
-        if self.id == related {
+        if self.post.id == related {
             return Err(Error::InvalidInput(
                 "post cannot be related to itself".into(),
             ));
         }
 
-        self.repo
+        let (posts,) = self
+            .repo
             .database
-            .create_related_post(self.id, related)
+            .create_related_post(self.post.id, related)
             .await
             .map_err(|err| {
                 err.as_database_error()
@@ -104,7 +146,7 @@ impl<'a> Post<'a> {
                     .and_then(|constraint| match constraint {
                         "related_post_post_id_fkey" => Some(Error::NotFound {
                             entity: "post",
-                            id: self.id,
+                            id: self.post.id,
                         }),
                         "related_post_related_fkey" => Some(Error::NotFound {
                             entity: "post",
@@ -115,87 +157,99 @@ impl<'a> Post<'a> {
                     .unwrap_or_else(|| err.into())
             })?;
 
+        self.post.set_related_posts(posts);
+
         Ok(())
     }
 
     pub async fn delete(&self) -> Result<()> {
         let mut tx = self.repo.database.begin().await?;
 
-        tx.delete_post(self.id).await?.found("post", self.id)?;
-        self.repo.search.delete_post(self.id).await?;
+        tx.delete_post(self.post.id)
+            .await?
+            .found("post", self.post.id)?;
+
+        self.repo.search.delete_post(self.post.id).await?;
 
         tx.commit().await?;
+
+        self.repo.cache.posts().remove(&self.post);
+
         Ok(())
     }
 
     pub async fn delete_objects(&self, objects: &[Uuid]) -> Result<DateTime> {
         let mut tx = self.repo.database.begin().await?;
 
-        let modified = tx.delete_post_objects(self.id, objects).await?.0;
+        let modified = tx.delete_post_objects(self.post.id, objects).await?.0;
         self.repo
             .search
-            .update_post_modified(self.id, modified)
+            .update_post_modified(self.post.id, modified)
             .await?;
 
         tx.commit().await?;
+
+        self.post.delete_objects(objects, modified);
+
         Ok(modified)
     }
 
     pub async fn delete_tag(&self, tag_id: Uuid) -> Result<bool> {
         let mut tx = self.repo.database.begin().await?;
 
-        let found = tx.delete_post_tag(self.id, tag_id).await?;
+        let found = tx.delete_post_tag(self.post.id, tag_id).await?;
         if found {
-            self.repo.search.remove_post_tag(self.id, tag_id).await?;
+            self.repo
+                .search
+                .remove_post_tag(self.post.id, tag_id)
+                .await?;
         }
 
         tx.commit().await?;
+
+        self.post.delete_tag(tag_id);
+
         Ok(found)
     }
 
-    pub async fn delete_related_post(&self, related: Uuid) -> Result<bool> {
-        Ok(self
+    pub async fn delete_related_post(&self, related: Uuid) -> Result<()> {
+        let posts = self
             .repo
             .database
-            .delete_related_post(self.id, related)
-            .await?)
+            .delete_related_post(self.post.id, related)
+            .await?
+            .0
+            .found("post", related)?;
+
+        self.post.set_related_posts(posts);
+
+        Ok(())
     }
 
     pub async fn get(&self) -> Result<minty::Post> {
-        let post = self
-            .repo
-            .database
-            .read_post(self.id)
+        self.post
+            .model(&self.repo.cache)
             .await?
-            .found("post", self.id)?;
-
-        Ok(minty::Post {
-            id: post.id,
-            poster: post.poster.map(Into::into),
-            title: post.title,
-            description: post.description,
-            visibility: post.visibility.into(),
-            created: post.created,
-            modified: post.modified,
-            objects: self.repo.bucket.get_object_previews(post.objects).await?,
-            posts: self.repo.posts().build(post.posts).await?,
-            tags: post.tags.into_iter().map(|tag| tag.into()).collect(),
-            comment_count: post.comment_count,
-        })
+            .found("post", self.post.id)
     }
 
     pub async fn get_comments(&self) -> Result<Vec<CommentData>> {
-        let comments = self.repo.database.read_comments(self.id).await?;
-        Ok(comment::build_tree(comments))
+        self.comments(|comments| comments.get_all()).await
     }
 
     pub async fn publish(&self) -> Result<()> {
         let mut tx = self.repo.database.begin().await?;
 
-        let timestamp = tx.publish_post(self.id).await?.0;
-        self.repo.search.publish_post(self.id, timestamp).await?;
+        let timestamp = tx.publish_post(self.post.id).await?.0;
+        self.repo
+            .search
+            .publish_post(self.post.id, timestamp)
+            .await?;
 
         tx.commit().await?;
+
+        self.post.publish(timestamp);
+
         Ok(())
     }
 
@@ -203,22 +257,26 @@ impl<'a> Post<'a> {
         &self,
         description: Description,
     ) -> Result<Modification<String>> {
+        let description: String = description.into();
         let mut tx = self.repo.database.begin().await?;
 
         let (modified,) = tx
-            .update_post_description(self.id, description.as_ref())
+            .update_post_description(self.post.id, &description)
             .await?
-            .found("post", self.id)?;
+            .found("post", self.post.id)?;
 
         self.repo
             .search
-            .update_post_description(self.id, description.as_ref(), modified)
+            .update_post_description(self.post.id, &description, modified)
             .await?;
 
         tx.commit().await?;
+
+        self.post.set_description(description.clone(), modified);
+
         Ok(Modification {
             date_modified: modified,
-            new_value: description.into(),
+            new_value: description,
         })
     }
 
@@ -226,22 +284,26 @@ impl<'a> Post<'a> {
         &self,
         title: PostTitle,
     ) -> Result<Modification<String>> {
+        let title: String = title.into();
         let mut tx = self.repo.database.begin().await?;
 
         let (modified,) = tx
-            .update_post_title(self.id, title.as_ref())
+            .update_post_title(self.post.id, &title)
             .await?
-            .found("post", self.id)?;
+            .found("post", self.post.id)?;
 
         self.repo
             .search
-            .update_post_title(self.id, title.as_ref(), modified)
+            .update_post_title(self.post.id, &title, modified)
             .await?;
 
         tx.commit().await?;
+
+        self.post.set_title(title.clone(), modified);
+
         Ok(Modification {
             date_modified: modified,
-            new_value: title.into(),
+            new_value: title,
         })
     }
 }

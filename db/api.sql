@@ -22,8 +22,11 @@ CREATE TYPE profile_name_update AS (
 CREATE VIEW object AS
 SELECT
     object_id,
-    preview_id
-FROM data.object;
+    preview_id,
+    array_agg(post_id ORDER BY date_added DESC) AS posts
+FROM data.object
+JOIN data.post_object USING (object_id)
+GROUP BY object_id;
 
 CREATE VIEW object_preview_error AS
 SELECT
@@ -77,7 +80,7 @@ SELECT
     array_agg(source) AS sources
 FROM data.entity_link
 JOIN source USING (source_id)
-GROUP BY profile_id, source.*;
+GROUP BY profile_id;
 
 CREATE VIEW entity_name AS
 SELECT
@@ -150,19 +153,6 @@ LEFT JOIN (
     GROUP BY creator
 ) tags USING (user_id);
 
-CREATE VIEW user_preview AS
-SELECT
-    user_id,
-    name,
-    avatar
-FROM data.user_account
-JOIN data.entity_profile ON user_id = profile_id
-JOIN (
-    SELECT profile_id, name
-    FROM data.entity_name
-    WHERE main = true
-) name USING (profile_id);
-
 CREATE VIEW tag AS
 SELECT
     tag_id,
@@ -173,11 +163,10 @@ SELECT
     entity.avatar,
     banner,
     created,
-    ROW(user_preview.*)::user_preview AS creator,
+    creator,
     coalesce(post_count, 0) AS post_count
 FROM data.tag t
 JOIN entity_profile entity ON tag_id = profile_id
-LEFT JOIN user_preview ON creator = user_id
 LEFT JOIN (
     SELECT
         tag_id,
@@ -186,136 +175,39 @@ LEFT JOIN (
     GROUP BY tag_id
 ) p USING (tag_id);
 
-CREATE VIEW tag_preview AS
-SELECT
-    tag_id,
-    name,
-    avatar
-FROM data.tag
-JOIN data.entity_profile ON tag_id = profile_id
-JOIN (
-    SELECT profile_id, name
-    FROM data.entity_name
-    WHERE main = true
-) name USING (profile_id);
-
-CREATE VIEW post_preview AS
-SELECT
-    post_id,
-    ROW(user_preview.*)::user_preview AS poster,
-    title,
-    preview,
-    coalesce(comment_count, 0)::int4 AS comment_count,
-    coalesce(object_count, 0)::int4 AS object_count,
-    post.date_created AS date_created
-FROM data.post
-LEFT JOIN user_preview ON poster = user_id
-LEFT JOIN (
-    SELECT
-        post_id,
-        count(comment_id) comment_count
-    FROM data.post_comment
-    WHERE content <> ''
-    GROUP BY post_id
-) comments USING (post_id)
-LEFT JOIN (
-    SELECT
-        post_id,
-        count(object_id) AS object_count
-    FROM data.post_object
-    GROUP BY post_id
-) objects USING (post_id)
-LEFT JOIN (
-    SELECT
-        post_id,
-        ROW(object_id, preview_id)::object AS preview
-    FROM (
-        SELECT
-            post_id,
-            objects[1] AS object_id
-        FROM data.post
-    ) post
-    JOIN data.object USING (object_id)
-) previews USING (post_id);
-
-CREATE FUNCTION read_objects(objects uuid[]) RETURNS object[] AS $$
-DECLARE result object[];
-BEGIN
-    SELECT INTO result
-        coalesce(array_agg(
-            ROW(object_id, preview_id)::object
-            ORDER BY ordinality
-        ), '{}') AS objects
-    FROM (
-        SELECT unnest as object_id, ordinality
-        FROM unnest(objects) WITH ORDINALITY
-    ) obj
-    JOIN data.object USING (object_id);
-
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION read_related_posts(a_post_id uuid) RETURNS post_preview[] AS $$
-DECLARE result post_preview[];
-BEGIN
-    SELECT INTO result coalesce(
-        array_agg(preview.* ORDER BY title ASC, date_created DESC),
-        '{}'
-    )
-    FROM post_preview preview
-    JOIN data.related_post post ON post.related = preview.post_id
-    WHERE post.post_id = a_post_id;
-
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE FUNCTION read_post_tags(a_post_id uuid) RETURNS tag_preview[] AS $$
-DECLARE result tag_preview[];
-BEGIN
-    SELECT INTO result coalesce(array_agg(tag_preview.* ORDER BY name), '{}')
-    FROM tag_preview
-    JOIN data.post_tag USING (tag_id)
-    WHERE post_id = a_post_id;
-
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql;
+CREATE FUNCTION read_related_posts(a_post_id uuid) RETURNS uuid[] AS $$
+    SELECT array_agg(related ORDER BY title ASC, date_created DESC)
+    FROM data.related_post r
+    JOIN data.post p ON p.post_id = related
+    GROUP BY r.post_id
+    HAVING r.post_id = a_post_id;
+$$ LANGUAGE SQL;
 
 CREATE VIEW post AS
 SELECT
     post_id,
-    ROW(user_preview.*)::user_preview AS poster,
+    poster,
     title,
     description,
-    read_objects(objects) AS objects,
-    read_related_posts(post_id) AS posts,
-    read_post_tags(post_id) AS tags,
+    objects,
+    coalesce(read_related_posts(post_id), '{}') AS posts,
+    coalesce(tags, '{}') AS tags,
     coalesce(comment_count, 0)::int4 AS comment_count,
     visibility,
     date_created,
     date_modified
 FROM data.post
-LEFT JOIN user_preview ON poster = user_id
+LEFT JOIN (
+    SELECT post_id, array_agg(tag_id) AS tags
+    FROM data.post_tag
+    GROUP BY post_id
+) tags USING (post_id)
 LEFT JOIN (
     SELECT post_id, count(comment_id) AS comment_count
     FROM data.post_comment
     WHERE content <> ''
     GROUP BY post_id
 ) comments USING (post_id);
-
-CREATE VIEW post_comment AS
-SELECT
-    comment_id,
-    ROW(user_preview.*)::user_preview AS user,
-    post_id,
-    parent_id,
-    indent,
-    content,
-    date_created
-FROM data.post_comment
-LEFT JOIN user_preview USING (user_id);
 
 CREATE VIEW post_object_ref_view AS
 SELECT
@@ -395,36 +287,18 @@ RETURNS anyarray AS $$
     WHERE element.value <> ALL(array2);
 $$ LANGUAGE sql;
 
-CREATE FUNCTION create_comment(
-    a_user_id       uuid,
-    a_post_id       uuid,
-    a_content       text
-) RETURNS SETOF post_comment AS $$
-BEGIN
-    RETURN QUERY
-    WITH new_comment AS (
-        INSERT INTO data.post_comment (
-            user_id,
-            post_id,
-            content
-        ) VALUES (
-            a_user_id,
-            a_post_id,
-            a_content
-        ) RETURNING *
-    )
-    SELECT
-        comment_id,
-        ROW(user_preview.*)::user_preview AS user,
+CREATE FUNCTION create_comment(a_user_id uuid, a_post_id uuid, a_content text)
+RETURNS SETOF data.post_comment AS $$
+    INSERT INTO data.post_comment (
+        user_id,
         post_id,
-        parent_id,
-        indent,
-        content,
-        date_created
-    FROM new_comment
-    JOIN user_preview USING (user_id);
-END;
-$$ LANGUAGE plpgsql;
+        content
+    ) VALUES (
+        a_user_id,
+        a_post_id,
+        a_content
+    ) RETURNING *
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION create_entity(a_name text) RETURNS uuid AS $$
     WITH profile AS (
@@ -525,98 +399,83 @@ CREATE FUNCTION create_post(
     objects uuid[],
     posts uuid[],
     tags uuid[]
-) RETURNS SETOF post_search AS $$
-DECLARE new_post post_search%ROWTYPE;
+) RETURNS SETOF post AS $$
+DECLARE l_post_id uuid;
 BEGIN
-    WITH new AS (
-        INSERT INTO data.post (
-            poster,
-            title,
-            description,
-            objects,
-            visibility
-        ) VALUES (
-            poster,
-            coalesce(title, ''),
-            coalesce(description, ''),
-            coalesce(objects, '{}'),
-            coalesce(visibility, 'public')
-        )
-        RETURNING *
+    INSERT INTO data.post (
+        poster,
+        title,
+        description,
+        objects,
+        visibility
+    ) VALUES (
+        poster,
+        coalesce(title, ''),
+        coalesce(description, ''),
+        coalesce(objects, '{}'),
+        coalesce(visibility, 'public')
     )
-    SELECT
-        post_id,
-        new.poster,
-        new.title,
-        new.description,
-        new.visibility,
-        date_created,
-        date_modified,
-        tags
-    INTO new_post
-    FROM new;
+    RETURNING post_id INTO l_post_id;
 
     INSERT INTO data.post_object (post_id, object_id)
-    SELECT new_post.post_id, object_id
+    SELECT l_post_id, object_id
     FROM (
         SELECT unnest AS object_id
         FROM unnest(objects)
     ) obj;
 
     INSERT INTO data.related_post (post_id, related)
-    SELECT new_post.post_id, related
+    SELECT l_post_id, related
     FROM (
         SELECT unnest AS related
         FROM unnest(posts)
     ) p;
 
     INSERT INTO data.post_tag (post_id, tag_id)
-    SELECT new_post.post_id, tag_id
+    SELECT l_post_id, tag_id
     FROM (
         SELECT unnest AS tag_id
         FROM unnest(tags)
     ) t;
 
     RETURN QUERY
-    SELECT (new_post).*;
+    SELECT * FROM post WHERE post_id = l_post_id;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION create_post_objects(
-    post_id uuid,
-    objects uuid[],
-    destination uuid
-) RETURNS timestamptz AS $$
-DECLARE position integer;
-DECLARE tmp uuid[];
+    a_post_id uuid,
+    a_objects uuid[],
+    a_destination uuid
+) RETURNS TABLE (modified timestamptz, objects uuid[]) AS $$
+DECLARE l_position integer;
+DECLARE l_tmp uuid[];
 BEGIN
     INSERT INTO data.post_object (post_id, object_id)
-    SELECT create_post_objects.post_id, object_id
+    SELECT a_post_id, object_id
     FROM (
         SELECT unnest AS object_id
-        FROM unnest(objects)
+        FROM unnest(a_objects)
     ) obj
     ON CONFLICT DO NOTHING;
 
-    tmp := (SELECT array_remove(
-        (
-            SELECT p.objects
-            FROM data.post p
-            WHERE p.post_id = create_post_objects.post_id
-        ),
-        objects
+    l_tmp := (SELECT array_remove(
+        (SELECT p.objects FROM data.post p WHERE post_id = a_post_id),
+        a_objects
     ));
 
-    position := (SELECT array_position(tmp, destination));
+    l_position := (SELECT array_position(l_tmp, a_destination));
 
     UPDATE data.post p
     SET objects =
-        tmp[0:(SELECT coalesce(position - 1, cardinality(tmp)))] ||
-        array_distinct(create_post_objects.objects) ||
-        tmp[(SELECT coalesce(position, cardinality(tmp) + 1)):]
-    WHERE p.post_id = create_post_objects.post_id;
+        l_tmp[0:(SELECT coalesce(l_position - 1, cardinality(l_tmp)))] ||
+        array_distinct(a_objects) ||
+        l_tmp[(SELECT coalesce(l_position, cardinality(l_tmp) + 1)):]
+    WHERE p.post_id = a_post_id
+    RETURNING p.objects INTO l_tmp;
 
-    RETURN read_post_date_modified(post_id);
+    RETURN QUERY
+    SELECT read_post_date_modified(a_post_id), l_tmp;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -631,54 +490,36 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION create_related_post(
-    a_post_id       uuid,
-    a_related       uuid
-) RETURNS void AS $$
+CREATE FUNCTION create_related_post(a_post_id uuid, a_related uuid)
+RETURNS uuid[] AS $$
 BEGIN
     INSERT INTO data.related_post (post_id, related)
     VALUES (a_post_id, a_related)
     ON CONFLICT DO NOTHING;
+
+    RETURN (SELECT read_related_posts(a_post_id));
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION create_reply(
-    a_user_id       uuid,
-    a_parent_id     uuid,
-    a_content       text
-) RETURNS SETOF post_comment AS $$
-BEGIN
-    RETURN QUERY
-    WITH new_comment AS (
-        INSERT INTO data.post_comment(
-            user_id,
-            post_id,
-            parent_id,
-            indent,
-            content
-        )
-        SELECT
-            a_user_id,
-            parent.post_id,
-            a_parent_id,
-            parent.indent + 1,
-            a_content
-        FROM data.post_comment parent
-        WHERE comment_id = a_parent_id
-        RETURNING *
-    )
-    SELECT
-        comment_id,
-        ROW(user_preview.*)::user_preview AS user,
+CREATE FUNCTION create_reply(a_user_id uuid, a_parent_id uuid, a_content text)
+RETURNS SETOF data.post_comment AS $$
+    INSERT INTO data.post_comment(
+        user_id,
         post_id,
         parent_id,
         indent,
-        content,
-        date_created
-    FROM new_comment
-    JOIN user_preview USING (user_id);
-END;
-$$ LANGUAGE plpgsql;
+        content
+    )
+    SELECT
+        a_user_id,
+        parent.post_id,
+        a_parent_id,
+        parent.indent + 1,
+        a_content
+    FROM data.post_comment parent
+    WHERE comment_id = a_parent_id
+    RETURNING *;
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION create_site(
     a_scheme        text,
@@ -725,21 +566,33 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION create_tag(a_name text, a_creator uuid) RETURNS uuid AS $$
+CREATE FUNCTION create_tag(a_name text, a_creator uuid) RETURNS SETOF tag AS $$
+DECLARE l_tag_id uuid;
+BEGIN
     INSERT INTO data.tag (tag_id, creator)
     SELECT create_entity(a_name), a_creator
-    RETURNING tag_id;
-$$ LANGUAGE SQL;
+    RETURNING tag_id INTO l_tag_id;
+
+    RETURN QUERY
+    SELECT * FROM read_tag(l_tag_id);
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE FUNCTION create_user(
     a_name text,
     a_email text,
     a_password text
-) RETURNS uuid AS $$
+) RETURNS SETOF user_account AS $$
+DECLARE l_user_id uuid;
+BEGIN
     INSERT INTO data.user_account (user_id, email, password)
     SELECT create_entity(a_name), a_email, a_password
-    RETURNING user_id;
-$$ LANGUAGE SQL;
+    RETURNING user_id INTO l_user_id;
+
+    RETURN QUERY
+    SELECT * FROM read_user(l_user_id);
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE FUNCTION create_user_session(a_user_id uuid, a_session_id bytea)
 RETURNS void AS $$
@@ -821,19 +674,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION delete_post_objects(post_id uuid, objects uuid[])
+CREATE FUNCTION delete_post_objects(a_post_id uuid, a_objects uuid[])
 RETURNS timestamptz AS $$
 BEGIN
     UPDATE data.post p
-    SET objects = array_remove(p.objects, delete_post_objects.objects)
-    WHERE p.post_id = delete_post_objects.post_id;
+    SET objects = array_remove(p.objects, a_objects)
+    WHERE p.post_id = a_post_id;
 
     DELETE FROM data.post_object po
-    WHERE
-        po.post_id = delete_post_objects.post_id AND
-        object_id = ANY(objects);
+    WHERE po.post_id = a_post_id AND object_id = ANY(a_objects);
 
-    RETURN read_post_date_modified(post_id);
+    RETURN read_post_date_modified(a_post_id);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -849,15 +700,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION delete_related_post(
-    a_post_id       uuid,
-    a_related       uuid
-) RETURNS boolean AS $$
+CREATE FUNCTION delete_related_post(a_post_id uuid, a_related uuid)
+RETURNS uuid[] AS $$
 BEGIN
     DELETE FROM data.related_post
     WHERE post_id = a_post_id AND related = a_related;
 
-    RETURN FOUND;
+    IF FOUND THEN
+        RETURN (SELECT coalesce(read_related_posts(a_post_id), '{}'));
+    ELSE
+        RETURN NULL;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -946,31 +799,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION read_comment(
-    a_comment_id    uuid
-) RETURNS SETOF post_comment AS $$
-BEGIN
-    RETURN QUERY
-    SELECT *
-    FROM post_comment
-    WHERE comment_id = a_comment_id;
-END;
-$$ LANGUAGE plpgsql;
+CREATE FUNCTION read_comment_post(a_comment_id uuid) RETURNS uuid AS $$
+    SELECT post_id FROM data.post_comment WHERE comment_id = a_comment_id;
+$$ LANGUAGE SQL;
 
-CREATE FUNCTION read_comments(
-    a_post_id       uuid
-) RETURNS SETOF post_comment AS $$
-BEGIN
-    RETURN QUERY
+CREATE FUNCTION read_comments(a_post_id uuid)
+RETURNS SETOF data.post_comment AS $$
     SELECT *
-    FROM post_comment
+    FROM data.post_comment
     WHERE post_id = a_post_id
     ORDER BY
         indent,
         parent_id,
-        date_created DESC;
-END;
-$$ LANGUAGE plpgsql;
+        date_created;
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION read_entity_sources(a_profile_id uuid)
 RETURNS SETOF source AS $$
@@ -1019,22 +861,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION read_posts(
-    a_posts         uuid[]
-) RETURNS SETOF post_preview AS $$
-BEGIN
-    RETURN QUERY
-    SELECT post_preview.*
+CREATE FUNCTION read_posts(a_posts uuid[]) RETURNS SETOF post AS $$
+    SELECT post.*
     FROM (
         SELECT
             ordinality,
             unnest AS post_id
         FROM unnest(a_posts) WITH ORDINALITY
     ) posts
-    JOIN post_preview USING (post_id)
+    JOIN post USING (post_id)
     ORDER BY ordinality;
-END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION read_post_search() RETURNS SETOF post_search AS $$
 BEGIN
@@ -1071,23 +908,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION read_tag_previews(
-    a_tags          uuid[]
-) RETURNS SETOF tag_preview AS $$
-BEGIN
-    RETURN QUERY
-    SELECT tag_preview.*
-    FROM (
-        SELECT
-            ordinality,
-            unnest AS tag_id
-        FROM unnest(a_tags) WITH ORDINALITY
-    ) tags
-    JOIN tag_preview USING (tag_id)
-    ORDER BY ordinality;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE FUNCTION read_tag_search()
 RETURNS SETOF tag_search AS $$
 BEGIN
@@ -1098,25 +918,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE FUNCTION read_tags(a_tags uuid[]) RETURNS SETOF tag AS $$
+    SELECT tag.*
+    FROM (
+        SELECT
+            ordinality,
+            unnest AS tag_id
+        FROM unnest(a_tags) WITH ORDINALITY
+    ) tags
+    JOIN tag USING (tag_id)
+    ORDER BY ordinality;
+$$ LANGUAGE SQL;
+
 CREATE FUNCTION read_user(a_user_id uuid) RETURNS SETOF user_account AS $$
     SELECT * FROM user_account WHERE user_id = a_user_id;
 $$ LANGUAGE SQL;
 
 CREATE FUNCTION read_user_password(a_email text) RETURNS SETOF password AS $$
     SELECT user_id, password FROM data.user_account WHERE email = a_email;
-$$ LANGUAGE SQL;
-
-CREATE FUNCTION read_user_previews(a_users uuid[])
-RETURNS SETOF user_preview AS $$
-    SELECT user_preview.*
-    FROM (
-        SELECT
-            ordinality,
-            unnest AS user_id
-        FROM unnest(a_users) WITH ORDINALITY
-    ) users
-    JOIN user_preview USING (user_id)
-    ORDER BY ordinality;
 $$ LANGUAGE SQL;
 
 CREATE FUNCTION read_user_search()
@@ -1133,9 +952,19 @@ CREATE FUNCTION read_user_session(a_session_id bytea) RETURNS uuid AS $$
     SELECT user_id FROM data.user_session WHERE session_id = a_session_id;
 $$ LANGUAGE SQL;
 
-CREATE FUNCTION read_object(
-    a_object_id     uuid
-) RETURNS SETOF object AS $$
+CREATE FUNCTION read_users(a_users uuid[]) RETURNS SETOF user_account AS $$
+    SELECT user_account.*
+    FROM (
+        SELECT
+            ordinality,
+            unnest AS user_id
+        FROM unnest(a_users) WITH ORDINALITY
+    ) users
+    JOIN user_account USING (user_id)
+    ORDER BY ordinality;
+$$ LANGUAGE SQL;
+
+CREATE FUNCTION read_object(a_object_id uuid) RETURNS SETOF object AS $$
 BEGIN
     RETURN QUERY
     SELECT *
@@ -1144,24 +973,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION read_object_posts(
-    a_object_id     uuid
-) RETURNS SETOF post_preview AS $$
-BEGIN
-    RETURN QUERY
-    SELECT post_preview.*
-    FROM post_preview
-    JOIN data.post_object post_object USING (post_id)
-    WHERE post_object.object_id = a_object_id
-    ORDER BY date_created DESC;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE FUNCTION read_object_total() RETURNS int8 AS $$
 BEGIN
     RETURN (SELECT count(*) FROM data.object);
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION read_objects(a_objects uuid[]) RETURNS SETOF object AS $$
+    SELECT object.*
+    FROM (
+        SELECT
+            ordinality,
+            unnest AS object_id
+        FROM unnest(a_objects) WITH ORDINALITY
+    ) objects
+    JOIN object USING (object_id)
+    ORDER BY ordinality;
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION read_post_total() RETURNS int8 AS $$
 BEGIN
@@ -1514,7 +1342,7 @@ SELECT json_build_object(
                     avatar,
                     banner,
                     created,
-                    (creator).user_id AS creator
+                    creator
                 FROM tag
                 ORDER BY name
             ) t

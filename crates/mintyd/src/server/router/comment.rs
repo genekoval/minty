@@ -16,7 +16,7 @@ async fn add_reply(
     Path(id): Path<Uuid>,
     Text(content): Text<text::Comment>,
 ) -> Result<Json<CommentData>> {
-    Ok(Json(repo.comment(id).reply(user, content).await?))
+    Ok(Json(repo.comment(id).reply(user.id, content).await?))
 }
 
 async fn delete_comment(
@@ -25,15 +25,9 @@ async fn delete_comment(
     Query(DeleteComment { recursive }): Query<DeleteComment>,
 ) -> Result<StatusCode> {
     let recursive = recursive.unwrap_or(false);
-    let deleted = repo.comment(id).delete(recursive).await?;
+    repo.comment(id).delete(recursive).await?;
 
-    let status = if deleted {
-        StatusCode::NO_CONTENT
-    } else {
-        StatusCode::NOT_FOUND
-    };
-
-    Ok(status)
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn get_comment(

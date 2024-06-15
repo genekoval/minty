@@ -1,89 +1,131 @@
 use super::Repo;
 
-use crate::{error::Found, Result};
+use crate::{cache, error::Found, Cached, Result};
 
 use minty::{
     text::{Description, Name},
     ProfileName, Source, Url, Uuid,
 };
+use std::sync::Arc;
 
 pub struct Tag<'a> {
     repo: &'a Repo,
-    id: Uuid,
+    tag: Arc<Cached<cache::Tag>>,
 }
 
 impl<'a> Tag<'a> {
-    pub(super) fn new(repo: &'a Repo, id: Uuid) -> Self {
-        Self { repo, id }
+    pub(super) fn new(repo: &'a Repo, tag: Arc<Cached<cache::Tag>>) -> Self {
+        Self { repo, tag }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.tag.id
     }
 
     pub async fn add_alias(&self, alias: Name) -> Result<ProfileName> {
-        self.repo
-            .entity(self.id)
+        let names = self
+            .repo
+            .entity(self.tag.id)
             .add_alias(alias, "tag", &self.repo.search.indices.tag)
-            .await
+            .await?;
+
+        self.tag.update(|tag| tag.profile.set_names(&names));
+
+        Ok(names)
     }
 
     pub async fn add_source(&self, url: &Url) -> Result<Source> {
-        self.repo.entity(self.id).add_link("tag", url).await
+        let source = self.repo.entity(self.tag.id).add_link("tag", url).await?;
+
+        self.tag
+            .update(|tag| tag.profile.add_source(source.clone()));
+
+        Ok(source)
     }
 
     pub async fn delete(&self) -> Result<()> {
         self.repo
-            .entity(self.id)
+            .entity(self.tag.id)
             .delete("tag", &self.repo.search.indices.tag)
-            .await
+            .await?;
+
+        self.repo.cache.tags().remove(&self.tag);
+
+        Ok(())
     }
 
     pub async fn delete_alias(&self, alias: &str) -> Result<ProfileName> {
-        self.repo
-            .entity(self.id)
+        let names = self
+            .repo
+            .entity(self.tag.id)
             .delete_alias(alias, "tag", &self.repo.search.indices.tag)
-            .await
+            .await?;
+
+        self.tag.update(|tag| tag.profile.set_names(&names));
+
+        Ok(names)
     }
 
     pub async fn delete_source(&self, source_id: i64) -> Result<bool> {
-        Ok(self
+        let deleted = self
             .repo
             .database
-            .delete_entity_link(self.id, source_id)
-            .await?)
+            .delete_entity_link(self.tag.id, source_id)
+            .await?;
+
+        if deleted {
+            self.tag.update(|tag| tag.profile.delete_source(source_id));
+        }
+
+        Ok(deleted)
     }
 
     pub async fn delete_sources<S>(&self, sources: &[S]) -> Result<()>
     where
         S: AsRef<str>,
     {
-        self.repo.entity(self.id).delete_sources(sources).await
+        let ids = self
+            .repo
+            .entity(self.tag.id)
+            .delete_sources(sources)
+            .await?;
+
+        self.tag.update(|tag| tag.profile.delete_sources(&ids));
+
+        Ok(())
     }
 
-    pub async fn get(&self) -> Result<minty::Tag> {
-        Ok(self
-            .repo
-            .database
-            .read_tag(self.id)
-            .await?
-            .found("tag", self.id)?
-            .into())
+    pub fn get(&self) -> Result<minty::Tag> {
+        self.tag.model().found("tag", self.tag.id)
     }
 
     pub async fn set_description(
         &self,
         description: Description,
     ) -> Result<String> {
+        let description: String = description.into();
+
         self.repo
             .database
-            .update_entity_description(self.id, description.as_ref())
+            .update_entity_description(self.tag.id, &description)
             .await?
-            .found("tag", self.id)?;
+            .found("tag", self.tag.id)?;
 
-        Ok(description.into())
+        self.tag
+            .update(|tag| tag.profile.description.clone_from(&description));
+
+        Ok(description)
     }
 
     pub async fn set_name(&self, new_name: Name) -> Result<ProfileName> {
-        self.repo
-            .entity(self.id)
+        let names = self
+            .repo
+            .entity(self.tag.id)
             .set_name(new_name, "tag", &self.repo.search.indices.tag)
-            .await
+            .await?;
+
+        self.tag.update(|tag| tag.profile.set_names(&names));
+
+        Ok(names)
     }
 }

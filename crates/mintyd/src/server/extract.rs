@@ -8,13 +8,14 @@ use axum::{
 use headers::{
     authorization::Credentials, Authorization, Cookie, HeaderMapExt,
 };
-use minty::Uuid;
-use minty_core::{Base64DecodeError, Error::Unauthenticated, SessionId};
-use std::str;
+use minty_core::{
+    Base64DecodeError, Cached, Error::Unauthenticated, SessionId,
+};
+use std::{str, sync::Arc};
 
 const COOKIE: &str = "mtyid";
 
-pub struct Session(pub SessionId);
+pub struct Session(pub Arc<Cached<minty_core::Session>>);
 
 #[async_trait]
 impl FromRequestParts<AppState> for Session {
@@ -22,9 +23,9 @@ impl FromRequestParts<AppState> for Session {
 
     async fn from_request_parts(
         parts: &mut Parts,
-        _state: &AppState,
+        state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        match try_get_session(parts) {
+        match try_get_session(parts, state).await {
             Ok(Some(session)) => Ok(Self(session)),
             Ok(None) => Err(Unauthenticated(None).into()),
             Err(err) => Err(err.into()),
@@ -32,7 +33,7 @@ impl FromRequestParts<AppState> for Session {
     }
 }
 
-pub struct User(pub Uuid);
+pub struct User(pub Arc<Cached<minty_core::User>>);
 
 #[async_trait]
 impl FromRequestParts<AppState> for User {
@@ -50,7 +51,7 @@ impl FromRequestParts<AppState> for User {
     }
 }
 
-pub struct OptionalUser(pub Option<Uuid>);
+pub struct OptionalUser(pub Option<Arc<Cached<minty_core::User>>>);
 
 #[async_trait]
 impl FromRequestParts<AppState> for OptionalUser {
@@ -110,24 +111,27 @@ fn try_get_cookie(
     Some(parts.headers.typed_get::<Cookie>()?.get(COOKIE)?.parse())
 }
 
-fn try_get_session(
+async fn try_get_session(
     parts: &Parts,
-) -> Result<Option<SessionId>, minty_core::Error> {
-    try_get_authorization(parts)
+    AppState { repo }: &AppState,
+) -> Result<Option<Arc<Cached<minty_core::Session>>>, minty_core::Error> {
+    let Some(id) = try_get_authorization(parts)
         .or_else(|| try_get_cookie(parts))
         .transpose()
-        .map_err(|_| Unauthenticated(Some("invalid key")))
+        .map_err(|_| Unauthenticated(Some("invalid key")))?
+    else {
+        return Ok(None);
+    };
+
+    let session = repo.users().get_session(id).await?;
+    Ok(Some(session))
 }
 
 async fn try_get_user(
     parts: &Parts,
-    AppState { repo }: &AppState,
-) -> Result<Option<Uuid>, minty_core::Error> {
-    let Some(session) = try_get_session(parts)? else {
-        return Ok(None);
-    };
-
-    let id = repo.users().get_session(session).await?;
-
-    Ok(Some(id))
+    state: &AppState,
+) -> Result<Option<Arc<Cached<minty_core::User>>>, minty_core::Error> {
+    Ok(try_get_session(parts, state)
+        .await?
+        .map(|session| session.user()))
 }

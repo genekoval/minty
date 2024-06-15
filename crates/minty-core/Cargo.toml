@@ -10,6 +10,7 @@ base64 = { workspace = true }
 bytes = { workspace = true }
 bytesize = { workspace = true }
 chrono = { workspace = true }
+dashmap = { workspace = true }
 elasticsearch = { workspace = true }
 ffmpeg-sys-next = { workspace = true }
 fstore = { workspace = true, features = ["http"] }
@@ -17,6 +18,7 @@ futures = { workspace = true }
 futures-core = { workspace = true }
 graphicsmagick-sys = { workspace = true }
 log = { workspace = true }
+lru = { workspace = true }
 moka = { workspace = true }
 pgtools = { workspace = true }
 rand = { workspace = true }

@@ -1,9 +1,14 @@
-use super::Repo;
+use super::{Repo, User};
 
-use crate::{db::Password, Error, Result, SessionId};
+use crate::{
+    cache::{Cached, Session},
+    db::Password,
+    error::Found,
+    Error, Result, SessionId,
+};
 
-use log::debug;
 use minty::{Login, ProfileQuery, SearchResult, SignUp, UserPreview, Uuid};
+use std::sync::Arc;
 
 pub struct Users<'a> {
     repo: &'a Repo,
@@ -14,36 +19,39 @@ impl<'a> Users<'a> {
         Self { repo }
     }
 
-    pub async fn add(&self, info: SignUp) -> Result<Uuid> {
+    pub async fn add(&self, info: SignUp) -> Result<User> {
         let name = info.username.as_ref();
         let email = info.email.as_ref();
         let password = self.repo.auth.hash_password(info.password)?;
 
         let mut tx = self.repo.database.begin().await?;
 
-        let id = tx
-            .create_user(name, email, &password)
-            .await
-            .map_err(|err| {
-                err.as_database_error()
-                    .and_then(|e| e.constraint())
-                    .and_then(|constraint| match constraint {
-                        "user_account_email_key" => {
-                            Some(Error::AlreadyExists {
-                                entity: "user",
-                                identifier: format!("email address '{email}'"),
-                            })
-                        }
-                        _ => None,
-                    })
-                    .unwrap_or_else(|| err.into())
-            })?
-            .0;
+        let user =
+            tx.create_user(name, email, &password)
+                .await
+                .map_err(|err| {
+                    err.as_database_error()
+                        .and_then(|e| e.constraint())
+                        .and_then(|constraint| match constraint {
+                            "user_account_email_key" => {
+                                Some(Error::AlreadyExists {
+                                    entity: "user",
+                                    identifier: format!(
+                                        "email address '{email}'"
+                                    ),
+                                })
+                            }
+                            _ => None,
+                        })
+                        .unwrap_or_else(|| err.into())
+                })?;
 
-        self.repo.search.add_user_alias(id, name).await?;
+        self.repo.search.add_user_alias(user.id, name).await?;
 
         tx.commit().await?;
-        Ok(id)
+
+        let user = self.repo.cache.users().insert(user);
+        Ok(User::new(self.repo, user))
     }
 
     pub async fn authenticate(&self, login: &Login) -> Result<SessionId> {
@@ -59,7 +67,14 @@ impl<'a> Users<'a> {
             self.repo.auth.verify_password(&login.password, &password)?;
 
         if authenticated {
-            self.repo.user(user_id).create_session().await
+            let user = self
+                .repo
+                .cache
+                .users()
+                .get(user_id)
+                .await?
+                .found("user", user_id)?;
+            self.repo.user(user).create_session().await
         } else {
             Err(Error::Unauthenticated(ERROR))
         }
@@ -71,7 +86,7 @@ impl<'a> Users<'a> {
             .delete_user_session(session.as_bytes())
             .await?;
 
-        self.repo.cache.sessions().remove(session).await;
+        self.repo.cache.sessions().remove(session);
 
         Ok(())
     }
@@ -85,13 +100,15 @@ impl<'a> Users<'a> {
             .search
             .find_entities(&self.repo.search.indices.user, query)
             .await?;
+
         let users = self
             .repo
-            .database
-            .read_user_previews(&results.hits)
+            .cache
+            .users()
+            .get_multiple(&results.hits)
             .await?
             .into_iter()
-            .map(Into::into)
+            .filter_map(|user| user.preview())
             .collect();
 
         Ok(SearchResult {
@@ -100,22 +117,20 @@ impl<'a> Users<'a> {
         })
     }
 
-    pub async fn get_session(&self, session: SessionId) -> Result<Uuid> {
-        if let Some(user_id) =
-            self.repo.cache.sessions().get_user(session).await
-        {
-            debug!("session cache hit for user {user_id}");
-            Ok(user_id)
-        } else if let (Some(user_id),) = self
-            .repo
-            .database
-            .read_user_session(session.as_bytes())
+    pub async fn get(&self, id: Uuid) -> Result<User> {
+        let user = self.repo.cache.users().get(id).await?.found("user", id)?;
+        Ok(User::new(self.repo, user))
+    }
+
+    pub async fn get_session(
+        &self,
+        session: SessionId,
+    ) -> Result<Arc<Cached<Session>>> {
+        self.repo
+            .cache
+            .sessions()
+            .get(session)
             .await?
-        {
-            self.repo.cache.sessions().insert(session, user_id).await;
-            Ok(user_id)
-        } else {
-            Err(Error::Unauthenticated(None))
-        }
+            .ok_or(Error::Unauthenticated(None))
     }
 }

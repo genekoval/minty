@@ -100,7 +100,7 @@ impl<'a> Entity<'a> {
         Ok(names.into())
     }
 
-    pub async fn delete_sources<S>(&self, sources: &[S]) -> Result<()>
+    pub async fn delete_sources<S>(&self, sources: &[S]) -> Result<Vec<i64>>
     where
         S: AsRef<str>,
     {
@@ -134,14 +134,11 @@ impl<'a> Entity<'a> {
             .map(|source| source.id)
             .collect();
 
-        for source_id in ids {
-            self.repo
-                .database
-                .delete_entity_link(self.id, source_id)
-                .await?;
+        for id in ids.iter().copied() {
+            self.repo.database.delete_entity_link(self.id, id).await?;
         }
 
-        Ok(())
+        Ok(ids)
     }
 
     pub async fn set_name(

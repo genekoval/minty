@@ -28,10 +28,10 @@ use links::Links;
 
 use crate::{
     auth::Auth,
-    cache::Cache,
+    cache::{self, Cache, Cached},
     conf::RepoConfig,
     db::{self, Database},
-    error::Result,
+    error::{Found, Result},
     ico::Favicons,
     obj::Bucket,
     search::Search,
@@ -79,14 +79,16 @@ impl Repo {
             },
         )?;
 
+        let database = Database::new(pool);
         let bucket = Bucket::new(&config.objects).await?;
+        let cache = Cache::new(database.clone(), bucket.clone(), &config.cache);
         let favicons = Favicons::new(bucket.clone());
 
         Ok(Self {
             auth: Auth::new(),
             bucket,
-            cache: Cache::new(&config.cache),
-            database: Database::new(pool),
+            cache,
+            database,
             db_support,
             favicons,
             search: Search::new(&config.search)?,
@@ -119,16 +121,18 @@ impl Repo {
         Objects::new(self)
     }
 
-    pub fn post(&self, id: Uuid) -> Post {
-        Post::new(self, id)
+    pub async fn post(&self, id: Uuid) -> Result<Post> {
+        let post = self.cache.posts().get(id).await?.found("post", id)?;
+        Ok(Post::new(self, post))
     }
 
     pub fn posts(&self) -> Posts {
         Posts::new(self)
     }
 
-    pub fn tag(&self, id: Uuid) -> Tag {
-        Tag::new(self, id)
+    pub async fn tag(&self, id: Uuid) -> Result<Tag> {
+        let tag = self.cache.tags().get(id).await?.found("tag", id)?;
+        Ok(Tag::new(self, tag))
     }
 
     pub fn tags(&self) -> Tags {
@@ -143,8 +147,8 @@ impl Repo {
         Tasks::new(self)
     }
 
-    pub fn user(&self, id: Uuid) -> User {
-        User::new(self, id)
+    pub fn user(&self, user: Arc<Cached<cache::User>>) -> User {
+        User::new(self, user)
     }
 
     pub fn users(&self) -> Users {

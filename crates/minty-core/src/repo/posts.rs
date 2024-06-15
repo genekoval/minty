@@ -1,4 +1,4 @@
-use super::Repo;
+use super::{Post, Repo};
 
 use crate::{db, Error, Result};
 
@@ -15,7 +15,7 @@ impl<'a> Posts<'a> {
         Self { repo }
     }
 
-    pub async fn add(&self, user: Uuid, parts: &PostParts) -> Result<Uuid> {
+    pub async fn add(&self, user: Uuid, parts: &PostParts) -> Result<Post> {
         let mut tx = self.repo.database.begin().await?;
 
         let post = tx
@@ -30,46 +30,13 @@ impl<'a> Posts<'a> {
             )
             .await?;
 
-        self.repo.search.add_post(&post).await?;
+        self.repo.search.add_post(&post.search()).await?;
 
         tx.commit().await?;
-        Ok(post.id)
-    }
 
-    pub(super) async fn build(
-        &self,
-        posts: Vec<db::PostPreview>,
-    ) -> Result<Vec<PostPreview>> {
-        let objects = posts
-            .iter()
-            .filter_map(|post| post.preview.clone())
-            .collect();
+        let post = self.repo.cache.posts().insert(post).await?;
 
-        let mut objects = self
-            .repo
-            .bucket
-            .get_object_previews(objects)
-            .await?
-            .into_iter();
-
-        let posts = posts
-            .into_iter()
-            .map(|post| PostPreview {
-                id: post.id,
-                poster: post.poster.map(Into::into),
-                title: post.title,
-                preview: if post.preview.is_some() {
-                    objects.next()
-                } else {
-                    None
-                },
-                comment_count: post.comment_count,
-                object_count: post.object_count,
-                created: post.created,
-            })
-            .collect();
-
-        Ok(posts)
+        Ok(Post::new(self.repo, post))
     }
 
     pub async fn find(
@@ -85,13 +52,11 @@ impl<'a> Posts<'a> {
             query.poster = user_id;
         }
 
-        let results = self.repo.search.find_posts(&query).await?;
-        let posts = self.repo.database.read_posts(&results.hits).await?;
-        let posts = self.build(posts).await?;
+        let SearchResult { total, hits } =
+            self.repo.search.find_posts(&query).await?;
 
-        Ok(SearchResult {
-            total: results.total,
-            hits: posts,
-        })
+        let hits = self.repo.cache.posts().previews(&hits).await?;
+
+        Ok(SearchResult { total, hits })
     }
 }

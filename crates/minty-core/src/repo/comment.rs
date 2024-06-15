@@ -14,22 +14,20 @@ impl<'a> Comment<'a> {
         Self { repo, id }
     }
 
-    pub async fn delete(&self, recursive: bool) -> Result<bool> {
-        Ok(self
-            .repo
+    pub async fn delete(&self, recursive: bool) -> Result<()> {
+        self.repo
             .database
             .delete_comment(self.id, recursive)
-            .await?)
+            .await?
+            .found("comment", self.id)?;
+
+        self.repo.cache.comments().delete(self.id, recursive);
+
+        Ok(())
     }
 
     pub async fn get(&self) -> Result<minty::Comment> {
-        Ok(self
-            .repo
-            .database
-            .read_comment(self.id)
-            .await?
-            .found("comment", self.id)?
-            .into())
+        self.repo.cache.comments().get(self.id).await
     }
 
     pub async fn reply(
@@ -37,22 +35,35 @@ impl<'a> Comment<'a> {
         user_id: Uuid,
         content: text::Comment,
     ) -> Result<CommentData> {
-        Ok(self
+        let user = self
+            .repo
+            .cache
+            .users()
+            .get(user_id)
+            .await?
+            .found("user", user_id)?;
+
+        let comment = self
             .repo
             .database
             .create_reply(user_id, self.id, content.as_ref())
             .await?
-            .found("comment", self.id)?
-            .into())
+            .found("comment", self.id)?;
+
+        Ok(self.repo.cache.comments().reply(self.id, comment, user))
     }
 
     pub async fn set_content(&self, content: text::Comment) -> Result<String> {
+        let content: String = content.into();
+
         self.repo
             .database
-            .update_comment(self.id, content.as_ref())
+            .update_comment(self.id, &content)
             .await?
             .found("comment", self.id)?;
 
-        Ok(content.into())
+        self.repo.cache.comments().update(self.id, &content);
+
+        Ok(content)
     }
 }

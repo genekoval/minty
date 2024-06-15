@@ -1,5 +1,3 @@
-use std::io;
-
 use super::Repo;
 
 use crate::{error::Found, preview, Error, Result};
@@ -7,6 +5,7 @@ use crate::{error::Found, preview, Error, Result};
 use bytes::Bytes;
 use futures::Stream;
 use minty::{ObjectSummary, Uuid};
+use std::io;
 
 pub struct Object<'a> {
     repo: &'a Repo,
@@ -19,26 +18,14 @@ impl<'a> Object<'a> {
     }
 
     pub async fn get(&self) -> Result<minty::Object> {
-        let object = self
-            .repo
-            .database
-            .read_object(self.id)
+        let cache = &self.repo.cache;
+        cache
+            .objects()
+            .get(self.id)
             .await?
-            .found("object", self.id)?;
-
-        let posts = self.repo.database.read_object_posts(self.id).await?;
-        let metadata = self.repo.bucket.get_object(self.id).await?;
-
-        Ok(minty::Object {
-            id: self.id,
-            hash: metadata.hash,
-            size: metadata.size,
-            r#type: metadata.r#type,
-            subtype: metadata.subtype,
-            added: metadata.added,
-            preview_id: object.preview_id,
-            posts: self.repo.posts().build(posts).await?,
-        })
+            .found("object", self.id)?
+            .model(cache)
+            .await
     }
 
     pub async fn get_data(

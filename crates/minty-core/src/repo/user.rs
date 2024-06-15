@@ -1,31 +1,43 @@
 use super::Repo;
 
-use crate::{error::Found, Result, SessionId};
+use crate::{cache, error::Found, Cached, Result, SessionId};
 
 use minty::{
     text::{Description, Email, Name, Password},
-    ProfileName, Source, Url, Uuid,
+    ProfileName, Source, Url,
 };
+use std::sync::Arc;
 
 pub struct User<'a> {
     repo: &'a Repo,
-    id: Uuid,
+    user: Arc<Cached<cache::User>>,
 }
 
 impl<'a> User<'a> {
-    pub(super) fn new(repo: &'a Repo, id: Uuid) -> Self {
-        Self { repo, id }
+    pub(super) fn new(repo: &'a Repo, user: Arc<Cached<cache::User>>) -> Self {
+        Self { repo, user }
     }
 
     pub async fn add_alias(&self, alias: Name) -> Result<ProfileName> {
-        self.repo
-            .entity(self.id)
+        let names = self
+            .repo
+            .entity(self.user.id)
             .add_alias(alias, "user", &self.repo.search.indices.user)
-            .await
+            .await?;
+
+        self.user.update(|user| user.profile.set_names(&names));
+
+        Ok(names)
     }
 
     pub async fn add_source(&self, url: &Url) -> Result<Source> {
-        self.repo.entity(self.id).add_link("user", url).await
+        let source =
+            self.repo.entity(self.user.id).add_link("user", url).await?;
+
+        self.user
+            .update(|user| user.profile.add_source(source.clone()));
+
+        Ok(source)
     }
 
     pub async fn create_session(&self) -> Result<SessionId> {
@@ -33,82 +45,114 @@ impl<'a> User<'a> {
 
         self.repo
             .database
-            .create_user_session(self.id, session.as_bytes())
+            .create_user_session(self.user.id, session.as_bytes())
             .await?;
 
-        self.repo.cache.sessions().insert(session, self.id).await;
+        self.repo
+            .cache
+            .sessions()
+            .insert(session, self.user.clone());
 
         Ok(session)
     }
 
     pub async fn delete(&self) -> Result<()> {
         self.repo
-            .entity(self.id)
+            .entity(self.user.id)
             .delete("user", &self.repo.search.indices.user)
-            .await
+            .await?;
+
+        self.repo.cache.users().remove(&self.user);
+
+        Ok(())
     }
 
     pub async fn delete_alias(&self, alias: &str) -> Result<ProfileName> {
-        self.repo
-            .entity(self.id)
+        let names = self
+            .repo
+            .entity(self.user.id)
             .delete_alias(alias, "user", &self.repo.search.indices.user)
-            .await
+            .await?;
+
+        self.user.update(|user| user.profile.set_names(&names));
+
+        Ok(names)
     }
 
     pub async fn delete_source(&self, source_id: i64) -> Result<bool> {
-        Ok(self
+        let deleted = self
             .repo
             .database
-            .delete_entity_link(self.id, source_id)
-            .await?)
+            .delete_entity_link(self.user.id, source_id)
+            .await?;
+
+        if deleted {
+            self.user
+                .update(|user| user.profile.delete_source(source_id));
+        }
+
+        Ok(deleted)
     }
 
     pub async fn delete_sources<S>(&self, sources: &[S]) -> Result<()>
     where
         S: AsRef<str>,
     {
-        self.repo.entity(self.id).delete_sources(sources).await
+        let ids = self
+            .repo
+            .entity(self.user.id)
+            .delete_sources(sources)
+            .await?;
+
+        self.user.update(|user| user.profile.delete_sources(&ids));
+
+        Ok(())
     }
 
-    pub async fn get(&self) -> Result<minty::User> {
-        Ok(self
-            .repo
-            .database
-            .read_user(self.id)
-            .await?
-            .found("user", self.id)?
-            .into())
+    pub fn get(&self) -> Result<minty::User> {
+        self.user.model().found("user", self.user.id)
     }
 
     pub async fn set_description(
         &self,
         description: Description,
     ) -> Result<String> {
+        let description: String = description.into();
+
         self.repo
             .database
-            .update_entity_description(self.id, description.as_ref())
+            .update_entity_description(self.user.id, &description)
             .await?
-            .found("user", self.id)?;
+            .found("user", self.user.id)?;
 
-        Ok(description.into())
+        self.user
+            .update(|user| user.profile.description.clone_from(&description));
+
+        Ok(description)
     }
 
     pub async fn set_admin(&self, admin: bool) -> Result<()> {
         self.repo
             .database
-            .update_admin(self.id, admin)
+            .update_admin(self.user.id, admin)
             .await?
-            .found("user", self.id)?;
+            .found("user", self.user.id)?;
+
+        self.user.update(|user| user.admin = admin);
 
         Ok(())
     }
 
     pub async fn set_email(&self, email: Email) -> Result<()> {
+        let email: String = email.into();
+
         self.repo
             .database
-            .update_user_email(self.id, email.as_ref())
+            .update_user_email(self.user.id, &email)
             .await?
-            .found("user", self.id)?;
+            .found("user", self.user.id)?;
+
+        self.user.update(|user| user.email = email);
 
         Ok(())
     }
@@ -118,17 +162,22 @@ impl<'a> User<'a> {
 
         self.repo
             .database
-            .update_user_password(self.id, &password)
+            .update_user_password(self.user.id, &password)
             .await?
-            .found("user", self.id)?;
+            .found("user", self.user.id)?;
 
         Ok(())
     }
 
     pub async fn set_name(&self, new_name: Name) -> Result<ProfileName> {
-        self.repo
-            .entity(self.id)
+        let names = self
+            .repo
+            .entity(self.user.id)
             .set_name(new_name, "user", &self.repo.search.indices.user)
-            .await
+            .await?;
+
+        self.user.update(|user| user.profile.set_names(&names));
+
+        Ok(names)
     }
 }

@@ -1,4 +1,4 @@
-use super::Repo;
+use super::{Repo, Tag};
 
 use crate::Result;
 
@@ -13,38 +13,39 @@ impl<'a> Tags<'a> {
         Self { repo }
     }
 
-    pub async fn add(&self, name: Name, creator: Uuid) -> Result<Uuid> {
+    pub async fn add(&self, name: Name, creator: Uuid) -> Result<Tag> {
         let name = name.as_ref();
         let mut tx = self.repo.database.begin().await?;
 
-        let id = tx.create_tag(name, creator).await?.0;
-        self.repo.search.add_tag_alias(id, name).await?;
+        let tag = tx.create_tag(name, creator).await?;
+        self.repo.search.add_tag_alias(tag.id, name).await?;
 
         tx.commit().await?;
-        Ok(id)
+
+        let tag = self.repo.cache.tags().insert(tag).await;
+        Ok(Tag::new(self.repo, tag))
     }
 
     pub async fn find(
         &self,
         query: &ProfileQuery,
     ) -> Result<SearchResult<TagPreview>> {
-        let results = self
+        let SearchResult { total, hits } = self
             .repo
             .search
             .find_entities(&self.repo.search.indices.tag, query)
             .await?;
-        let tags = self
+
+        let hits = self
             .repo
-            .database
-            .read_tag_previews(&results.hits)
+            .cache
+            .tags()
+            .get_multiple(&hits)
             .await?
             .into_iter()
-            .map(Into::into)
+            .filter_map(|tag| tag.preview())
             .collect();
 
-        Ok(SearchResult {
-            total: results.total,
-            hits: tags,
-        })
+        Ok(SearchResult { total, hits })
     }
 }

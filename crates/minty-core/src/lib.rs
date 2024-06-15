@@ -2,7 +2,6 @@ pub mod conf;
 
 mod auth;
 mod cache;
-mod comment;
 mod db;
 mod error;
 mod ico;
@@ -14,6 +13,7 @@ mod search;
 mod task;
 
 pub use auth::{Base64DecodeError, SessionId};
+pub use cache::{Cached, Session, User};
 pub use error::{Error, Result};
 pub use model::About;
 pub use repo::Repo;

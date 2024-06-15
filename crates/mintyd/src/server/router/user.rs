@@ -39,7 +39,7 @@ async fn delete_session(
     State(AppState { repo }): State<AppState>,
     Session(session): Session,
 ) -> Result<StatusCode> {
-    repo.users().delete_session(session).await?;
+    repo.users().delete_session(session.id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -78,21 +78,21 @@ async fn get_authenticated_user(
     State(AppState { repo }): State<AppState>,
     User(user): User,
 ) -> Result<Json<minty::User>> {
-    Ok(Json(repo.user(user).get().await?))
+    Ok(Json(repo.user(user).get()?))
 }
 
 async fn get_user(
     State(AppState { repo }): State<AppState>,
     Path(user): Path<Uuid>,
 ) -> Result<Json<minty::User>> {
-    Ok(Json(repo.user(user).get().await?))
+    Ok(Json(repo.users().get(user).await?.get()?))
 }
 
 async fn grant_admin(
     State(AppState { repo }): State<AppState>,
     Path(user): Path<Uuid>,
 ) -> Result<StatusCode> {
-    repo.user(user).set_admin(true).await?;
+    repo.users().get(user).await?.set_admin(true).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -100,7 +100,7 @@ async fn revoke_admin(
     State(AppState { repo }): State<AppState>,
     Path(user): Path<Uuid>,
 ) -> Result<StatusCode> {
-    repo.user(user).set_admin(false).await?;
+    repo.users().get(user).await?.set_admin(false).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
