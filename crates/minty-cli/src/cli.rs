@@ -5,7 +5,7 @@ use minty::{text, PostSort, Url, Uuid};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
-#[command(version, arg_required_else_help = true)]
+#[command(name = "minty", version, arg_required_else_help = true)]
 /// A Minty client for the command line
 pub struct Cli {
     #[arg(
