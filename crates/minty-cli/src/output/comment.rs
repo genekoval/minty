@@ -21,6 +21,12 @@ const VERTICAL: char = '\u{2502}';
 
 impl HumanReadable for Comment {
     fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
+        if let Some(user) = &self.user {
+            write!(w, "{} ", icon::ACCOUNT)?;
+            user.human_readable(w, indent + 2)?;
+            writeln!(w)?;
+        }
+
         Printer { out: w, level: 0 }.text(&self.content)?;
         writeln!(w)?;
 
@@ -49,7 +55,16 @@ impl HumanReadable for CommentData {
         }
         .divider()?
         .metadata(|row| row.push(icon::POUND, self.id))?
-        .metadata(|row| row.push(icon::CLOCK, self.created.relative_abbrev(1)))?
+        .metadata(|row| {
+            row.push(
+                icon::ACCOUNT,
+                self.user
+                    .as_ref()
+                    .map(|user| user.name.as_str())
+                    .unwrap_or("[deleted]"),
+            )?
+            .push(icon::CLOCK, self.created.relative_abbrev(1))
+        })?
         .text(&self.content)?;
 
         Ok(())
