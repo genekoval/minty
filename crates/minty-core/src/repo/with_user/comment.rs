@@ -1,20 +1,34 @@
-use super::Repo;
-
-use crate::{error::Found, Result};
+use crate::{cache::User, error::Found, Cached, Repo, Result};
 
 use minty::{text, CommentData, Uuid};
+use std::sync::Arc;
 
 pub struct Comment<'a> {
     repo: &'a Repo,
+    user: Arc<Cached<User>>,
     id: Uuid,
 }
 
 impl<'a> Comment<'a> {
-    pub(super) fn new(repo: &'a Repo, id: Uuid) -> Self {
-        Self { repo, id }
+    pub(super) fn new(
+        repo: &'a Repo,
+        user: Arc<Cached<User>>,
+        id: Uuid,
+    ) -> Self {
+        Self { repo, user, id }
     }
 
     pub async fn delete(&self, recursive: bool) -> Result<()> {
+        if recursive {
+            self.user.deny_permission()?;
+        } else {
+            self.repo
+                .cache
+                .comments()
+                .can_edit(self.id, &self.user)
+                .await?;
+        }
+
         self.repo
             .database
             .delete_comment(self.id, recursive)
@@ -26,34 +40,28 @@ impl<'a> Comment<'a> {
         Ok(())
     }
 
-    pub async fn get(&self) -> Result<minty::Comment> {
-        self.repo.cache.comments().get(self.id).await
-    }
-
-    pub async fn reply(
-        &self,
-        user_id: Uuid,
-        content: text::Comment,
-    ) -> Result<CommentData> {
-        let user = self
-            .repo
-            .cache
-            .users()
-            .get(user_id)
-            .await?
-            .found("user", user_id)?;
-
+    pub async fn reply(self, content: text::Comment) -> Result<CommentData> {
         let comment = self
             .repo
             .database
-            .create_reply(user_id, self.id, content.as_ref())
+            .create_reply(self.user.id, self.id, content.as_ref())
             .await?
             .found("comment", self.id)?;
 
-        Ok(self.repo.cache.comments().reply(self.id, comment, user))
+        Ok(self
+            .repo
+            .cache
+            .comments()
+            .reply(self.id, comment, self.user))
     }
 
     pub async fn set_content(&self, content: text::Comment) -> Result<String> {
+        self.repo
+            .cache
+            .comments()
+            .can_edit(self.id, &self.user)
+            .await?;
+
         let content: String = content.into();
 
         self.repo

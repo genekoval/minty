@@ -1,4 +1,4 @@
-use super::{Cache, Cached, Comment, CommentEntry, User};
+use super::{Cache, Cached, Comment, CommentEntry, PostComments, User};
 
 use crate::{db, error::Found, Result};
 
@@ -14,12 +14,50 @@ impl<'a> Comments<'a> {
         Self { cache }
     }
 
+    pub async fn can_edit(
+        &self,
+        comment: Uuid,
+        user: &Arc<Cached<User>>,
+    ) -> Result<()> {
+        if self.user(comment).await? == Some(user.id) {
+            Ok(())
+        } else {
+            user.deny_permission()
+        }
+    }
+
     fn comment<F, R>(&self, id: Uuid, f: F) -> Option<R>
     where
         F: FnOnce(&mut Comment) -> R,
     {
         let CommentEntry(post, path) = self.cache.comments.get(id)?;
         post.comment(&path, f)
+    }
+
+    async fn comments<F, R>(&self, id: Uuid, f: F) -> Result<R>
+    where
+        F: Fn(PostComments<'_>, &[usize]) -> R,
+    {
+        if let Some(CommentEntry(post, path)) = self.cache.comments.get(id) {
+            return post
+                .comments(&post, self.cache, |comments| f(comments, &path))
+                .await;
+        }
+
+        let post = self
+            .cache
+            .database
+            .read_comment_post(id)
+            .await?
+            .0
+            .found("comment", id)?;
+
+        let post = self.cache.posts().get(post).await?.found("comment", id)?;
+        post.comments(&post, self.cache, |comments| {
+            let path = self.cache.comments.path(id);
+            f(comments, &path)
+        })
+        .await
     }
 
     pub fn delete(&self, id: Uuid, recursive: bool) {
@@ -33,29 +71,9 @@ impl<'a> Comments<'a> {
     }
 
     pub async fn get(&self, id: Uuid) -> Result<minty::Comment> {
-        if let Some(CommentEntry(post, path)) = self.cache.comments.get(id) {
-            return post
-                .comments(&post, self.cache, |comments| comments.get(&path))
-                .await?
-                .found("comment", id);
-        }
-
-        let post = self
-            .cache
-            .database
-            .read_comment_post(id)
+        self.comments(id, |comments, path| comments.get(path))
             .await?
-            .0
-            .found("comment", id)?;
-
-        let post = self.cache.posts().get(post).await?.found("comment", id)?;
-
-        post.comments(&post, self.cache, |comments| {
-            let path = self.cache.comments.path(id);
-            comments.get(&path)
-        })
-        .await?
-        .found("comment", id)
+            .found("comment", id)
     }
 
     pub fn reply(
@@ -83,5 +101,10 @@ impl<'a> Comments<'a> {
 
     pub fn update(&self, id: Uuid, content: &String) {
         self.comment(id, |comment| comment.content.clone_from(content));
+    }
+
+    async fn user(&self, comment: Uuid) -> Result<Option<Uuid>> {
+        self.comments(comment, |comments, path| comments.user(path))
+            .await
     }
 }

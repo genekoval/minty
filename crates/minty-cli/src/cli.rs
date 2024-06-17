@@ -28,15 +28,9 @@ pub struct Cli {
     /// The configured server to use
     pub server: String,
 
-    #[arg(
-        long,
-        value_name = "ALIAS",
-        env = "MINTY_USER",
-        global = true,
-        default_value = "default"
-    )]
+    #[arg(long, value_name = "ALIAS", env = "MINTY_USER", global = true)]
     /// The configured user to act as
-    pub user: String,
+    pub user: Option<String>,
 
     #[arg(short = 'H', long, env = "MINTY_HUMAN_READABLE", global = true)]
     /// Print data in a human-readable format
@@ -106,6 +100,12 @@ pub enum Command {
         command: Option<Object>,
     },
 
+    /// Get information about all objects in the repo
+    Objects {
+        #[command(subcommand)]
+        command: Objects,
+    },
+
     /// Read a single comment
     Comment {
         /// Comment ID
@@ -154,13 +154,25 @@ pub enum Command {
     },
 
     /// Log into a user account
-    Login,
+    Login {
+        #[arg(long, value_name = "ALIAS", env = "MINTY_USER")]
+        /// The configured user to log in as
+        user: String,
+    },
 
     /// Close the current session
-    Logout,
+    Logout {
+        #[arg(long, value_name = "ALIAS", env = "MINTY_USER")]
+        /// The configured user to log out
+        user: String,
+    },
 
     /// Create a new account
     Signup {
+        #[arg(long, value_name = "ALIAS", env = "MINTY_USER")]
+        /// The configured user to sign up as
+        user: String,
+
         /// New user's display name
         username: text::Name,
     },
@@ -364,6 +376,12 @@ pub enum Object {
         /// Write output to a file instead of stdout
         destination: Option<PathBuf>,
     },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum Objects {
+    /// Print all object preview errors
+    Errors,
 }
 
 #[derive(Debug, Subcommand)]

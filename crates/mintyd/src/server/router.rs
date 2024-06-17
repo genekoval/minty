@@ -2,6 +2,7 @@ mod comment;
 mod comments;
 mod login;
 mod object;
+mod objects;
 mod post;
 mod posts;
 mod sign_up;
@@ -12,7 +13,7 @@ mod timestamp;
 mod user;
 mod users;
 
-use super::{error::Result, AppState};
+use super::{error::Result, extract::OptionalUser, AppState};
 
 use axum::{extract::State, routing::get, Json};
 use minty::model::export::Data;
@@ -20,8 +21,11 @@ use minty_core::About;
 
 pub type Router = axum::Router<AppState>;
 
-async fn about(State(AppState { repo }): State<AppState>) -> Json<About> {
-    Json(repo.about())
+async fn about(
+    State(AppState { repo }): State<AppState>,
+    OptionalUser(user): OptionalUser,
+) -> Result<Json<About>> {
+    Ok(Json(repo.optional_user(user)?.about()))
 }
 
 async fn export(
@@ -38,6 +42,7 @@ pub fn routes() -> Router {
         .nest("/comments", comments::routes())
         .nest("/login", login::routes())
         .nest("/object", object::routes())
+        .nest("/objects", objects::routes())
         .nest("/post", post::routes())
         .nest("/posts", posts::routes())
         .nest("/signup", sign_up::routes())

@@ -1,27 +1,22 @@
-mod comment;
+pub mod optional_user;
+pub mod with_user;
+
+mod admin;
 mod entity;
 mod links;
 mod object;
 mod objects;
-mod post;
-mod posts;
-mod tag;
-mod tags;
+mod sessions;
 mod task;
 mod tasks;
-mod user;
-mod users;
 
-pub use comment::Comment;
+pub use admin::Admin;
 pub use object::Object;
 pub use objects::Objects;
-pub use post::Post;
-pub use posts::Posts;
-pub use tag::Tag;
-pub use tags::Tags;
+pub use optional_user::OptionalUser;
+pub use sessions::*;
 pub use tasks::Tasks;
-pub use user::User;
-pub use users::Users;
+pub use with_user::WithUser;
 
 use entity::Entity;
 use links::Links;
@@ -30,17 +25,17 @@ use crate::{
     auth::Auth,
     cache::{self, Cache, Cached},
     conf::RepoConfig,
-    db::{self, Database},
+    db::{self, Database, Password},
     error::{Found, Result},
     ico::Favicons,
     obj::Bucket,
     search::Search,
     task::Task,
-    About,
+    About, Error, SessionId,
 };
 
 use fstore::RemoveResult;
-use minty::{export, Uuid};
+use minty::{export, Login, SignUp, Uuid};
 use std::{path::Path, result, sync::Arc};
 
 pub struct Repo {
@@ -50,6 +45,7 @@ pub struct Repo {
     database: Database,
     db_support: pgtools::Database,
     favicons: Favicons,
+    require_account: bool,
     search: Search,
 }
 
@@ -91,22 +87,53 @@ impl Repo {
             database,
             db_support,
             favicons,
+            require_account: config.require_account,
             search: Search::new(&config.search)?,
         })
     }
 
-    pub fn about(&self) -> About {
+    fn about(&self) -> About {
         About {
             version: crate::VERSION,
         }
     }
 
-    pub fn comment(&self, id: Uuid) -> Comment {
-        Comment::new(self, id)
+    pub fn admin(&self, user: Arc<Cached<cache::User>>) -> Result<Admin> {
+        Admin::new(self, user)
+    }
+
+    pub async fn authenticate(&self, login: &Login) -> Result<SessionId> {
+        const ERROR: Option<&str> = Some("invalid credentials");
+
+        let Some(Password { user_id, password }) =
+            self.database.read_user_password(&login.email).await?
+        else {
+            return Err(Error::Unauthenticated(ERROR));
+        };
+
+        if !self.auth.verify_password(&login.password, &password)? {
+            return Err(Error::Unauthenticated(ERROR));
+        }
+
+        let user = self
+            .cache
+            .users()
+            .get(user_id)
+            .await?
+            .found("user", user_id)?;
+
+        self.with_user(user).create_session().await
     }
 
     fn entity(&self, id: Uuid) -> Entity {
         Entity::new(self, id)
+    }
+
+    pub async fn grant_admin(&self, user: Uuid) -> Result<()> {
+        self.database
+            .update_admin(user, true)
+            .await?
+            .found("user", user)
     }
 
     fn links(&self) -> Links {
@@ -117,26 +144,58 @@ impl Repo {
         Object::new(self, id)
     }
 
-    pub fn objects(&self) -> Objects {
+    fn objects(&self) -> Objects {
         Objects::new(self)
     }
 
-    pub async fn post(&self, id: Uuid) -> Result<Post> {
-        let post = self.cache.posts().get(id).await?.found("post", id)?;
-        Ok(Post::new(self, post))
+    pub fn optional_user(
+        &self,
+        user: Option<Arc<Cached<cache::User>>>,
+    ) -> Result<OptionalUser> {
+        if self.require_account && user.is_none() {
+            Err(Error::Unauthenticated(Some("login required")))
+        } else {
+            Ok(OptionalUser::new(self, user))
+        }
     }
 
-    pub fn posts(&self) -> Posts {
-        Posts::new(self)
+    pub fn sessions(&self) -> Sessions {
+        Sessions::new(self)
     }
 
-    pub async fn tag(&self, id: Uuid) -> Result<Tag> {
-        let tag = self.cache.tags().get(id).await?.found("tag", id)?;
-        Ok(Tag::new(self, tag))
-    }
+    pub async fn sign_up(&self, info: SignUp) -> Result<SessionId> {
+        let name = info.username.as_ref();
+        let email = info.email.as_ref();
+        let password = self.auth.hash_password(info.password)?;
 
-    pub fn tags(&self) -> Tags {
-        Tags::new(self)
+        let mut tx = self.database.begin().await?;
+
+        let user =
+            tx.create_user(name, email, &password)
+                .await
+                .map_err(|err| {
+                    err.as_database_error()
+                        .and_then(|e| e.constraint())
+                        .and_then(|constraint| match constraint {
+                            "user_account_email_key" => {
+                                Some(Error::AlreadyExists {
+                                    entity: "user",
+                                    identifier: format!(
+                                        "email address '{email}'"
+                                    ),
+                                })
+                            }
+                            _ => None,
+                        })
+                        .unwrap_or_else(|| err.into())
+                })?;
+
+        self.search.add_user_alias(user.id, name).await?;
+
+        tx.commit().await?;
+
+        let user = self.cache.users().insert(user);
+        self.with_user(user).create_session().await
     }
 
     fn task(self: &Arc<Self>, task: Task) -> task::Task {
@@ -147,12 +206,8 @@ impl Repo {
         Tasks::new(self)
     }
 
-    pub fn user(&self, user: Arc<Cached<cache::User>>) -> User {
-        User::new(self, user)
-    }
-
-    pub fn users(&self) -> Users {
-        Users::new(self)
+    pub fn with_user(&self, user: Arc<Cached<cache::User>>) -> WithUser {
+        WithUser::new(self, user)
     }
 
     pub async fn prepare(&self) -> result::Result<(), String> {

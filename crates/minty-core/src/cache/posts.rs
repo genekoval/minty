@@ -1,6 +1,6 @@
 use super::{Cache, CacheLock, Cached, Comment, Id, Object, Result, Tag, User};
 
-use crate::{db, error::Found};
+use crate::{db, error::Found, Error};
 
 use dashmap::DashMap;
 use minty::{CommentData, DateTime, PostPreview, Uuid, Visibility};
@@ -184,6 +184,32 @@ impl Post {
         })
     }
 
+    pub fn can_edit(&self, user: &Arc<Cached<User>>) -> Result<()> {
+        let poster = self.poster.as_ref().map(|user| user.id);
+
+        if poster == Some(user.id) {
+            Ok(())
+        } else {
+            user.deny_permission()
+        }
+    }
+
+    pub fn can_view(&self, user: Option<&Arc<Cached<User>>>) -> Result<()> {
+        let draft = self
+            .mutable
+            .map(|post| post.visibility == Visibility::Draft)
+            .found("post", self.id)?;
+
+        let user = user.map(|user| user.id);
+        let poster = self.poster.as_ref().map(|poster| poster.id);
+
+        if !draft || poster == user {
+            Ok(())
+        } else {
+            Err(Error::Unauthorized)
+        }
+    }
+
     pub async fn model(&self, cache: &Cache) -> Result<Option<minty::Post>> {
         let Some(posts) = self.mutable.map(|post| post.posts.clone()) else {
             return Ok(None);
@@ -233,10 +259,10 @@ impl Post {
         this: &Arc<Cached<Post>>,
         cache: &Cache,
         comment: db::Comment,
-        user: Option<Arc<Cached<User>>>,
+        user: Arc<Cached<User>>,
     ) {
         let id = comment.id;
-        let comment = Comment::new(comment, user);
+        let comment = Comment::new(comment, Some(user));
 
         if let Some(path) = self
             .mutable
@@ -466,6 +492,17 @@ pub struct PostComments<'a> {
 }
 
 impl<'a> PostComments<'a> {
+    pub fn comment(&self, path: &[usize]) -> &Comment {
+        let first = *path.first().expect("empty paths should not exist");
+        let mut comment = self.comments.get(first).expect(EXISTING_COMMENT);
+
+        for index in path[1..].iter().copied() {
+            comment = comment.children.get(index).expect(EXISTING_COMMENT);
+        }
+
+        comment
+    }
+
     pub fn get(&self, path: &[usize]) -> Option<minty::Comment> {
         let first = *path.first().expect("empty paths should not exist");
         let mut parent: Option<Uuid> = None;
@@ -491,6 +528,10 @@ impl<'a> PostComments<'a> {
             .for_each(|comment| comment.thread(&mut result));
 
         result
+    }
+
+    pub fn user(&self, path: &[usize]) -> Option<Uuid> {
+        self.comment(path).user.as_ref().map(|user| user.id)
     }
 }
 

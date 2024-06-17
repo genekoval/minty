@@ -1,6 +1,6 @@
 use super::{text::Text, AppState, Result, Router};
 
-use crate::server::extract::User;
+use crate::server::extract::{OptionalUser, User};
 
 use axum::{
     extract::{Path, State},
@@ -16,15 +16,26 @@ async fn add_comment(
     Text(content): Text<text::Comment>,
 ) -> Result<Json<CommentData>> {
     Ok(Json(
-        repo.post(post).await?.add_comment(user.id, content).await?,
+        repo.with_user(user)
+            .post(post)
+            .await?
+            .add_comment(content)
+            .await?,
     ))
 }
 
 async fn get_comments(
     State(AppState { repo }): State<AppState>,
     Path(post): Path<Uuid>,
+    OptionalUser(user): OptionalUser,
 ) -> Result<Json<Vec<CommentData>>> {
-    Ok(Json(repo.post(post).await?.get_comments().await?))
+    Ok(Json(
+        repo.optional_user(user)?
+            .post(post)
+            .await?
+            .get_comments()
+            .await?,
+    ))
 }
 
 pub fn routes() -> Router {

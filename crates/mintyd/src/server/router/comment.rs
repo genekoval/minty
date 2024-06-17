@@ -1,6 +1,6 @@
 use super::{text::Text, AppState, Result, Router};
 
-use crate::server::extract::User;
+use crate::server::extract::{OptionalUser, User};
 
 use axum::{
     extract::{Path, Query, State},
@@ -12,20 +12,21 @@ use minty::{http::query::DeleteComment, text, Comment, CommentData, Uuid};
 
 async fn add_reply(
     State(AppState { repo }): State<AppState>,
-    User(user): User,
     Path(id): Path<Uuid>,
+    User(user): User,
     Text(content): Text<text::Comment>,
 ) -> Result<Json<CommentData>> {
-    Ok(Json(repo.comment(id).reply(user.id, content).await?))
+    Ok(Json(repo.with_user(user).comment(id).reply(content).await?))
 }
 
 async fn delete_comment(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
     Query(DeleteComment { recursive }): Query<DeleteComment>,
+    User(user): User,
 ) -> Result<StatusCode> {
     let recursive = recursive.unwrap_or(false);
-    repo.comment(id).delete(recursive).await?;
+    repo.with_user(user).comment(id).delete(recursive).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -33,16 +34,22 @@ async fn delete_comment(
 async fn get_comment(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
+    OptionalUser(user): OptionalUser,
 ) -> Result<Json<Comment>> {
-    Ok(Json(repo.comment(id).get().await?))
+    Ok(Json(repo.optional_user(user)?.comment(id).get().await?))
 }
 
 async fn set_comment_content(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
+    User(user): User,
     Text(content): Text<text::Comment>,
 ) -> Result<String> {
-    Ok(repo.comment(id).set_content(content).await?)
+    Ok(repo
+        .with_user(user)
+        .comment(id)
+        .set_content(content)
+        .await?)
 }
 
 pub fn routes() -> Router {

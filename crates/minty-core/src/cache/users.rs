@@ -1,6 +1,6 @@
 use super::{Cache, CacheLock, Cached, Id, Result};
 
-use crate::db;
+use crate::{db, Error};
 
 use minty::{EntityProfile, UserPreview, Uuid};
 use std::sync::Arc;
@@ -22,6 +22,10 @@ pub struct User {
 }
 
 impl User {
+    fn is_admin(&self) -> bool {
+        self.mutable.map(|user| user.admin).unwrap_or(false)
+    }
+
     pub fn model(&self) -> Option<minty::User> {
         self.mutable.map(|user| minty::User {
             id: self.id,
@@ -51,6 +55,14 @@ impl User {
 
     pub fn delete(&self) {
         self.mutable.delete();
+    }
+
+    pub fn deny_permission(&self) -> Result<()> {
+        if self.is_admin() {
+            Ok(())
+        } else {
+            Err(Error::Unauthorized)
+        }
     }
 }
 

@@ -78,6 +78,7 @@ pub struct User {
     pub id: Uuid,
     pub email: String,
     pub password: String,
+    pub admin: bool,
     #[serde(flatten)]
     pub profile: EntityProfile,
 }

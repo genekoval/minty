@@ -1,6 +1,4 @@
-use super::Repo;
-
-use crate::{cache, error::Found, Cached, Result, SessionId};
+use crate::{cache::User, error::Found, Cached, Repo, Result};
 
 use minty::{
     text::{Description, Email, Name, Password},
@@ -8,13 +6,13 @@ use minty::{
 };
 use std::sync::Arc;
 
-pub struct User<'a> {
+pub struct Edit<'a> {
     repo: &'a Repo,
-    user: Arc<Cached<cache::User>>,
+    user: Arc<Cached<User>>,
 }
 
-impl<'a> User<'a> {
-    pub(super) fn new(repo: &'a Repo, user: Arc<Cached<cache::User>>) -> Self {
+impl<'a> Edit<'a> {
+    pub(super) fn new(repo: &'a Repo, user: Arc<Cached<User>>) -> Self {
         Self { repo, user }
     }
 
@@ -38,22 +36,6 @@ impl<'a> User<'a> {
             .update(|user| user.profile.add_source(source.clone()));
 
         Ok(source)
-    }
-
-    pub async fn create_session(&self) -> Result<SessionId> {
-        let session = SessionId::new();
-
-        self.repo
-            .database
-            .create_user_session(self.user.id, session.as_bytes())
-            .await?;
-
-        self.repo
-            .cache
-            .sessions()
-            .insert(session, self.user.clone());
-
-        Ok(session)
     }
 
     pub async fn delete(&self) -> Result<()> {
@@ -109,10 +91,6 @@ impl<'a> User<'a> {
         Ok(())
     }
 
-    pub fn get(&self) -> Result<minty::User> {
-        self.user.model().found("user", self.user.id)
-    }
-
     pub async fn set_description(
         &self,
         description: Description,
@@ -129,18 +107,6 @@ impl<'a> User<'a> {
             .update(|user| user.profile.description.clone_from(&description));
 
         Ok(description)
-    }
-
-    pub async fn set_admin(&self, admin: bool) -> Result<()> {
-        self.repo
-            .database
-            .update_admin(self.user.id, admin)
-            .await?
-            .found("user", self.user.id)?;
-
-        self.user.update(|user| user.admin = admin);
-
-        Ok(())
     }
 
     pub async fn set_email(&self, email: Email) -> Result<()> {

@@ -25,12 +25,14 @@ impl Client {
             )));
         };
 
-        let session = if let Some(email) = config.user(&args.user) {
-            Some(config.credentials(server, email.as_ref())?)
-        } else {
-            None
-        }
-        .flatten();
+        let session = args
+            .user
+            .as_deref()
+            .and_then(|alias| config.user(alias))
+            .and_then(|email| {
+                config.credentials(server, email.as_ref()).transpose()
+            })
+            .transpose()?;
 
         let client = minty_cli::Client::new(
             &args.server,
@@ -68,19 +70,20 @@ impl Client {
                 size,
             } => self.find(command, Pagination { from, size }).await,
             Command::Grant { command } => self.grant(command).await,
-            Command::Login => self.login(args.user).await,
-            Command::Logout => self.logout(args.user).await,
+            Command::Login { user } => self.login(user).await,
+            Command::Logout { user } => self.logout(user).await,
             Command::Me { command } => self.me(command).await,
             Command::New { command } => self.cmd_new(command).await,
             Command::Obj { id, command } => self.object(id, command).await,
+            Command::Objects { command } => self.objects(command).await,
             Command::Password => self.client.set_user_password().await,
             Command::Post { id, command } => self.post(id, command).await,
             Command::Reply { comment, content } => {
                 self.client.reply(comment, content).await
             }
             Command::Revoke { command } => self.revoke(command).await,
-            Command::Signup { username } => {
-                self.sign_up(username, args.user).await
+            Command::Signup { username, user } => {
+                self.sign_up(username, user).await
             }
             Command::Tag { id, command } => self.tag(id, command).await,
             Command::User { id } => self.client.get_user(id).await,
@@ -267,6 +270,12 @@ impl Client {
                     .get_object_data(id, no_clobber, destination)
                     .await
             }
+        }
+    }
+
+    async fn objects(&self, command: Objects) -> Result {
+        match command {
+            Objects::Errors => self.client.get_object_preview_errors().await,
         }
     }
 

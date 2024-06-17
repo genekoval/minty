@@ -1200,12 +1200,13 @@ CREATE FUNCTION import(data jsonb) RETURNS void AS $$
 BEGIN
     PERFORM import_entity(data -> 'users');
 
-    INSERT INTO data.user_account (user_id, email, password)
-    SELECT id, email, password
+    INSERT INTO data.user_account (user_id, email, password, admin)
+    SELECT id, email, password, admin
     FROM jsonb_to_recordset(data -> 'users') AS (
         id uuid,
         email text,
-        password text
+        password text,
+        admin boolean
     );
 
     PERFORM import_entity(data -> 'tags');
@@ -1356,6 +1357,7 @@ SELECT json_build_object(
                     user_id AS id,
                     email,
                     password,
+                    admin,
                     name,
                     aliases,
                     description,

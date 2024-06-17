@@ -3,7 +3,7 @@ use super::{
     HumanReadable,
 };
 
-use minty::{Object, ObjectPreview};
+use minty::{Object, ObjectError, ObjectPreview};
 use owo_colors::OwoColorize;
 use std::io::{Result, Write};
 
@@ -29,6 +29,13 @@ impl HumanReadable for Object {
             )
             .row("Added", icon::CLOCK, self.added.long_date())
             .print(indent, w)
+    }
+}
+
+impl HumanReadable for ObjectError {
+    fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
+        write!(w, "{:1$}", "", indent)?;
+        writeln!(w, "{}: {}", self.id, self.message)
     }
 }
 

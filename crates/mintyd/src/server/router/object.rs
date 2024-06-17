@@ -1,5 +1,7 @@
 use super::{AppState, Result, Router};
 
+use crate::server::extract::{OptionalUser, User};
+
 use axum::{
     extract::{Path, Request, State},
     http::header::{CONTENT_LENGTH, CONTENT_TYPE},
@@ -14,27 +16,32 @@ use tokio_util::io::StreamReader;
 
 async fn add_object(
     State(AppState { repo }): State<AppState>,
+    User(user): User,
     request: Request,
 ) -> Result<Json<ObjectPreview>> {
     let stream = request.into_body().into_data_stream();
-    let object = repo.objects().upload(SyncStream::new(stream)).await?;
+    let objects = repo.with_user(user).objects();
+
+    let object = objects.upload(SyncStream::new(stream)).await?;
 
     Ok(Json(object))
 }
 
 async fn get_object(
     State(AppState { repo }): State<AppState>,
+    OptionalUser(user): OptionalUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Object>> {
-    Ok(Json(repo.object(id).get().await?))
+    Ok(Json(repo.optional_user(user)?.object(id).get().await?))
 }
 
 async fn get_object_data(
     State(AppState { repo }): State<AppState>,
+    OptionalUser(user): OptionalUser,
     Path(id): Path<Uuid>,
 ) -> Result<Response> {
     let (ObjectSummary { media_type, size }, stream) =
-        repo.object(id).get_data().await?;
+        repo.optional_user(user)?.object(id).get_data().await?;
 
     let headers = [
         (CONTENT_LENGTH, size.to_string()),

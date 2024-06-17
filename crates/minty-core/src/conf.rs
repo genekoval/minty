@@ -79,5 +79,7 @@ pub struct RepoConfig {
     pub cache: Cache,
     pub database: DatabaseConfig,
     pub objects: BucketConfig,
+    #[serde(default)]
+    pub require_account: bool,
     pub search: SearchConfig,
 }

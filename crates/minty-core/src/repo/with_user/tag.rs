@@ -1,6 +1,4 @@
-use super::Repo;
-
-use crate::{cache, error::Found, Cached, Result};
+use crate::{cache, error::Found, Cached, Repo, Result};
 
 use minty::{
     text::{Description, Name},
@@ -93,10 +91,6 @@ impl<'a> Tag<'a> {
         self.tag.update(|tag| tag.profile.delete_sources(&ids));
 
         Ok(())
-    }
-
-    pub fn get(&self) -> Result<minty::Tag> {
-        self.tag.model().found("tag", self.tag.id)
     }
 
     pub async fn set_description(

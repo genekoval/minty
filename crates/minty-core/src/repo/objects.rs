@@ -2,10 +2,8 @@ use super::Repo;
 
 use crate::{preview, Result};
 
-use bytes::Bytes;
-use futures::TryStream;
 use log::error;
-use minty::{ObjectError, ObjectPreview};
+use minty::ObjectPreview;
 
 pub struct Objects<'a> {
     repo: &'a Repo,
@@ -50,26 +48,5 @@ impl<'a> Objects<'a> {
             r#type: object.r#type,
             subtype: object.subtype,
         })
-    }
-
-    pub async fn get_preview_errors(&self) -> Result<Vec<ObjectError>> {
-        Ok(self
-            .repo
-            .database
-            .read_object_preview_errors()
-            .await?
-            .into_iter()
-            .map(|e| e.into())
-            .collect())
-    }
-
-    pub async fn upload<S>(&self, stream: S) -> Result<ObjectPreview>
-    where
-        S: TryStream + Send + Sync + 'static,
-        S::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-        Bytes: From<S::Ok>,
-    {
-        let object = self.repo.bucket.add_object_stream(stream).await?;
-        self.add(object).await
     }
 }

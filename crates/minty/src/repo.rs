@@ -124,6 +124,8 @@ pub trait Repo {
         id: Uuid,
     ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)>;
 
+    async fn get_object_preview_errors(&self) -> Result<Vec<ObjectError>>;
+
     async fn get_post(&self, id: Uuid) -> Result<Post>;
 
     async fn get_posts(

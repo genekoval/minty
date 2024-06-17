@@ -413,6 +413,10 @@ impl Client {
         Ok(())
     }
 
+    pub async fn get_object_preview_errors(&self) -> Result {
+        self.print(self.repo.get_object_preview_errors().await?)
+    }
+
     pub async fn get_post(&self, id: Uuid) -> Result {
         self.print(self.repo.get_post(id).await?)
     }

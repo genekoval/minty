@@ -8,13 +8,13 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct TagMut {
     pub profile: EntityProfile,
-    pub creator: Option<Arc<Cached<User>>>,
     pub post_count: u32,
 }
 
 #[derive(Debug)]
 pub struct Tag {
     pub id: Uuid,
+    pub creator: Option<Arc<Cached<User>>>,
     mutable: CacheLock<TagMut>,
 }
 
@@ -28,11 +28,21 @@ impl Tag {
 
         Self {
             id: tag.id,
+            creator,
             mutable: CacheLock::new(TagMut {
                 profile: tag.profile.into(),
-                creator,
                 post_count: tag.post_count,
             }),
+        }
+    }
+
+    pub fn can_edit(&self, user: &Arc<Cached<User>>) -> Result<()> {
+        let creator = self.creator.as_ref().map(|user| user.id);
+
+        if creator == Some(user.id) {
+            Ok(())
+        } else {
+            user.deny_permission()
         }
     }
 
@@ -40,7 +50,7 @@ impl Tag {
         self.mutable.map(|tag| minty::Tag {
             id: self.id,
             profile: tag.profile.clone(),
-            creator: tag.creator.as_ref().and_then(|user| user.preview()),
+            creator: self.creator.as_ref().and_then(|user| user.preview()),
             post_count: tag.post_count,
         })
     }

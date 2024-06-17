@@ -123,7 +123,7 @@ async fn try_get_session(
         return Ok(None);
     };
 
-    let session = repo.users().get_session(id).await?;
+    let session = repo.sessions().get(id).await?;
     Ok(Some(session))
 }
 

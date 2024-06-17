@@ -356,6 +356,15 @@ impl crate::Repo for Repo {
             .object()
     }
 
+    async fn get_object_preview_errors(&self) -> Result<Vec<ObjectError>> {
+        self.client
+            .get("objects/errors")
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
     async fn get_post(&self, id: Uuid) -> Result<Post> {
         self.client
             .get(format!("post/{id}"))

@@ -7,7 +7,7 @@ async fn login(
     State(AppState { repo }): State<AppState>,
     Form(login): Form<Login>,
 ) -> Result<String> {
-    Ok(repo.users().authenticate(&login).await?.to_string())
+    Ok(repo.authenticate(&login).await?.to_string())
 }
 
 pub fn routes() -> Router {

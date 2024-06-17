@@ -15,9 +15,7 @@ async fn get_posts(
     Query(query): Query<PostQuery>,
 ) -> Result<Json<SearchResult<PostPreview>>> {
     Ok(Json(
-        repo.posts()
-            .find(user.map(|user| user.id), query.into())
-            .await?,
+        repo.optional_user(user)?.posts().find(query.into()).await?,
     ))
 }
 
