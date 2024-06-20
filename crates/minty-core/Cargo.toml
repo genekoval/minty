@@ -20,7 +20,6 @@ graphicsmagick-sys = { workspace = true }
 jsonwebtoken = { workspace = true }
 log = { workspace = true }
 lru = { workspace = true }
-moka = { workspace = true }
 pgtools = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
