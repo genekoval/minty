@@ -117,6 +117,10 @@ pub trait Repo {
 
     async fn get_comments(&self, post_id: Uuid) -> Result<Vec<CommentData>>;
 
+    async fn get_invitation(&self) -> Result<String>;
+
+    async fn get_inviter(&self, token: &str) -> Result<User>;
+
     async fn get_object(&self, id: Uuid) -> Result<Object>;
 
     async fn get_object_data(
@@ -203,5 +207,9 @@ pub trait Repo {
 
     async fn sign_out(&self) -> Result<()>;
 
-    async fn sign_up(&self, info: &SignUp) -> Result<String>;
+    async fn sign_up(
+        &self,
+        info: &SignUp,
+        invitation: Option<String>,
+    ) -> Result<String>;
 }

@@ -336,6 +336,19 @@ impl crate::Repo for Repo {
             .await
     }
 
+    async fn get_invitation(&self) -> Result<String> {
+        self.client.get("invitation").send().await?.text().await
+    }
+
+    async fn get_inviter(&self, invitation: &str) -> Result<User> {
+        self.client
+            .get(format!("invitation/{invitation}"))
+            .send()
+            .await?
+            .deserialize()
+            .await
+    }
+
     async fn get_object(&self, id: Uuid) -> Result<Object> {
         self.client
             .get(format!("object/{id}"))
@@ -590,9 +603,16 @@ impl crate::Repo for Repo {
         Ok(())
     }
 
-    async fn sign_up(&self, info: &SignUp) -> Result<String> {
+    async fn sign_up(
+        &self,
+        info: &SignUp,
+        invitation: Option<String>,
+    ) -> Result<String> {
+        let query = query::SignUp { invitation };
+
         self.client
             .post("signup")
+            .query(&query)
             .form(info)
             .send()
             .await?

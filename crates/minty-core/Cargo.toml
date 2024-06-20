@@ -17,6 +17,7 @@ fstore = { workspace = true, features = ["http"] }
 futures = { workspace = true }
 futures-core = { workspace = true }
 graphicsmagick-sys = { workspace = true }
+jsonwebtoken = { workspace = true }
 log = { workspace = true }
 lru = { workspace = true }
 moka = { workspace = true }

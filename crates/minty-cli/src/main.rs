@@ -70,6 +70,7 @@ impl Client {
                 size,
             } => self.find(command, Pagination { from, size }).await,
             Command::Grant { command } => self.grant(command).await,
+            Command::Invite => self.client.get_invitation().await,
             Command::Login { user } => self.login(user).await,
             Command::Logout { user } => self.logout(user).await,
             Command::Me { command } => self.me(command).await,
@@ -82,9 +83,11 @@ impl Client {
                 self.client.reply(comment, content).await
             }
             Command::Revoke { command } => self.revoke(command).await,
-            Command::Signup { username, user } => {
-                self.sign_up(username, user).await
-            }
+            Command::Signup {
+                username,
+                user,
+                invitation,
+            } => self.sign_up(username, user, invitation).await,
             Command::Tag { id, command } => self.tag(id, command).await,
             Command::User { id } => self.client.get_user(id).await,
         }
@@ -326,7 +329,12 @@ impl Client {
         }
     }
 
-    async fn sign_up(&self, name: text::Name, user: String) -> Result {
+    async fn sign_up(
+        &self,
+        name: text::Name,
+        user: String,
+        invitation: Option<String>,
+    ) -> Result {
         let Some(email) = self.config.user(&user) else {
             return Err(Error::Config(format!(
                 "user alias '{}' not defined",
@@ -334,7 +342,8 @@ impl Client {
             )));
         };
 
-        let session = self.client.sign_up(name, email.clone()).await?;
+        let session =
+            self.client.sign_up(name, email.clone(), invitation).await?;
         let server = self.client.url().clone();
         let email = email.to_string();
 

@@ -28,6 +28,7 @@ use crate::{
     db::{self, Database, Password},
     error::{Found, Result},
     ico::Favicons,
+    model::Invitation,
     obj::Bucket,
     search::Search,
     task::Task,
@@ -46,6 +47,7 @@ pub struct Repo {
     db_support: pgtools::Database,
     favicons: Favicons,
     require_account: bool,
+    require_invitation: bool,
     search: Search,
 }
 
@@ -81,13 +83,14 @@ impl Repo {
         let favicons = Favicons::new(bucket.clone());
 
         Ok(Self {
-            auth: Auth::new(),
+            auth: Auth::new(&config.jwt_secret),
             bucket,
             cache,
             database,
             db_support,
             favicons,
             require_account: config.require_account,
+            require_invitation: config.require_invitation,
             search: Search::new(&config.search)?,
         })
     }
@@ -129,6 +132,32 @@ impl Repo {
         Entity::new(self, id)
     }
 
+    pub async fn get_inviter(&self, token: &str) -> Result<minty::User> {
+        use jsonwebtoken::errors::ErrorKind::*;
+
+        let invitation: Invitation =
+            self.auth
+                .decode_jwt(token)
+                .map_err(|err| match err.kind() {
+                    ExpiredSignature => {
+                        Error::InvalidInput("invitation expired".into())
+                    }
+                    _ => Error::InvalidInput("invitation invalid".into()),
+                })?;
+
+        self.cache
+            .users()
+            .get(invitation.user())
+            .await?
+            .and_then(|user| user.model())
+            .ok_or_else(|| {
+                Error::InvalidInput(
+                    "invitation invalid: creator of invitation not found"
+                        .into(),
+                )
+            })
+    }
+
     pub async fn grant_admin(&self, user: Uuid) -> Result<()> {
         self.database
             .update_admin(user, true)
@@ -163,7 +192,17 @@ impl Repo {
         Sessions::new(self)
     }
 
-    pub async fn sign_up(&self, info: SignUp) -> Result<SessionId> {
+    pub async fn sign_up(
+        &self,
+        info: SignUp,
+        invitation: Option<&str>,
+    ) -> Result<SessionId> {
+        if self.require_invitation {
+            let token = invitation
+                .ok_or(Error::InvalidInput("invitation required".into()))?;
+            self.get_inviter(token).await?;
+        }
+
         let name = info.username.as_ref();
         let email = info.email.as_ref();
         let password = self.auth.hash_password(info.password)?;

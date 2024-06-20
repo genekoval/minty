@@ -175,7 +175,16 @@ pub enum Command {
 
         /// New user's display name
         username: text::Name,
+
+        /// Existing user's invitation token
+        invitation: Option<String>,
     },
+
+    /// Generate an invitation
+    ///
+    /// People without an account can use your invitation to sign up to
+    /// this repo.
+    Invite,
 
     /// Change your email address
     Email {

@@ -14,8 +14,11 @@ pub use posts::*;
 pub use tag::*;
 pub use tags::*;
 
-use crate::{cache, error::Found, Cached, Repo, Result, SessionId};
+use crate::{
+    cache, error::Found, model::Invitation, Cached, Repo, Result, SessionId,
+};
 
+use chrono::Duration;
 use minty::Uuid;
 use std::sync::Arc;
 
@@ -55,6 +58,13 @@ impl<'a> WithUser<'a> {
 
     pub fn get_self(&self) -> Result<minty::User> {
         self.user.model().found("user", self.user.id)
+    }
+
+    pub fn invite(&self) -> Result<String> {
+        let exp = Duration::hours(24);
+        let invitation = Invitation::new(self.user.id);
+
+        self.repo.auth.encode_jwt(exp, invitation)
     }
 
     pub fn objects(self) -> Objects<'a> {

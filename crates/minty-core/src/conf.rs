@@ -78,8 +78,11 @@ pub struct RepoConfig {
     #[serde(default)]
     pub cache: Cache,
     pub database: DatabaseConfig,
+    #[serde(default)]
+    pub jwt_secret: String,
     pub objects: BucketConfig,
     #[serde(default)]
     pub require_account: bool,
+    pub require_invitation: bool,
     pub search: SearchConfig,
 }

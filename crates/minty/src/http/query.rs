@@ -206,3 +206,8 @@ impl SetProfileName {
         Self { main: Some(value) }
     }
 }
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct SignUp {
+    pub invitation: Option<String>,
+}

@@ -363,6 +363,12 @@ impl Client {
         self.print(self.repo.get_comments(post_id).await?)
     }
 
+    pub async fn get_invitation(&self) -> Result {
+        let token = self.repo.get_invitation().await?;
+        println!("{token}");
+        Ok(())
+    }
+
     pub async fn get_object(&self, id: Uuid) -> Result {
         self.print(self.repo.get_object(id).await?)
     }
@@ -576,7 +582,15 @@ impl Client {
         &self,
         username: text::Name,
         email: text::Email,
+        invitation: Option<String>,
     ) -> crate::Result<String> {
+        if let Some(invitation) = invitation.as_deref() {
+            let inviter = self.repo.get_inviter(invitation).await?;
+            let name = inviter.profile.name.as_str();
+
+            println!("{name} invited you to join Minty!");
+        }
+
         let password = prompt_password("Password: ")?
             .try_into()
             .map_err(|err| format!("{err}"))?;
@@ -587,7 +601,7 @@ impl Client {
             password,
         };
 
-        Ok(self.repo.sign_up(&info).await?)
+        Ok(self.repo.sign_up(&info, invitation).await?)
     }
 
     async fn upload_file(&self, path: PathBuf) -> crate::Result<Uuid> {
