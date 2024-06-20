@@ -26,6 +26,10 @@ impl User {
         self.mutable.map(|user| user.admin).unwrap_or(false)
     }
 
+    pub fn is_deleted(&self) -> bool {
+        self.mutable.is_deleted()
+    }
+
     pub fn model(&self) -> Option<minty::User> {
         self.mutable.map(|user| minty::User {
             id: self.id,

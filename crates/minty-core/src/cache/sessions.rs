@@ -41,10 +41,19 @@ impl<'a> Sessions<'a> {
         &self,
         id: SessionId,
     ) -> Result<Option<Arc<Cached<Session>>>> {
-        self.cache
+        Ok(self
+            .cache
             .sessions
             .get(id, || async { self.on_miss(id).await })
-            .await
+            .await?
+            .and_then(|session| {
+                if session.user.is_deleted() {
+                    self.remove(id);
+                    None
+                } else {
+                    Some(session)
+                }
+            }))
     }
 
     async fn on_miss(&self, id: SessionId) -> Result<Option<Session>> {
