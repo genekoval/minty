@@ -1,4 +1,4 @@
-use minty_test::{not_found, repo};
+use minty_test::{admin, not_found};
 
 use minty::{
     text::{Description, Name},
@@ -11,7 +11,7 @@ use uuid::uuid;
 async fn add_tag() {
     const NAME: &str = "Minty Test";
 
-    let repo = repo().await;
+    let repo = admin().await;
     let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name).await.unwrap();
     let tag = repo.get_tag(id).await.unwrap();
@@ -24,7 +24,7 @@ async fn add_tag_alias() {
     const NAME: &str = "Tag Name";
     const ALIAS: &str = "Tag Alias";
 
-    let repo = repo().await;
+    let repo = admin().await;
 
     let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name.clone()).await.unwrap();
@@ -59,7 +59,7 @@ async fn add_tag_alias() {
 async fn add_tag_source() {
     const SOURCE: &str = "https://example.com/hello";
 
-    let repo = repo().await;
+    let repo = admin().await;
     let name = Name::new("Tag Name").unwrap();
     let id = repo.add_tag(name).await.unwrap();
     let url = Url::parse(SOURCE).unwrap();
@@ -84,7 +84,7 @@ async fn add_tag_source() {
 
 #[test]
 async fn delete_tag() {
-    let repo = repo().await;
+    let repo = admin().await;
     let name = Name::new("Delete Me").unwrap();
     let id = repo.add_tag(name).await.unwrap();
     repo.delete_tag(id).await.unwrap();
@@ -96,7 +96,7 @@ async fn delete_tag_alias() {
     const NAME: &str = "Tag Name";
     const ALIAS: &str = "Delete Me";
 
-    let repo = repo().await;
+    let repo = admin().await;
     let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name).await.unwrap();
     let alias = Name::new(ALIAS).unwrap();
@@ -118,7 +118,7 @@ async fn delete_tag_alias() {
 
 #[test]
 async fn delete_tag_source() {
-    let repo = repo().await;
+    let repo = admin().await;
     let name = Name::new("Tag Name").unwrap();
     let id = repo.add_tag(name).await.unwrap();
     let url = Url::parse("https://example.com/hello").unwrap();
@@ -136,7 +136,7 @@ async fn delete_tag_source() {
 async fn delete_tag_sources() {
     const HOST: &str = "example.com";
 
-    let repo = repo().await;
+    let repo = admin().await;
     let name = Name::new("Tag Name").unwrap();
     let id = repo.add_tag(name).await.unwrap();
 
@@ -162,7 +162,7 @@ async fn delete_tag_sources() {
 
 #[test]
 async fn get_tags() {
-    let repo = repo().await;
+    let repo = admin().await;
     let java = repo.add_tag(Name::new("Java").unwrap()).await.unwrap();
     let js = repo
         .add_tag(Name::new("JavaScript").unwrap())
@@ -200,7 +200,7 @@ async fn set_tag_description() {
     const NAME: &str = "Tag Name";
     const DESCRIPTION: &str = "A description of a tag.";
 
-    let repo = repo().await;
+    let repo = admin().await;
     let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name).await.unwrap();
 
@@ -223,7 +223,7 @@ async fn set_tag_name() {
     const NAME: &str = "Tag Name";
     const ALIAS: &str = "Tag Alias";
 
-    let repo = repo().await;
+    let repo = admin().await;
 
     let name = Name::new(NAME).unwrap();
     let id = repo.add_tag(name.clone()).await.unwrap();

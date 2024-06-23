@@ -10,9 +10,12 @@ use tokio::sync::OnceCell;
 const LOG_VAR: &str = "MINTY_TEST_LOG";
 const URL_VAR: &str = "MINTY_TEST_URL";
 
-pub async fn repo() -> http::Repo {
-    static URL: OnceLock<Url> = OnceLock::new();
-    let url = URL.get_or_init(get_url);
+pub fn repo() -> http::Repo {
+    http::Repo::new(url(), None)
+}
+
+pub async fn admin() -> http::Repo {
+    let url = url();
 
     static SESSION: OnceCell<String> = OnceCell::const_new();
     let session = SESSION
@@ -57,4 +60,9 @@ fn get_url() -> Url {
 
     Url::parse(&env)
         .unwrap_or_else(|err| panic!("failed to parse {URL_VAR}: {err}"))
+}
+
+fn url() -> &'static Url {
+    static URL: OnceLock<Url> = OnceLock::new();
+    URL.get_or_init(get_url)
 }

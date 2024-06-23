@@ -83,6 +83,7 @@ pub struct RepoConfig {
     pub objects: BucketConfig,
     #[serde(default)]
     pub require_account: bool,
+    #[serde(default)]
     pub require_invitation: bool,
     pub search: SearchConfig,
 }

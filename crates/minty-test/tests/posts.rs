@@ -1,4 +1,4 @@
-use minty_test::{posts::*, repo, tags::LANGUAGES};
+use minty_test::{admin, posts::*, tags::LANGUAGES};
 
 use minty::{
     Pagination, PostQuery, PostSort, PostSortValue::*, Repo, SortOrder::*,
@@ -96,7 +96,7 @@ where
     T: AsRef<[Uuid]>,
 {
     let expected = expected.as_ref();
-    let repo = repo().await;
+    let repo = admin().await;
 
     query.tags.push(LANGUAGES);
 
