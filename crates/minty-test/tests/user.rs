@@ -106,6 +106,33 @@ async fn add_source() {
 
 #[test]
 #[named]
+async fn delete_alias() {
+    const NAME: &str = function_name!();
+    const ALIAS: &str = "Delete Me";
+
+    let alias = Name::new(ALIAS).unwrap();
+    let repo = new_user!();
+    repo.add_user_alias(alias).await.unwrap();
+
+    for _ in 0..2 {
+        let user = repo.delete_user_alias(ALIAS).await.unwrap();
+        assert_eq!(NAME, user.name);
+        assert!(user.aliases.is_empty());
+
+        let user = repo.get_authenticated_user().await.unwrap();
+        assert_eq!(NAME, user.profile.name);
+        assert!(user.profile.aliases.is_empty());
+    }
+
+    repo.delete_user().await.unwrap();
+    self::repo()
+        .delete_user_alias(ALIAS)
+        .await
+        .expect_unauthenticated();
+}
+
+#[test]
+#[named]
 async fn delete_source() {
     let repo = new_user!();
     let url = Url::parse("https://example.com/hello").unwrap();
