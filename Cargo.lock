@@ -1826,6 +1826,7 @@ dependencies = [
  "scraper",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx",
  "sqlx-helper-macros",
  "thiserror",

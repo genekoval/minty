@@ -1,6 +1,6 @@
 use super::{Cache, Cached, Id, Result, User};
 
-use crate::SessionId;
+use crate::auth::Digest;
 
 use chrono::Local;
 use minty::DateTime;
@@ -8,14 +8,14 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Session {
-    pub id: SessionId,
+    pub id: Digest,
     user: Arc<Cached<User>>,
     expiration: DateTime,
 }
 
 impl Session {
     pub fn new(
-        id: SessionId,
+        id: Digest,
         user: Arc<Cached<User>>,
         expiration: DateTime,
     ) -> Self {
@@ -40,7 +40,7 @@ impl Session {
 }
 
 impl Id for Session {
-    type Id = SessionId;
+    type Id = Digest;
 
     fn id(&self) -> Self::Id {
         self.id
@@ -58,7 +58,7 @@ impl<'a> Sessions<'a> {
 
     pub async fn get(
         &self,
-        id: SessionId,
+        id: Digest,
     ) -> Result<Option<Arc<Cached<Session>>>> {
         Ok(self
             .cache
@@ -75,9 +75,8 @@ impl<'a> Sessions<'a> {
             }))
     }
 
-    async fn on_miss(&self, id: SessionId) -> Result<Option<Session>> {
-        let Some(session) =
-            self.cache.database.read_user_session(id.as_bytes()).await?
+    async fn on_miss(&self, id: Digest) -> Result<Option<Session>> {
+        let Some(session) = self.cache.database.read_user_session(&id).await?
         else {
             return Ok(None);
         };
@@ -91,7 +90,7 @@ impl<'a> Sessions<'a> {
 
     pub fn insert(
         &self,
-        session: SessionId,
+        session: Digest,
         user: Arc<Cached<User>>,
         expiration: DateTime,
     ) -> Arc<Cached<Session>> {
@@ -100,7 +99,7 @@ impl<'a> Sessions<'a> {
             .insert(Session::new(session, user, expiration))
     }
 
-    pub fn remove(&self, session: SessionId) {
+    pub fn remove(&self, session: Digest) {
         self.cache.sessions.remove(session);
     }
 }

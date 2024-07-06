@@ -12,11 +12,9 @@ impl<'a> Sessions<'a> {
     }
 
     pub async fn delete(&self, session: SessionId) -> Result<()> {
-        self.repo
-            .database
-            .delete_user_session(session.as_bytes())
-            .await?;
+        let session = session.digest();
 
+        self.repo.database.delete_user_session(&session).await?;
         self.repo.cache.sessions().remove(session);
 
         Ok(())
@@ -29,7 +27,7 @@ impl<'a> Sessions<'a> {
         self.repo
             .cache
             .sessions()
-            .get(session)
+            .get(session.digest())
             .await?
             .ok_or(Error::Unauthenticated(None))
     }

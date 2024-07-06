@@ -39,19 +39,20 @@ impl<'a> WithUser<'a> {
 
     pub async fn create_session(self) -> Result<SessionInfo> {
         let user_id = self.user.id;
-        let session = SessionId::new();
+        let session = SessionId::generate();
+        let digest = session.digest();
         let max_age = Duration::days(30);
         let expiration = Local::now() + max_age;
 
         self.repo
             .database
-            .create_user_session(self.user.id, session.as_bytes(), expiration)
+            .create_user_session(self.user.id, &digest, expiration)
             .await?;
 
         self.repo
             .cache
             .sessions()
-            .insert(session, self.user, expiration);
+            .insert(digest, self.user, expiration);
 
         Ok(SessionInfo {
             id: session,

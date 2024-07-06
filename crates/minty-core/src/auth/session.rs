@@ -1,63 +1,81 @@
 pub use base64::DecodeSliceError as Base64DecodeError;
 
-use base64::{engine::general_purpose::STANDARD_NO_PAD as Base64, Engine};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD as Base64, Engine};
 use rand::{rngs::OsRng, RngCore};
+use sha2::{Digest as _, Sha256};
 use std::{
     fmt::{self, Display},
+    ops::Deref,
     result,
     str::{self, FromStr},
 };
 
-/// The number of bytes in a session ID.
-const SESSION_ID_LENGTH: usize = 32;
+macro_rules! byte_array {
+    ($t:ident, $n:expr) => {
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+        #[repr(transparent)]
+        pub struct $t([u8; $n]);
 
-// Every 3 bytes of binary data encodes to 4 base64 characters
-const SESSION_ID_STR_LEN: usize = SESSION_ID_LENGTH.div_ceil(3) * 4;
+        impl Deref for $t {
+            type Target = [u8];
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[repr(transparent)]
-pub struct SessionId([u8; SESSION_ID_LENGTH]);
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
 
-impl SessionId {
-    pub fn new() -> Self {
-        Default::default()
-    }
+        impl Display for $t {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                const ENCODED_LEN: usize = match base64::encoded_len($n, false)
+                {
+                    Some(len) => len,
+                    None => panic!("type too large to base64 encode"),
+                };
 
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.0
-    }
+                let mut buf = [0u8; ENCODED_LEN];
+
+                let bytes_written = Base64
+                    .encode_slice(self.0, &mut buf)
+                    .expect("buffer should be large enough");
+
+                let encoded =
+                    unsafe { str::from_utf8_unchecked(&buf[..bytes_written]) };
+
+                f.write_str(encoded)
+            }
+        }
+
+        impl FromStr for $t {
+            type Err = Base64DecodeError;
+
+            fn from_str(s: &str) -> result::Result<Self, Self::Err> {
+                let mut buf = [0u8; $n];
+                Base64.decode_slice(s, &mut buf)?;
+
+                Ok(Self(buf))
+            }
+        }
+    };
 }
 
-impl Default for SessionId {
-    fn default() -> Self {
-        let mut buf = [0u8; SESSION_ID_LENGTH];
-        OsRng.fill_bytes(&mut buf);
-        Self(buf)
-    }
+macro_rules! random_byte_array {
+    ($t:ident, $n:expr) => {
+        byte_array!($t, $n);
+
+        impl $t {
+            pub fn generate() -> Self {
+                let mut buf = [0u8; $n];
+                OsRng.fill_bytes(&mut buf);
+                Self(buf)
+            }
+
+            pub fn digest(&self) -> Digest {
+                Digest(Sha256::digest(self.0).into())
+            }
+        }
+    };
 }
 
-impl Display for SessionId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut buf = [0u8; SESSION_ID_STR_LEN];
+byte_array!(Digest, 32);
 
-        let bytes_written = Base64
-            .encode_slice(self.0, &mut buf)
-            .expect("buffer should be large enough");
-
-        let encoded =
-            unsafe { str::from_utf8_unchecked(&buf[..bytes_written]) };
-
-        f.write_str(encoded)
-    }
-}
-
-impl FromStr for SessionId {
-    type Err = Base64DecodeError;
-
-    fn from_str(s: &str) -> result::Result<Self, Self::Err> {
-        let mut buf = [0u8; SESSION_ID_LENGTH];
-        Base64.decode_slice(s, &mut buf)?;
-
-        Ok(Self(buf))
-    }
-}
+random_byte_array!(SessionId, 32);
