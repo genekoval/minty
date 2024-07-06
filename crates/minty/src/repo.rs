@@ -6,8 +6,6 @@ use std::{error::Error, io};
 
 #[allow(async_fn_in_trait)]
 pub trait Repo: Sized {
-    fn new(url: &Url, session: Option<String>) -> Self;
-
     fn url(&self) -> &Url;
 
     async fn about(&self) -> Result<About>;
@@ -212,18 +210,4 @@ pub trait Repo: Sized {
         info: &SignUp,
         invitation: Option<String>,
     ) -> Result<String>;
-
-    async fn sign_up_and(
-        &self,
-        info: &SignUp,
-        invitation: Option<String>,
-    ) -> Result<Self> {
-        let session = self.sign_up(info, invitation).await?;
-        Ok(Self::new(self.url(), Some(session)))
-    }
-
-    async fn with_user(&self, login: &Login) -> Result<Self> {
-        let session = self.authenticate(login).await?;
-        Ok(Self::new(self.url(), Some(session)))
-    }
 }

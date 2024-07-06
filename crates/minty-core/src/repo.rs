@@ -32,7 +32,7 @@ use crate::{
     obj::Bucket,
     search::Search,
     task::Task,
-    About, Error, SessionId,
+    About, Error, SessionInfo,
 };
 
 use fstore::RemoveResult;
@@ -105,7 +105,7 @@ impl Repo {
         Admin::new(self, user)
     }
 
-    pub async fn authenticate(&self, login: &Login) -> Result<SessionId> {
+    pub async fn authenticate(&self, login: &Login) -> Result<SessionInfo> {
         const ERROR: Option<&str> = Some("invalid credentials");
 
         let Some(Password { user_id, password }) =
@@ -196,7 +196,7 @@ impl Repo {
         &self,
         info: SignUp,
         invitation: Option<&str>,
-    ) -> Result<SessionId> {
+    ) -> Result<SessionInfo> {
         if self.require_invitation {
             let token = invitation
                 .ok_or(Error::InvalidInput("invitation required".into()))?;

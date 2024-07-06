@@ -1,6 +1,9 @@
-use super::{text::Text, AppState, Result, Router};
-
-use crate::server::extract::{OptionalUser, Session, User};
+use super::{
+    session::{CookieSession, SessionCookie, COOKIE},
+    session::{OptionalUser, User},
+    text::Text,
+    AppState, Result, Router,
+};
 
 use axum::{
     extract::{Path, Query, State},
@@ -8,6 +11,8 @@ use axum::{
     routing::{delete, get, post, put},
     Json,
 };
+use axum_extra::extract::cookie::CookieJar;
+use cookie::Cookie;
 use minty::{
     http::query::SetProfileName, text, Login, ProfileName, Source, Url, Uuid,
 };
@@ -24,9 +29,12 @@ async fn add_source(
 
 async fn create_session(
     State(AppState { repo }): State<AppState>,
+    jar: CookieJar,
     Json(login): Json<Login>,
-) -> Result<String> {
-    Ok(repo.authenticate(&login).await?.to_string())
+) -> Result<(CookieJar, String)> {
+    let session = repo.authenticate(&login).await?;
+
+    Ok((jar.add(session.cookie()), session.user_id.to_string()))
 }
 
 async fn delete_alias(
@@ -41,10 +49,19 @@ async fn delete_alias(
 
 async fn delete_session(
     State(AppState { repo }): State<AppState>,
-    Session(session): Session,
-) -> Result<StatusCode> {
-    repo.sessions().delete(session.id).await?;
-    Ok(StatusCode::NO_CONTENT)
+    jar: CookieJar,
+) -> Result<(StatusCode, CookieJar)> {
+    if let Some(cookie) = jar.get(COOKIE) {
+        if let Some(session) = cookie.session() {
+            repo.sessions().delete(session).await?;
+            return Ok((
+                StatusCode::NO_CONTENT,
+                jar.remove(Cookie::build(COOKIE).path("/")),
+            ));
+        }
+    }
+
+    Err(minty_core::Error::Unauthenticated(None).into())
 }
 
 async fn delete_source(

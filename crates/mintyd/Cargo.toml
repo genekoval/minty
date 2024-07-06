@@ -6,14 +6,18 @@ repository.workspace = true
 
 [dependencies]
 axum = { workspace = true }
-axum-extra = { workspace = true, features = ["async-read-body", "query"] }
+axum-extra = { workspace = true, features = [
+    "async-read-body",
+    "cookie",
+    "query",
+] }
 axum-unix = { workspace = true, features = ["serde"] }
 bytesize = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
+cookie = { workspace = true }
 crossterm = { workspace = true }
 dmon = { workspace = true }
-headers = { workspace = true }
 log = { workspace = true, features = ["serde"] }
 ratatui = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

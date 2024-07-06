@@ -15,7 +15,7 @@ mod task;
 pub use auth::{Base64DecodeError, SessionId};
 pub use cache::{Cached, Session, User};
 pub use error::{Error, Result};
-pub use model::About;
+pub use model::{About, SessionInfo};
 pub use repo::Repo;
 pub use task::Task;
 

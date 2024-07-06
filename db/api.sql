@@ -15,6 +15,11 @@ CREATE TYPE profile_name_update AS (
     old_name        text
 );
 
+CREATE TYPE user_session AS (
+    user_id         uuid,
+    expiration      timestamptz
+);
+
 --}}}
 
 --{{{( Views )
@@ -594,10 +599,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION create_user_session(a_user_id uuid, a_session_id bytea)
-RETURNS void AS $$
-    INSERT INTO data.user_session (session_id, user_id)
-    VALUES (a_session_id, a_user_id);
+CREATE FUNCTION create_user_session(
+    a_user_id uuid,
+    a_session_id bytea,
+    a_expiration timestamptz
+) RETURNS void AS $$
+    INSERT INTO data.user_session (session_id, user_id, expiration)
+    VALUES (a_session_id, a_user_id, a_expiration);
 $$ LANGUAGE SQL;
 
 CREATE FUNCTION delete_comment(a_comment_id uuid, recursive boolean)
@@ -722,6 +730,7 @@ $$ LANGUAGE SQL;
 CREATE FUNCTION prune() RETURNS void AS $$
 BEGIN
     PERFORM prune_post_objects();
+    PERFORM prune_sessions();
     PERFORM prune_sources();
     PERFORM prune_sites();
 END;
@@ -764,6 +773,10 @@ BEGIN
     WHERE obj.object_id = ref.object_id AND ref.reference_count = 0;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION prune_sessions() RETURNS void AS $$
+    DELETE FROM data.user_session WHERE expiration <= now();
+$$ LANGUAGE SQL;
 
 CREATE FUNCTION prune_sites() RETURNS void AS $$
 BEGIN
@@ -948,8 +961,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION read_user_session(a_session_id bytea) RETURNS uuid AS $$
-    SELECT user_id FROM data.user_session WHERE session_id = a_session_id;
+CREATE FUNCTION read_user_session(a_session_id bytea)
+RETURNS SETOF user_session AS $$
+    SELECT user_id, expiration
+    FROM data.user_session
+    WHERE session_id = a_session_id AND expiration > now();
 $$ LANGUAGE SQL;
 
 CREATE FUNCTION read_users(a_users uuid[]) RETURNS SETOF user_account AS $$

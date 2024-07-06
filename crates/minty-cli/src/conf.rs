@@ -1,7 +1,5 @@
-mod credentials;
 mod file;
 
-use credentials::Credentials;
 use file::File;
 
 use crate::{Error, Result};
@@ -18,14 +16,14 @@ use timber::Sink;
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Config {
-    pub credentials: Option<PathBuf>,
-
     #[serde(default)]
     pub log: Log,
 
     pub servers: BTreeMap<String, Url>,
 
     pub users: BTreeMap<String, Email>,
+
+    cookies: Option<PathBuf>,
 }
 
 #[derive(Debug)]
@@ -54,42 +52,12 @@ impl ConfigFile {
         self.0.data().users.get(alias)
     }
 
-    pub fn credentials(
-        &self,
-        server: &Url,
-        email: &str,
-    ) -> Result<Option<String>> {
-        Ok(self.read_credentials()?.data().get(server, email))
-    }
-
-    pub fn set_credentials(
-        &self,
-        server: Url,
-        email: String,
-        secret: String,
-    ) -> Result<()> {
-        let mut file = self.read_credentials()?;
-        file.data_mut().insert(server, email, secret);
-        file.write()?;
-        file.set_permissions(0o600)
-    }
-
-    pub fn remove_credentials(&self, server: &Url, email: &str) -> Result<()> {
-        let mut file = self.read_credentials()?;
-        let credentials = file.data_mut();
-
-        credentials.remove(server, email);
-
-        if credentials.is_empty() {
-            file.remove()
-        } else {
-            file.write()
-        }
-    }
-
-    fn read_credentials(&self) -> Result<File<Credentials>> {
-        let credentials = self.0.data().credentials.clone();
-        self.0.read_relative("credentials", credentials)
+    pub fn cookies(&self) -> PathBuf {
+        self.0
+            .data()
+            .cookies
+            .clone()
+            .unwrap_or_else(|| self.0.relative(Path::new("cookies.json")))
     }
 }
 

@@ -6,6 +6,7 @@ mod object;
 mod objects;
 mod post;
 mod posts;
+mod session;
 mod sign_up;
 mod tag;
 mod tags;
@@ -14,7 +15,9 @@ mod timestamp;
 mod user;
 mod users;
 
-use super::{error::Result, extract::OptionalUser, AppState};
+use session::OptionalUser;
+
+use super::{error::Result, AppState};
 
 use axum::{extract::State, routing::get, Json};
 use minty::model::export::Data;

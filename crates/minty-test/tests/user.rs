@@ -1,39 +1,15 @@
-use minty_test::{repo, users, ResultExt};
+use minty_test::{new_user, next_user, repo, sign_up_info, users, ResultExt};
 
-use function_name::named;
 use minty::{
-    http,
     text::{Description, Email, Name, Password},
-    Login, Pagination, ProfileQuery, Repo, SignUp, Url,
+    Login, Pagination, ProfileQuery, Repo, Url,
 };
 use tokio::test;
 
-macro_rules! new_user {
-    () => {
-        sign_up_and(function_name!()).await
-    };
-}
-
-fn info(name: &str) -> SignUp {
-    let email = format!("{name}@example.com");
-
-    SignUp {
-        username: Name::new(name).unwrap(),
-        email: Email::new(&email).unwrap(),
-        password: Password::new("password").unwrap(),
-    }
-}
-
-async fn sign_up_and(name: &str) -> http::Repo {
-    let info = info(name);
-    repo().sign_up_and(&info, None).await.unwrap()
-}
-
 #[test]
-#[named]
 async fn sign_up() {
-    let info = info(function_name!());
-    let repo = repo().sign_up_and(&info, None).await.unwrap();
+    let info = sign_up_info("sign-up-test");
+    let repo = minty_test::sign_up(&info).await;
     let user = repo.get_authenticated_user().await.unwrap();
 
     assert_eq!(user.email, info.email.as_ref());
@@ -49,13 +25,12 @@ async fn sign_up() {
 }
 
 #[test]
-#[named]
 async fn add_alias() {
-    const NAME: &str = function_name!();
+    const NAME: &str = "add-alias";
     const ALIAS: &str = "User Alias";
 
     let alias = Name::new(ALIAS).unwrap();
-    let repo = sign_up_and(NAME).await;
+    let repo = new_user(NAME).await;
     let user = repo.add_user_alias(alias.clone()).await.unwrap();
 
     assert_eq!(user.name, NAME);
@@ -76,12 +51,11 @@ async fn add_alias() {
 }
 
 #[test]
-#[named]
 async fn add_source() {
     const SOURCE: &str = "https://example.com/hello";
 
     let url = Url::parse(SOURCE).unwrap();
-    let repo = new_user!();
+    let repo = next_user().await;
     let source = repo.add_user_source(&url).await.unwrap();
 
     assert_eq!(url, source.url);
@@ -105,13 +79,12 @@ async fn add_source() {
 }
 
 #[test]
-#[named]
 async fn delete_alias() {
-    const NAME: &str = function_name!();
+    const NAME: &str = "delete-alias-name";
     const ALIAS: &str = "Delete Me";
 
     let alias = Name::new(ALIAS).unwrap();
-    let repo = new_user!();
+    let repo = new_user(NAME).await;
     repo.add_user_alias(alias).await.unwrap();
 
     for _ in 0..2 {
@@ -132,9 +105,8 @@ async fn delete_alias() {
 }
 
 #[test]
-#[named]
 async fn delete_source() {
-    let repo = new_user!();
+    let repo = next_user().await;
     let url = Url::parse("https://example.com/hello").unwrap();
     let source = repo.add_user_source(&url).await.unwrap();
 
@@ -154,11 +126,10 @@ async fn delete_source() {
 }
 
 #[test]
-#[named]
 async fn delete_sources() {
     const HOST: &str = "example.com";
 
-    let repo = new_user!();
+    let repo = next_user().await;
 
     for path in ["hello/world", "foo/bar"] {
         let url = format!("https://{HOST}");
@@ -195,7 +166,7 @@ async fn get_user() {
 
 #[test]
 async fn get_users() {
-    let repo = sign_up_and("get_users").await;
+    let repo = next_user().await;
     let user = repo.get_authenticated_user().await.unwrap().id;
 
     let query = ProfileQuery {
@@ -203,7 +174,7 @@ async fn get_users() {
             from: 0,
             size: 1_000,
         },
-        name: "get".into(),
+        name: "minty".into(),
         exclude: Default::default(),
     };
 
@@ -219,12 +190,11 @@ async fn get_users() {
 }
 
 #[test]
-#[named]
 async fn set_description() {
     const DESCRIPTION: &str = "A description for a user.";
 
     let description = Description::new(DESCRIPTION).unwrap();
-    let repo = new_user!();
+    let repo = next_user().await;
     let result = repo
         .set_user_description(description.clone())
         .await
@@ -243,12 +213,11 @@ async fn set_description() {
 }
 
 #[test]
-#[named]
 async fn set_email() {
     const EMAIL: &str = "new@example.com";
 
     let email = Email::new(EMAIL).unwrap();
-    let repo = new_user!();
+    let repo = next_user().await;
 
     repo.set_user_email(email.clone()).await.unwrap();
 
@@ -264,14 +233,13 @@ async fn set_email() {
 }
 
 #[test]
-#[named]
 async fn set_name() {
-    const NAME: &str = function_name!();
+    const NAME: &str = "set-name";
     const ALIAS: &str = "User Alias";
 
     let name = Name::new(NAME).unwrap();
     let alias = Name::new(ALIAS).unwrap();
-    let repo = new_user!();
+    let repo = new_user(NAME).await;
     let user = repo.set_user_name(alias).await.unwrap();
 
     assert_eq!(user.name, ALIAS);
@@ -298,23 +266,24 @@ async fn set_name() {
 }
 
 #[test]
-#[named]
 async fn set_password() {
     const PASSWORD: &str = "my.super.secret.password";
 
+    let info = sign_up_info("set-password");
+
     let password = Password::new(PASSWORD).unwrap();
-    let mut repo = new_user!();
+    let repo = minty_test::sign_up(&info).await;
     let id = repo.get_authenticated_user().await.unwrap().id;
 
     repo.set_user_password(password.clone()).await.unwrap();
     repo.sign_out().await.unwrap();
 
     let login = Login {
-        email: format!("{}@example.com", function_name!()),
+        email: info.email.to_string(),
         password: PASSWORD.to_owned(),
     };
 
-    repo = self::repo().with_user(&login).await.unwrap();
+    repo.authenticate(&login).await.unwrap();
 
     let user = repo.get_authenticated_user().await.unwrap();
 

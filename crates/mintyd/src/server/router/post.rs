@@ -1,6 +1,9 @@
-use super::{text::Text, timestamp::Timestamp, AppState, Result, Router};
-
-use crate::server::extract::{OptionalUser, User};
+use super::{
+    session::{OptionalUser, User},
+    text::Text,
+    timestamp::Timestamp,
+    AppState, Result, Router,
+};
 
 use axum::{
     extract::{Path, State},

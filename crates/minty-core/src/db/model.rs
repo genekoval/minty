@@ -186,6 +186,12 @@ impl Id for PostSearch {
     }
 }
 
+#[derive(Clone, Debug, FromRow)]
+pub struct Session {
+    pub user_id: Uuid,
+    pub expiration: DateTime,
+}
+
 #[derive(Clone, Debug, FromRow, Type)]
 #[sqlx(type_name = "site")]
 pub struct Site {

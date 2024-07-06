@@ -16,9 +16,10 @@ pub use tags::*;
 
 use crate::{
     cache, error::Found, model::Invitation, Cached, Repo, Result, SessionId,
+    SessionInfo,
 };
 
-use chrono::Duration;
+use chrono::{Duration, Local};
 use minty::Uuid;
 use std::sync::Arc;
 
@@ -36,20 +37,27 @@ impl<'a> WithUser<'a> {
         Comment::new(self.repo, self.user, id)
     }
 
-    pub async fn create_session(&self) -> Result<SessionId> {
+    pub async fn create_session(self) -> Result<SessionInfo> {
+        let user_id = self.user.id;
         let session = SessionId::new();
+        let max_age = Duration::days(30);
+        let expiration = Local::now() + max_age;
 
         self.repo
             .database
-            .create_user_session(self.user.id, session.as_bytes())
+            .create_user_session(self.user.id, session.as_bytes(), expiration)
             .await?;
 
         self.repo
             .cache
             .sessions()
-            .insert(session, self.user.clone());
+            .insert(session, self.user, expiration);
 
-        Ok(session)
+        Ok(SessionInfo {
+            id: session,
+            user_id,
+            max_age,
+        })
     }
 
     pub fn edit_self(self) -> Edit<'a> {
@@ -61,7 +69,7 @@ impl<'a> WithUser<'a> {
     }
 
     pub fn invite(&self) -> Result<String> {
-        let exp = Duration::hours(24);
+        let exp = Duration::days(1);
         let invitation = Invitation::new(self.user.id);
 
         self.repo.auth.encode_jwt(exp, invitation)

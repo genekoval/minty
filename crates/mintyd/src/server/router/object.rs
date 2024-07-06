@@ -1,6 +1,7 @@
-use super::{AppState, Result, Router};
-
-use crate::server::extract::{OptionalUser, User};
+use super::{
+    session::{OptionalUser, User},
+    AppState, Result, Router,
+};
 
 use axum::{
     extract::{Path, Request, State},

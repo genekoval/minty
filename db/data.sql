@@ -113,5 +113,6 @@ CREATE TABLE post_tag (
 
 CREATE TABLE user_session (
     session_id      bytea PRIMARY KEY,
-    user_id         uuid NOT NULL REFERENCES user_account ON DELETE CASCADE
+    user_id         uuid NOT NULL REFERENCES user_account ON DELETE CASCADE,
+    expiration      timestamptz NOT NULL
 );

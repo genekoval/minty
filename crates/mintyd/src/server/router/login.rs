@@ -1,13 +1,17 @@
-use super::{AppState, Result, Router};
+use super::{session::SessionCookie, AppState, Result, Router};
 
 use axum::{extract::State, routing::post, Form};
+use axum_extra::extract::cookie::CookieJar;
 use minty::Login;
 
 async fn login(
     State(AppState { repo }): State<AppState>,
+    jar: CookieJar,
     Form(login): Form<Login>,
-) -> Result<String> {
-    Ok(repo.authenticate(&login).await?.to_string())
+) -> Result<(CookieJar, String)> {
+    let session = repo.authenticate(&login).await?;
+
+    Ok((jar.add(session.cookie()), session.user_id.to_string()))
 }
 
 pub fn routes() -> Router {

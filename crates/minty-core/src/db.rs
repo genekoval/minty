@@ -35,7 +35,7 @@ database! {
 
     create_source(site_id: i64, resource: &str) -> Source;
 
-    create_user_session(user_id: Uuid, session_id: &[u8]);
+    create_user_session(user_id: Uuid, session_id: &[u8], expiration: DateTime);
 
     delete_comment(id: Uuid, recursive: bool) -> bool;
 
@@ -89,7 +89,7 @@ database! {
 
     read_user_search() -> Stream<UserSearch>;
 
-    read_user_session(session_id: &[u8]) -> (Option<Uuid>,);
+    read_user_session(session_id: &[u8]) -> Option<Session>;
 
     read_user_total() -> i64;
 

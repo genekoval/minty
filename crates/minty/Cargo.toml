@@ -14,12 +14,20 @@ url = { workspace = true }
 uuid = { workspace = true }
 
 # HTTP dependencies
+cookie_store = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 mime = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, features = ["json"] }
+reqwest = { workspace = true, optional = true, features = ["cookies", "json"] }
 tokio-stream = { workspace = true, optional = true }
 
 [features]
 export = ["serde"]
-http = ["serde", "dep:log", "dep:mime", "dep:reqwest", "dep:tokio-stream"]
+http = [
+    "serde",
+    "dep:cookie_store",
+    "dep:log",
+    "dep:mime",
+    "dep:reqwest",
+    "dep:tokio-stream",
+]
 serde = ["dep:serde", "chrono/serde", "url/serde", "uuid/serde"]

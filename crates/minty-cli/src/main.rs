@@ -25,24 +25,15 @@ impl Client {
             )));
         };
 
-        let session = args
-            .user
-            .as_deref()
-            .and_then(|alias| config.user(alias))
-            .and_then(|email| {
-                config.credentials(server, email.as_ref()).transpose()
-            })
-            .transpose()?;
-
         let client = minty_cli::Client::new(
             &args.server,
-            server,
-            session,
+            server.clone(),
+            config.cookies(),
             Output {
                 human_readable: args.human_readable,
                 json: args.json,
             },
-        );
+        )?;
 
         Ok(Self { client, config })
     }
@@ -72,7 +63,7 @@ impl Client {
             Command::Grant { command } => self.grant(command).await,
             Command::Invite => self.client.get_invitation().await,
             Command::Login { user } => self.login(user).await,
-            Command::Logout { user } => self.logout(user).await,
+            Command::Logout => self.logout().await,
             Command::Me { command } => self.me(command).await,
             Command::New { command } => self.cmd_new(command).await,
             Command::Obj { id, command } => self.object(id, command).await,
@@ -168,22 +159,14 @@ impl Client {
             )));
         };
 
-        let email = email.to_string();
-        let session = self.client.authenticate(email.clone()).await?;
-        let server = self.client.url().clone();
-
-        self.config.set_credentials(server, email, session)?;
+        self.client.authenticate(email.to_string()).await?;
 
         Ok(())
     }
 
-    async fn logout(&self, user: String) -> Result {
+    async fn logout(&self) -> Result {
         self.client.sign_out().await?;
-
-        let email = self.config.user(&user).unwrap();
-        let server = self.client.url();
-
-        self.config.remove_credentials(server, email.as_ref())
+        Ok(())
     }
 
     async fn me(&self, command: Option<Me>) -> Result {
@@ -342,12 +325,7 @@ impl Client {
             )));
         };
 
-        let session =
-            self.client.sign_up(name, email.clone(), invitation).await?;
-        let server = self.client.url().clone();
-        let email = email.to_string();
-
-        self.config.set_credentials(server, email, session)?;
+        self.client.sign_up(name, email.clone(), invitation).await?;
 
         Ok(())
     }

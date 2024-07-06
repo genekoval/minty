@@ -1,6 +1,4 @@
-use super::{AppState, Result, Router};
-
-use crate::server::extract::User;
+use super::{session::User, AppState, Result, Router};
 
 use axum::{extract::State, routing::get, Json};
 use minty::ObjectError;

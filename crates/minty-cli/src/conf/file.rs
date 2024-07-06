@@ -3,10 +3,9 @@ use crate::{Error::Config as Error, Result};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
     fmt::{self, Display},
-    fs::{self, Permissions},
+    fs,
     io::ErrorKind,
-    os::unix::fs::PermissionsExt,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 #[derive(Debug)]
@@ -56,59 +55,16 @@ where
         })
     }
 
-    pub fn write(&self) -> Result<()> {
-        let text = toml::to_string_pretty(&self.data).map_err(|err| {
-            Error(format!("failed to serialize {self}: {err}"))
-        })?;
-
-        fs::write(&self.path, text)
-            .map_err(|err| Error(format!("failed to write {self}: {err}")))
-    }
-
-    pub fn read_relative<U>(
-        &self,
-        description: &'static str,
-        path: Option<PathBuf>,
-    ) -> Result<File<U>>
-    where
-        U: Default + DeserializeOwned + Serialize,
-    {
-        let confdir = self.path.parent().unwrap();
-        let path = path
-            .map(|path| {
-                if path.is_relative() {
-                    confdir.join(path)
-                } else {
-                    path
-                }
-            })
-            .unwrap_or_else(|| {
-                let mut file = confdir.join(description);
-                file.set_extension("toml");
-                file
-            });
-
-        File::read(description, path)
-    }
-
-    pub fn remove(&self) -> Result<()> {
-        fs::remove_file(&self.path)
-            .map_err(|err| Error(format!("failed to remove {self}: {err}")))
-    }
-
-    pub fn set_permissions(&self, mode: u32) -> Result<()> {
-        let permissions = Permissions::from_mode(mode);
-        fs::set_permissions(&self.path, permissions).map_err(|err| {
-            Error(format!("failed to set permissions for {self}: {err}"))
-        })
+    pub fn relative(&self, path: &Path) -> PathBuf {
+        if path.is_relative() {
+            self.path.parent().unwrap().join(path)
+        } else {
+            path.to_path_buf()
+        }
     }
 
     pub fn data(&self) -> &T {
         &self.data
-    }
-
-    pub fn data_mut(&mut self) -> &mut T {
-        &mut self.data
     }
 }
 

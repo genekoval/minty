@@ -161,11 +161,7 @@ pub enum Command {
     },
 
     /// Close the current session
-    Logout {
-        #[arg(long, value_name = "ALIAS", env = "MINTY_USER")]
-        /// The configured user to log out
-        user: String,
-    },
+    Logout,
 
     /// Create a new account
     Signup {

@@ -1,14 +1,22 @@
 mod ask;
 
-use crate::output::{About, Output, Print};
+use crate::{
+    output::{About, Output, Print},
+    Error,
+};
 
-use minty::{http, model::*, text, Repo};
+use minty::{
+    http::{self, cookie::CookieFile, Credentials},
+    model::*,
+    text, Repo,
+};
 use rpassword::prompt_password;
 use serde_json as json;
 use std::{
     io::{stdin, IsTerminal, Read},
     path::PathBuf,
     str::FromStr,
+    sync::Arc,
 };
 use tokio::fs::File;
 use tokio_util::io::{ReaderStream, StreamReader};
@@ -24,15 +32,22 @@ pub struct Client {
 impl Client {
     pub fn new(
         alias: &str,
-        server: &Url,
-        session: Option<String>,
+        server: Url,
+        cookie_file: PathBuf,
         output: Output,
-    ) -> Self {
-        Self {
+    ) -> crate::Result<Self> {
+        let cookie_file = CookieFile::new(cookie_file)
+            .map_err(|err| Error::Config(err.to_string()))?;
+
+        let repo = http::Repo::build(server)
+            .credentials(Credentials::CookieFile(Arc::new(cookie_file)))
+            .build()?;
+
+        Ok(Self {
             server: alias.into(),
-            repo: http::Repo::new(server, session),
+            repo,
             output,
-        }
+        })
     }
 
     pub fn url(&self) -> &Url {

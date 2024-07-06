@@ -1,4 +1,3 @@
 /.vscode
-/minty*.toml
+/minty*
 /target
-/*.dump

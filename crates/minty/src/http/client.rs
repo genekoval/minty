@@ -4,10 +4,7 @@ use bytes::Bytes;
 use futures_core::{Stream, TryStream};
 use log::debug;
 use mime::{Mime, TEXT_PLAIN_UTF_8};
-use reqwest::{
-    header::{AUTHORIZATION, CONTENT_TYPE},
-    Body, Method, Request, StatusCode,
-};
+use reqwest::{header::CONTENT_TYPE, Body, Method, Request, StatusCode};
 use serde::{de::DeserializeOwned, Serialize};
 use std::{error, io};
 use tokio_stream::StreamExt;
@@ -107,11 +104,6 @@ impl RequestBuilder {
         }
     }
 
-    pub fn key_auth(mut self, key: &str) -> Self {
-        self.inner = self.inner.header(AUTHORIZATION, format!("Key {key}"));
-        self
-    }
-
     pub fn query<T>(mut self, query: &T) -> Self
     where
         T: Serialize,
@@ -204,16 +196,11 @@ impl RequestBuilder {
 pub struct Client {
     client: reqwest::Client,
     url: Url,
-    session: Option<String>,
 }
 
 impl Client {
-    pub fn new(url: &Url, session: Option<String>) -> Self {
-        Self {
-            client: reqwest::Client::new(),
-            url: url.clone(),
-            session,
-        }
+    pub fn new(client: reqwest::Client, url: Url) -> Self {
+        Self { client, url }
     }
 
     pub fn url(&self) -> &Url {
@@ -260,12 +247,6 @@ impl Client {
         }
 
         let request = Request::new(method, url);
-        let builder = RequestBuilder::from_parts(self.client.clone(), request);
-
-        if let Some(session) = self.session.as_deref() {
-            builder.key_auth(session)
-        } else {
-            builder
-        }
+        RequestBuilder::from_parts(self.client.clone(), request)
     }
 }

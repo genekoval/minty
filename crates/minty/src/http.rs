@@ -1,27 +1,80 @@
+pub mod cookie;
 pub mod query;
 
 mod client;
 
 use client::Client;
+use cookie::{CookieFile, Jar};
 
-use crate::{model::*, text, Result};
+use crate::{model::*, text, Error, Result};
 
 use bytes::Bytes;
 use futures_core::{Stream, TryStream};
-use std::{error::Error, io};
+use reqwest::ClientBuilder;
+use std::{error::Error as StdError, io, sync::Arc};
+
+#[derive(Clone, Debug)]
+pub enum Credentials {
+    None,
+    Cookies,
+    CookieJar(Arc<Jar>),
+    CookieFile(Arc<CookieFile>),
+}
+
+#[derive(Debug)]
+pub struct RepoBuilder {
+    builder: ClientBuilder,
+    url: Url,
+}
+
+impl RepoBuilder {
+    fn new(url: Url) -> Self {
+        Self {
+            builder: ClientBuilder::new(),
+            url,
+        }
+    }
+
+    pub fn build(self) -> Result<Repo> {
+        let client = self.builder.build().map_err(|err| {
+            Error::other(format!("failed to build HTTP client: {err}"))
+        })?;
+
+        Ok(Repo {
+            client: Client::new(client, self.url),
+        })
+    }
+
+    pub fn credentials(mut self, credentials: Credentials) -> Self {
+        self.builder = match credentials {
+            Credentials::None => self.builder.cookie_store(false),
+            Credentials::Cookies => self.builder.cookie_store(true),
+            Credentials::CookieJar(jar) => self.builder.cookie_provider(jar),
+            Credentials::CookieFile(file) => self.builder.cookie_provider(file),
+        };
+
+        self
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Repo {
     client: Client,
 }
 
-impl crate::Repo for Repo {
-    fn new(url: &Url, session: Option<String>) -> Self {
+impl Repo {
+    pub fn new(url: Url) -> Self {
         Self {
-            client: Client::new(url, session),
+            client: Client::new(reqwest::Client::new(), url),
         }
     }
 
+    pub fn build(url: Url) -> RepoBuilder {
+        RepoBuilder::new(url)
+    }
+}
+
+impl crate::Repo for Repo {
     fn url(&self) -> &Url {
         self.client.url()
     }
@@ -47,7 +100,7 @@ impl crate::Repo for Repo {
     async fn add_object<S>(&self, stream: S) -> Result<ObjectPreview>
     where
         S: TryStream + Send + Sync + 'static,
-        S::Error: Into<Box<dyn Error + Send + Sync>>,
+        S::Error: Into<Box<dyn StdError + Send + Sync>>,
         Bytes: From<S::Ok>,
     {
         self.client

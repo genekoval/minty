@@ -1,3 +1,6 @@
+use crate::SessionId;
+
+use chrono::Duration;
 use minty::Uuid;
 use serde::{Deserialize, Serialize};
 
@@ -19,4 +22,11 @@ impl Invitation {
     pub fn user(&self) -> Uuid {
         self.sub
     }
+}
+
+#[derive(Debug)]
+pub struct SessionInfo {
+    pub id: SessionId,
+    pub user_id: Uuid,
+    pub max_age: Duration,
 }
