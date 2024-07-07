@@ -55,6 +55,11 @@ impl RepoBuilder {
 
         self
     }
+
+    pub fn user_agent(mut self, value: &str) -> Self {
+        self.builder = self.builder.user_agent(value);
+        self
+    }
 }
 
 #[derive(Clone, Debug)]

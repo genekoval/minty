@@ -21,6 +21,9 @@ use std::{
 use tokio::fs::File;
 use tokio_util::io::{ReaderStream, StreamReader};
 
+const USER_AGENT: &str =
+    concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
+
 pub type Result = crate::Result<()>;
 
 pub struct Client {
@@ -41,6 +44,7 @@ impl Client {
 
         let repo = http::Repo::build(server)
             .credentials(Credentials::CookieFile(Arc::new(cookie_file)))
+            .user_agent(USER_AGENT)
             .build()?;
 
         Ok(Self {
