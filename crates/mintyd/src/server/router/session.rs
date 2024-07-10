@@ -1,12 +1,17 @@
 use crate::server::{error::Error, AppState};
 
-use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
+use axum::{
+    async_trait,
+    extract::FromRequestParts,
+    http::{request::Parts, StatusCode},
+    response::{IntoResponse, Response},
+};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use cookie::time::Duration;
 use minty_core::{Cached, Error::Unauthenticated, SessionId, SessionInfo};
 use std::sync::Arc;
 
-pub const COOKIE: &str = "mtyid";
+const COOKIE: &str = "mtyid";
 
 pub trait SessionCookie {
     fn cookie(&self) -> Cookie<'static>;
@@ -33,11 +38,51 @@ impl CookieSession for Cookie<'static> {
     }
 }
 
+pub trait CookieJarSession {
+    fn get_session(&self) -> Option<SessionId>;
+
+    fn remove_session_cookie(self) -> Self;
+}
+
+impl CookieJarSession for CookieJar {
+    fn get_session(&self) -> Option<SessionId> {
+        self.get(COOKIE).and_then(|cookie| cookie.session())
+    }
+
+    fn remove_session_cookie(self) -> Self {
+        let cookie = Cookie::build(COOKIE).path("/");
+        self.remove(cookie)
+    }
+}
+
+pub enum InvalidSession {
+    BadCookie(CookieJar),
+    Other(Error),
+}
+
+impl From<minty_core::Error> for InvalidSession {
+    fn from(value: minty_core::Error) -> Self {
+        Self::Other(Error(value))
+    }
+}
+
+impl IntoResponse for InvalidSession {
+    fn into_response(self) -> Response {
+        match self {
+            Self::BadCookie(jar) => {
+                (StatusCode::UNAUTHORIZED, jar.remove_session_cookie())
+                    .into_response()
+            }
+            Self::Other(err) => err.into_response(),
+        }
+    }
+}
+
 pub struct Session(pub Arc<Cached<minty_core::Session>>);
 
 #[async_trait]
 impl FromRequestParts<AppState> for Session {
-    type Rejection = Error;
+    type Rejection = InvalidSession;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -48,12 +93,17 @@ impl FromRequestParts<AppState> for Session {
             Err(err) => match err {},
         };
 
-        let Some(id) = jar.get(COOKIE).and_then(|cookie| cookie.session())
-        else {
-            return Err(Unauthenticated(None).into());
+        let Some(cookie) = jar.get(COOKIE) else {
+            return Err(InvalidSession::Other(Unauthenticated(None).into()));
         };
 
-        let session = state.repo.sessions().get(id).await?;
+        let Some(id) = cookie.session() else {
+            return Err(InvalidSession::BadCookie(jar));
+        };
+
+        let Some(session) = state.repo.sessions().get(id).await? else {
+            return Err(InvalidSession::BadCookie(jar));
+        };
 
         Ok(Session(session))
     }
@@ -63,16 +113,14 @@ pub struct User(pub Arc<Cached<minty_core::User>>);
 
 #[async_trait]
 impl FromRequestParts<AppState> for User {
-    type Rejection = Error;
+    type Rejection = InvalidSession;
 
     async fn from_request_parts(
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let session = Session::from_request_parts(parts, state).await?.0;
-        let user = session.user();
-
-        Ok(User(user))
+        Ok(User(session.user()))
     }
 }
 
@@ -80,7 +128,7 @@ pub struct OptionalUser(pub Option<Arc<Cached<minty_core::User>>>);
 
 #[async_trait]
 impl FromRequestParts<AppState> for OptionalUser {
-    type Rejection = Error;
+    type Rejection = InvalidSession;
 
     async fn from_request_parts(
         parts: &mut Parts,
@@ -95,13 +143,14 @@ impl FromRequestParts<AppState> for OptionalUser {
             return Ok(Self(None));
         };
 
-        let Ok(id) = cookie.value().parse::<SessionId>() else {
-            return Err(Unauthenticated(None).into());
+        let Some(id) = cookie.session() else {
+            return Err(InvalidSession::BadCookie(jar));
         };
 
-        let session = state.repo.sessions().get(id).await?;
-        let user = session.user();
+        let Some(session) = state.repo.sessions().get(id).await? else {
+            return Err(InvalidSession::BadCookie(jar));
+        };
 
-        Ok(Self(Some(user)))
+        Ok(Self(Some(session.user())))
     }
 }

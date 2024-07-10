@@ -1,4 +1,4 @@
-use crate::{Cached, Error, Repo, Result, Session, SessionId};
+use crate::{Cached, Repo, Result, Session, SessionId};
 
 use std::sync::Arc;
 
@@ -23,12 +23,7 @@ impl<'a> Sessions<'a> {
     pub async fn get(
         &self,
         session: SessionId,
-    ) -> Result<Arc<Cached<Session>>> {
-        self.repo
-            .cache
-            .sessions()
-            .get(session.digest())
-            .await?
-            .ok_or(Error::Unauthenticated(None))
+    ) -> Result<Option<Arc<Cached<Session>>>> {
+        self.repo.cache.sessions().get(session.digest()).await
     }
 }

@@ -1,5 +1,5 @@
 use super::{
-    session::{CookieSession, SessionCookie, COOKIE},
+    session::{CookieJarSession, SessionCookie},
     session::{OptionalUser, User},
     text::Text,
     AppState, Result, Router,
@@ -12,7 +12,6 @@ use axum::{
     Json,
 };
 use axum_extra::extract::cookie::CookieJar;
-use cookie::Cookie;
 use minty::{
     http::query::SetProfileName, text, Login, ProfileName, Source, Url, Uuid,
 };
@@ -51,17 +50,11 @@ async fn delete_session(
     State(AppState { repo }): State<AppState>,
     jar: CookieJar,
 ) -> Result<(StatusCode, CookieJar)> {
-    if let Some(cookie) = jar.get(COOKIE) {
-        if let Some(session) = cookie.session() {
-            repo.sessions().delete(session).await?;
-            return Ok((
-                StatusCode::NO_CONTENT,
-                jar.remove(Cookie::build(COOKIE).path("/")),
-            ));
-        }
+    if let Some(session) = jar.get_session() {
+        repo.sessions().delete(session).await?;
     }
 
-    Err(minty_core::Error::Unauthenticated(None).into())
+    Ok((StatusCode::NO_CONTENT, jar.remove_session_cookie()))
 }
 
 async fn delete_source(
