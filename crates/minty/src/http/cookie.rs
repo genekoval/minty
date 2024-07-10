@@ -18,18 +18,12 @@ use url::Url;
 struct CookieFileInner {
     store: CookieStore,
     path: PathBuf,
-    is_updated: bool,
 }
 
 impl CookieFileInner {
     fn new(path: PathBuf) -> Result<Self> {
         let store = load_cookies(&path)?;
-
-        Ok(Self {
-            store,
-            path,
-            is_updated: false,
-        })
+        Ok(Self { store, path })
     }
 
     fn cookies(&self, url: &Url) -> Option<HeaderValue> {
@@ -61,42 +55,33 @@ impl CookieFileInner {
         });
 
         self.store.store_response_cookies(cookies, url);
-        self.is_updated = true;
+
+        if let Err(err) = self.write_cookies() {
+            error!("{err}");
+        }
     }
 
-    fn write_cookies(&mut self) -> Result<()> {
-        if self.is_updated {
-            let path = self.path.as_path();
+    fn write_cookies(&self) -> Result<()> {
+        let path = self.path.as_path();
 
-            let mut file =
-                File::create(path).map(BufWriter::new).map_err(|err| {
-                    Error::other(format!(
-                        "failed to open cookie file '{}': {err}",
-                        path.display()
-                    ))
-                })?;
-
-            self.store.save_json(&mut file).map_err(|err| {
+        let mut file =
+            File::create(path).map(BufWriter::new).map_err(|err| {
                 Error::other(format!(
-                    "failed to write cookies to file '{}': {err}",
+                    "failed to open cookie file '{}': {err}",
                     path.display()
                 ))
             })?;
 
-            debug!("saved cookies to '{}'", path.display());
+        self.store.save_json(&mut file).map_err(|err| {
+            Error::other(format!(
+                "failed to write cookies to file '{}': {err}",
+                path.display()
+            ))
+        })?;
 
-            self.is_updated = false;
-        }
+        debug!("saved cookies to '{}'", path.display());
 
         Ok(())
-    }
-}
-
-impl Drop for CookieFileInner {
-    fn drop(&mut self) {
-        if let Err(err) = self.write_cookies() {
-            error!("{err}");
-        }
     }
 }
 
@@ -110,16 +95,16 @@ impl CookieFile {
 }
 
 impl reqwest::cookie::CookieStore for CookieFile {
+    fn cookies(&self, url: &url::Url) -> Option<HeaderValue> {
+        self.0.read().unwrap().cookies(url)
+    }
+
     fn set_cookies(
         &self,
         cookie_headers: &mut dyn Iterator<Item = &HeaderValue>,
         url: &Url,
     ) {
         self.0.write().unwrap().set_cookies(cookie_headers, url);
-    }
-
-    fn cookies(&self, url: &url::Url) -> Option<HeaderValue> {
-        self.0.read().unwrap().cookies(url)
     }
 }
 
