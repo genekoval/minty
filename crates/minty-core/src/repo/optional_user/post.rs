@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 pub struct Post<'a> {
     repo: &'a Repo,
+    user: Option<Arc<Cached<User>>>,
     post: Arc<Cached<cache::Post>>,
 }
 
@@ -20,7 +21,7 @@ impl<'a> Post<'a> {
     ) -> Result<Self> {
         post.can_view(user.as_ref())?;
 
-        Ok(Self { repo, post })
+        Ok(Self { repo, user, post })
     }
 
     async fn comments<F, R>(&self, f: F) -> Result<R>
@@ -32,7 +33,7 @@ impl<'a> Post<'a> {
 
     pub async fn get(&self) -> Result<minty::Post> {
         self.post
-            .model(&self.repo.cache)
+            .model(&self.repo.cache, self.user.as_ref())
             .await?
             .found("post", self.post.id)
     }

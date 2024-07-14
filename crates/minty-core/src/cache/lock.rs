@@ -8,8 +8,8 @@ impl<T> CacheLock<T> {
         Self(RwLock::new(Some(data)))
     }
 
-    pub fn delete(&self) {
-        self.0.write().unwrap().take();
+    pub fn delete(&self) -> Option<T> {
+        self.0.write().unwrap().take()
     }
 
     pub fn is_deleted(&self) -> bool {
@@ -21,6 +21,13 @@ impl<T> CacheLock<T> {
         F: FnOnce(&T) -> R,
     {
         self.0.read().unwrap().as_ref().map(f)
+    }
+
+    pub fn and_then<F, R>(&self, f: F) -> Option<R>
+    where
+        F: FnOnce(&T) -> Option<R>,
+    {
+        self.0.read().unwrap().as_ref().and_then(f)
     }
 
     pub fn update<F, R>(&self, f: F) -> Option<R>

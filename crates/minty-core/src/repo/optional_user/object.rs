@@ -1,18 +1,23 @@
-use crate::{error::Found, Repo, Result};
+use crate::{error::Found, Cached, Repo, Result, User};
 
 use bytes::Bytes;
 use futures::Stream;
 use minty::{ObjectSummary, Uuid};
-use std::io;
+use std::{io, sync::Arc};
 
 pub struct Object<'a> {
     repo: &'a Repo,
+    user: Option<Arc<Cached<User>>>,
     id: Uuid,
 }
 
 impl<'a> Object<'a> {
-    pub(super) fn new(repo: &'a Repo, id: Uuid) -> Self {
-        Self { repo, id }
+    pub(super) fn new(
+        repo: &'a Repo,
+        user: Option<Arc<Cached<User>>>,
+        id: Uuid,
+    ) -> Self {
+        Self { repo, user, id }
     }
 
     pub async fn get(&self) -> Result<minty::Object> {
@@ -22,7 +27,7 @@ impl<'a> Object<'a> {
             .get(self.id)
             .await?
             .found("object", self.id)?
-            .model(cache)
+            .model(cache, self.user.as_ref())
             .await
     }
 

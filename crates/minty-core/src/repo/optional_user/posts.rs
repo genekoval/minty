@@ -28,7 +28,12 @@ impl<'a> Posts<'a> {
         let SearchResult { total, hits } =
             self.repo.search.find_posts(&query).await?;
 
-        let hits = self.repo.cache.posts().previews(&hits).await?;
+        let hits = self
+            .repo
+            .cache
+            .posts()
+            .previews(&hits, self.user.as_ref())
+            .await?;
 
         Ok(SearchResult { total, hits })
     }

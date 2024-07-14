@@ -156,14 +156,30 @@ pub struct Post {
 }
 
 impl Post {
-    async fn new(post: db::Post, cache: &Cache) -> Result<Self> {
+    async fn new(post: db::Post, cache: &Cache, is_new: bool) -> Result<Self> {
         let poster = if let Some(poster) = post.poster {
             cache.users().get(poster).await.ok().flatten()
         } else {
             None
         };
 
+        let visibility = post.visibility.into();
         let objects = cache.objects().get_multiple(&post.objects).await?;
+        let tags = cache.tags().get_multiple(&post.tags).await?;
+
+        if is_new {
+            objects.iter().for_each(|object| object.add_post(post.id));
+
+            if visibility != Visibility::Draft {
+                if let Some(user) = &poster {
+                    user.update(|user| user.post_count += 1)
+                }
+
+                for tag in &tags {
+                    tag.update(|tag| tag.post_count += 1);
+                }
+            }
+        }
 
         Ok(Self {
             id: post.id,
@@ -171,12 +187,12 @@ impl Post {
             mutable: CacheLock::new(PostMut {
                 title: post.title,
                 description: post.description,
-                visibility: post.visibility.into(),
+                visibility,
                 created: post.created,
                 modified: post.modified,
                 objects,
                 posts: post.posts,
-                tags: cache.tags().get_multiple(&post.tags).await?,
+                tags,
                 comment_count: post.comment_count,
                 comments: None,
                 comment_map: Arc::downgrade(&cache.comments),
@@ -195,33 +211,31 @@ impl Post {
     }
 
     pub fn can_view(&self, user: Option<&Arc<Cached<User>>>) -> Result<()> {
-        let draft = self
+        let is_draft = self
             .mutable
             .map(|post| post.visibility == Visibility::Draft)
             .found("post", self.id)?;
 
-        let user = user.map(|user| user.id);
-        let poster = self.poster.as_ref().map(|poster| poster.id);
+        let poster = self.poster.as_ref();
+        let is_poster = user.is_some_and(|user| Some(user) == poster);
 
-        if !draft || poster == user {
+        if !is_draft || is_poster {
             Ok(())
         } else {
             Err(Error::Unauthorized)
         }
     }
 
-    pub async fn model(&self, cache: &Cache) -> Result<Option<minty::Post>> {
+    pub async fn model(
+        &self,
+        cache: &Cache,
+        user: Option<&Arc<Cached<User>>>,
+    ) -> Result<Option<minty::Post>> {
         let Some(posts) = self.mutable.map(|post| post.posts.clone()) else {
             return Ok(None);
         };
 
-        let posts = cache
-            .posts()
-            .get_multiple(&posts)
-            .await?
-            .iter()
-            .filter_map(|post| post.preview())
-            .collect();
+        let posts = cache.posts().previews(&posts, user).await?;
 
         Ok(self.mutable.map(|post| minty::Post {
             id: self.id,
@@ -242,15 +256,28 @@ impl Post {
         }))
     }
 
-    pub fn preview(&self) -> Option<minty::PostPreview> {
-        self.mutable.map(|post| PostPreview {
-            id: self.id,
-            poster: self.poster.as_ref().and_then(|user| user.preview()),
-            title: post.title.clone(),
-            preview: post.objects.first().map(|object| object.preview()),
-            comment_count: post.comment_count,
-            object_count: post.objects.len().try_into().unwrap(),
-            created: post.created,
+    pub fn preview(
+        &self,
+        user: Option<&Arc<Cached<User>>>,
+    ) -> Option<minty::PostPreview> {
+        self.mutable.and_then(|post| {
+            let poster = self.poster.as_ref();
+            let is_poster = user.is_some_and(|user| Some(user) == poster);
+
+            (post.visibility != Visibility::Draft || is_poster).then(|| {
+                PostPreview {
+                    id: self.id,
+                    poster: poster.and_then(|user| user.preview()),
+                    title: post.title.clone(),
+                    preview: post
+                        .objects
+                        .first()
+                        .map(|object| object.preview()),
+                    comment_count: post.comment_count,
+                    object_count: post.objects.len().try_into().unwrap(),
+                    created: post.created,
+                }
+            })
         })
     }
 
@@ -408,7 +435,19 @@ impl Post {
     }
 
     pub fn delete(&self) {
-        self.mutable.delete();
+        if let Some(post) = self.mutable.delete() {
+            if let Some(user) = &self.poster {
+                user.update(|user| user.post_count -= 1);
+            }
+
+            for object in &post.objects {
+                object.delete_post(self.id);
+            }
+
+            for tag in &post.tags {
+                tag.update(|tag| tag.post_count -= 1);
+            }
+        }
     }
 
     pub fn delete_comment(
@@ -445,7 +484,19 @@ impl Post {
     }
 
     pub fn publish(&self, timestamp: DateTime) {
+        if let Some(user) = &self.poster {
+            user.update(|user| user.post_count += 1);
+        }
+
         self.mutable.update(|post| {
+            for object in &post.objects {
+                object.add_post(self.id);
+            }
+
+            for tag in &post.tags {
+                tag.update(|tag| tag.post_count += 1);
+            }
+
             post.visibility = Visibility::Public;
             post.created = timestamp;
             post.modified = timestamp;
@@ -613,7 +664,7 @@ impl<'a> Posts<'a> {
             .posts
             .get(id, || async {
                 if let Some(post) = self.cache.database.read_post(id).await? {
-                    Ok(Some(Post::new(post, self.cache).await?))
+                    Ok(Some(Post::new(post, self.cache, false).await?))
                 } else {
                     Ok(None)
                 }
@@ -632,7 +683,7 @@ impl<'a> Posts<'a> {
                 let mut result = Vec::with_capacity(posts.len());
 
                 for post in posts {
-                    result.push(Post::new(post, self.cache).await?);
+                    result.push(Post::new(post, self.cache, false).await?);
                 }
 
                 Ok(result)
@@ -640,17 +691,26 @@ impl<'a> Posts<'a> {
             .await
     }
 
-    pub async fn previews(&self, ids: &[Uuid]) -> Result<Vec<PostPreview>> {
+    pub async fn previews(
+        &self,
+        ids: &[Uuid],
+        user: Option<&Arc<Cached<User>>>,
+    ) -> Result<Vec<PostPreview>> {
         Ok(self
+            .cache
+            .posts()
             .get_multiple(ids)
             .await?
-            .iter()
-            .filter_map(|post| post.preview())
+            .into_iter()
+            .filter_map(|post| post.preview(user))
             .collect())
     }
 
     pub async fn insert(&self, post: db::Post) -> Result<Arc<Cached<Post>>> {
-        Ok(self.cache.posts.insert(Post::new(post, self.cache).await?))
+        Ok(self
+            .cache
+            .posts
+            .insert(Post::new(post, self.cache, true).await?))
     }
 
     pub fn remove(&self, post: &Arc<Cached<Post>>) {

@@ -1,4 +1,4 @@
-use super::{Cache, Cached, Id, Result};
+use super::{Cache, Cached, Id, Result, User};
 
 use crate::db;
 
@@ -31,9 +31,13 @@ impl Object {
         }
     }
 
-    pub async fn model(&self, cache: &Cache) -> Result<minty::Object> {
+    pub async fn model(
+        &self,
+        cache: &Cache,
+        user: Option<&Arc<Cached<User>>>,
+    ) -> Result<minty::Object> {
         let posts = self.posts.read().unwrap().clone();
-        let posts = cache.posts().previews(&posts).await?;
+        let posts = cache.posts().previews(&posts, user).await?;
 
         Ok(minty::Object {
             id: self.id,

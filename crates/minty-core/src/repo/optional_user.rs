@@ -52,7 +52,7 @@ impl<'a> OptionalUser<'a> {
     }
 
     pub fn object(self, id: Uuid) -> Object<'a> {
-        Object::new(self.repo, id)
+        Object::new(self.repo, self.user, id)
     }
 
     pub async fn other(self, user: Uuid) -> Result<User> {

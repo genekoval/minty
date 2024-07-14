@@ -39,11 +39,10 @@ impl<'a> Edit<'a> {
             .update_post_modified(self.post.id, modified)
             .await?;
 
-        tx.commit().await?;
-
         let objects = self.repo.cache.objects().get_multiple(&objects).await?;
         self.post.add_objects(objects, modified);
 
+        tx.commit().await?;
         Ok(modified)
     }
 
@@ -181,15 +180,15 @@ impl<'a> Edit<'a> {
         let mut tx = self.repo.database.begin().await?;
 
         let timestamp = tx.publish_post(self.post.id).await?.0;
+
         self.repo
             .search
             .publish_post(self.post.id, timestamp)
             .await?;
 
-        tx.commit().await?;
-
         self.post.publish(timestamp);
 
+        tx.commit().await?;
         Ok(())
     }
 

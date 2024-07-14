@@ -32,10 +32,9 @@ impl<'a> Posts<'a> {
 
         self.repo.search.add_post(&post.search()).await?;
 
-        tx.commit().await?;
-
         let post = self.repo.cache.posts().insert(post).await?;
 
+        tx.commit().await?;
         Ok(Post::new(self.repo, self.user, post))
     }
 }
