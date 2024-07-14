@@ -436,16 +436,18 @@ impl Post {
 
     pub fn delete(&self) {
         if let Some(post) = self.mutable.delete() {
-            if let Some(user) = &self.poster {
-                user.update(|user| user.post_count -= 1);
-            }
-
             for object in &post.objects {
                 object.delete_post(self.id);
             }
 
-            for tag in &post.tags {
-                tag.update(|tag| tag.post_count -= 1);
+            if post.visibility != Visibility::Draft {
+                if let Some(user) = &self.poster {
+                    user.update(|user| user.post_count -= 1);
+                }
+
+                for tag in &post.tags {
+                    tag.update(|tag| tag.post_count -= 1);
+                }
             }
         }
     }
