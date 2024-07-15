@@ -30,9 +30,10 @@ pub struct PostMut {
 
 impl PostMut {
     fn add_comment(&mut self, comment: Comment) -> Option<Box<[usize]>> {
+        self.comment_count += 1;
+
         self.comments.as_mut().map(|comments| {
             comments.push(comment);
-            self.comment_count += 1;
             vec![comments.len() - 1].into_boxed_slice()
         })
     }
