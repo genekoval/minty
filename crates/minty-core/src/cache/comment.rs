@@ -57,6 +57,10 @@ impl Comment {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.content.is_empty() && self.children.is_empty()
+    }
+
     pub fn count(&self) -> usize {
         self.children
             .iter()
@@ -65,7 +69,24 @@ impl Comment {
             + 1 // Add one for self
     }
 
+    fn decrement_count(&self, recursive: bool) {
+        if self.content.is_empty() {
+            return;
+        }
+
+        if let Some(user) = &self.user {
+            user.update(|user| user.comment_count -= 1);
+        }
+
+        if recursive {
+            for child in &self.children {
+                child.decrement_count(true);
+            }
+        }
+    }
+
     pub fn delete(&mut self, recursive: bool) -> Vec<Self> {
+        self.decrement_count(recursive);
         self.content = String::new();
 
         if recursive {
@@ -96,9 +117,7 @@ impl Comment {
         self.children
             .iter()
             .rev()
-            .filter(|child| {
-                !(child.content.is_empty() && child.children.is_empty())
-            })
+            .filter(|child| !child.is_empty())
             .for_each(|child| child.thread(result));
     }
 }

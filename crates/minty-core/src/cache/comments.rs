@@ -82,6 +82,8 @@ impl<'a> Comments<'a> {
         comment: db::Comment,
         user: Arc<Cached<User>>,
     ) -> CommentData {
+        user.update(|user| user.comment_count += 1);
+
         let comment = Comment::new(comment, Some(user));
         let data = comment.data();
 

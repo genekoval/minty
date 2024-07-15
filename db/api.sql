@@ -157,6 +157,7 @@ LEFT JOIN (
         user_id,
         count(*)::int4 AS comment_count
     FROM data.post_comment
+    WHERE content <> ''
     GROUP BY user_id
 ) comments USING (user_id)
 LEFT JOIN (

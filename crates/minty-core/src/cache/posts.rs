@@ -68,7 +68,6 @@ impl PostMut {
         let comments = PostComments {
             post: id,
             comments: self.comments.as_ref()?,
-            count: self.comment_count as usize,
         };
 
         Some(f(comments))
@@ -89,35 +88,30 @@ impl PostMut {
 
         self.comment_count -= count;
 
-        let mut stop = false;
+        let mut pruned = false;
 
         for len in (1..path.len()).rev() {
-            stop = self
+            pruned = self
                 .comment(&path[0..len], |comment| {
-                    let all_deleted = comment
-                        .children
-                        .iter()
-                        .all(|child| child.content.is_empty());
+                    let prune =
+                        comment.children.iter().all(|child| child.is_empty());
 
-                    if all_deleted {
+                    if prune {
                         result.append(&mut comment.children);
                     }
 
-                    !all_deleted
+                    prune
                 })
-                .unwrap_or(true);
+                .unwrap_or(pruned);
 
-            if stop {
+            if !pruned {
                 break;
             }
         }
 
-        if !stop {
+        if pruned {
             if let Some(comments) = self.comments.as_mut() {
-                let all_deleted =
-                    comments.iter().all(|child| child.content.is_empty());
-
-                if all_deleted {
+                if comments.iter().all(|child| child.is_empty()) {
                     result.append(comments);
                 }
             }
@@ -288,6 +282,8 @@ impl Post {
         comment: db::Comment,
         user: Arc<Cached<User>>,
     ) {
+        user.update(|user| user.comment_count += 1);
+
         let id = comment.id;
         let comment = Comment::new(comment, Some(user));
 
@@ -319,7 +315,7 @@ impl Post {
         &self,
         this: &Arc<Cached<Self>>,
         cache: &Cache,
-    ) -> Result<(Vec<Comment>, usize)> {
+    ) -> Result<Vec<Comment>> {
         let comments = cache.database.read_comments(self.id).await?;
 
         let mut users: HashMap<Uuid, Option<Arc<Cached<User>>>> = comments
@@ -390,7 +386,7 @@ impl Post {
             }
         }
 
-        Ok((result, comments.len()))
+        Ok(result)
     }
 
     pub fn comment<F, R>(&self, path: &[usize], f: F) -> Option<R>
@@ -418,17 +414,15 @@ impl Post {
             return Ok(result);
         }
 
-        let (comments, count) = self.build_comments(this, cache).await?;
+        let comments = self.build_comments(this, cache).await?;
 
         let result = f(PostComments {
             post: self.id,
             comments: &comments,
-            count,
         });
 
         self.mutable.update(|post| {
             post.comments = Some(comments);
-            post.comment_count = count.try_into().unwrap();
         });
 
         Ok(result)
@@ -541,7 +535,6 @@ impl Id for Post {
 pub struct PostComments<'a> {
     post: Uuid,
     comments: &'a Vec<Comment>,
-    count: usize,
 }
 
 impl<'a> PostComments<'a> {
@@ -570,7 +563,7 @@ impl<'a> PostComments<'a> {
     }
 
     pub fn get_all(&self) -> Vec<CommentData> {
-        let mut result = Vec::with_capacity(self.count);
+        let mut result = Vec::new();
 
         self.comments
             .iter()
