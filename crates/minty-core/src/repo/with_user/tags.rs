@@ -21,10 +21,9 @@ impl<'a> Tags<'a> {
 
         let tag = tx.create_tag(name, self.user.id).await?;
         self.repo.search.add_tag_alias(tag.id, name).await?;
+        let tag = self.repo.cache.tags().insert(tag, self.user);
 
         tx.commit().await?;
-
-        let tag = self.repo.cache.tags().insert(tag).await;
         Ok(Tag::new(self.repo, tag))
     }
 }

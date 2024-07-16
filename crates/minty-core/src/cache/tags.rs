@@ -26,6 +26,10 @@ impl Tag {
             None
         };
 
+        Self::with_creator(tag, creator)
+    }
+
+    fn with_creator(tag: db::Tag, creator: Option<Arc<Cached<User>>>) -> Self {
         Self {
             id: tag.id,
             creator,
@@ -71,6 +75,10 @@ impl Tag {
     }
 
     pub fn delete(&self) {
+        if let Some(creator) = &self.creator {
+            creator.update(|user| user.tag_count -= 1);
+        }
+
         self.mutable.delete();
     }
 
@@ -128,8 +136,16 @@ impl<'a> Tags<'a> {
             .await
     }
 
-    pub async fn insert(&self, tag: db::Tag) -> Arc<Cached<Tag>> {
-        self.cache.tags.insert(Tag::new(tag, self.cache).await)
+    pub fn insert(
+        &self,
+        tag: db::Tag,
+        creator: Arc<Cached<User>>,
+    ) -> Arc<Cached<Tag>> {
+        creator.update(|user| user.tag_count += 1);
+
+        self.cache
+            .tags
+            .insert(Tag::with_creator(tag, Some(creator)))
     }
 
     pub fn remove(&self, tag: &Arc<Cached<Tag>>) {
