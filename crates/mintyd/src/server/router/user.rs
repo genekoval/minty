@@ -90,10 +90,18 @@ async fn delete_sources(
 
 async fn delete_user(
     State(AppState { repo }): State<AppState>,
-    User(user): User,
-) -> Result<StatusCode> {
-    repo.with_user(user).edit_self().delete().await?;
-    Ok(StatusCode::NO_CONTENT)
+    jar: CookieJar,
+) -> Result<(StatusCode, CookieJar)> {
+    let mut status = StatusCode::UNAUTHORIZED;
+
+    if let Some(session) = jar.get_session() {
+        if let Some(session) = repo.sessions().get(session).await? {
+            repo.with_user(session.user()).edit_self().delete().await?;
+            status = StatusCode::NO_CONTENT;
+        }
+    };
+
+    Ok((status, jar.remove_session_cookie()))
 }
 
 async fn get_authenticated_user(
