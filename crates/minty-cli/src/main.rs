@@ -80,6 +80,7 @@ impl Client {
                 invitation,
             } => self.sign_up(username, user, invitation).await,
             Command::Tag { id, command } => self.tag(id, command).await,
+            Command::Tags => self.client.get_tags().await,
             Command::User { id } => self.client.get_user(id).await,
         }
     }
@@ -126,7 +127,7 @@ impl Client {
             }
             Find::Tag { name } => {
                 self.client
-                    .get_tags(ProfileQuery {
+                    .find_tags(ProfileQuery {
                         pagination,
                         name,
                         exclude: Default::default(),

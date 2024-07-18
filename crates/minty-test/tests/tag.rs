@@ -178,7 +178,7 @@ async fn get_tags() {
         exclude: Default::default(),
     };
 
-    let mut result = repo.get_tags(&query).await.unwrap();
+    let mut result = repo.search_tags(&query).await.unwrap();
 
     assert!(result.total >= 2, "result.total = {}", result.total);
 
@@ -188,7 +188,7 @@ async fn get_tags() {
     assert!(hits.contains(&js));
 
     query.name = "javas".into();
-    result = repo.get_tags(&query).await.unwrap();
+    result = repo.search_tags(&query).await.unwrap();
     hits = result.hits.iter().map(|hit| hit.id).collect();
 
     assert!(hits.contains(&js));

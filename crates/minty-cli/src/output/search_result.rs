@@ -1,11 +1,8 @@
-use super::{color, HumanReadable};
+use super::{color, HumanReadable, SliceExt};
 
 use minty::SearchResult;
 use owo_colors::OwoColorize;
 use std::io::{Result, Write};
-
-const SEPARATOR: &str = " \u{00b7} ";
-const SEPARATOR_LEN: usize = 3;
 
 impl<T> HumanReadable for SearchResult<T>
 where
@@ -18,17 +15,8 @@ where
         }
 
         if !self.hits.is_empty() {
-            let digits = (self.hits.len().ilog10() + 1) as usize;
-
-            for (i, hit) in self.hits.iter().enumerate() {
-                let i = i + 1;
-
-                write!(w, "{:>1$}", i.fg::<color::Index>(), digits)?;
-                write!(w, "{}", SEPARATOR)?;
-
-                hit.human_readable(w, indent + digits + SEPARATOR_LEN)?;
-                writeln!(w)?;
-            }
+            self.hits.list().human_readable(w, indent)?;
+            writeln!(w)?;
         }
 
         writeln!(

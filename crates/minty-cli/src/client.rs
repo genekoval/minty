@@ -1,7 +1,7 @@
 mod ask;
 
 use crate::{
-    output::{About, Output, Print},
+    output::{About, Output, Print, SliceExt},
     Error,
 };
 
@@ -13,6 +13,7 @@ use minty::{
 use rpassword::prompt_password;
 use serde_json as json;
 use std::{
+    env,
     io::{stdin, IsTerminal, Read},
     path::PathBuf,
     str::FromStr,
@@ -20,6 +21,8 @@ use std::{
 };
 use tokio::fs::File;
 use tokio_util::io::{ReaderStream, StreamReader};
+
+const ENV_TAGS: &str = "MINTY_TAGS";
 
 const USER_AGENT: &str =
     concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
@@ -370,6 +373,10 @@ impl Client {
         Ok(())
     }
 
+    pub async fn find_tags(&self, query: ProfileQuery) -> Result {
+        self.print(self.repo.search_tags(&query).await?)
+    }
+
     pub async fn get_authenticated_user(&self) -> Result {
         self.print(self.repo.get_authenticated_user().await?)
     }
@@ -454,8 +461,19 @@ impl Client {
         self.print(self.repo.get_tag(id).await?)
     }
 
-    pub async fn get_tags(&self, query: ProfileQuery) -> Result {
-        self.print(self.repo.get_tags(&query).await?)
+    pub async fn get_tags(&self) -> Result {
+        let Some(value) = env::var(ENV_TAGS).ok() else {
+            return Ok(());
+        };
+
+        let ids: Vec<Uuid> = value
+            .split(' ')
+            .filter_map(|id| Uuid::try_parse(id).ok())
+            .collect();
+
+        let tags = self.repo.get_tags(&ids).await?;
+
+        self.print(tags.list())
     }
 
     pub async fn get_user(&self, id: Uuid) -> Result {

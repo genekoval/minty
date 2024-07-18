@@ -4,6 +4,7 @@ mod color;
 mod comment;
 mod entity;
 mod icon;
+mod list;
 mod metadata;
 mod num;
 mod object;
@@ -16,6 +17,7 @@ mod user;
 mod view;
 
 pub use about::About;
+pub use list::SliceExt;
 
 use serde::Serialize;
 use serde_json as json;

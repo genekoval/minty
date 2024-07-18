@@ -693,8 +693,6 @@ impl<'a> Posts<'a> {
         user: Option<&Arc<Cached<User>>>,
     ) -> Result<Vec<PostPreview>> {
         Ok(self
-            .cache
-            .posts()
             .get_multiple(ids)
             .await?
             .into_iter()

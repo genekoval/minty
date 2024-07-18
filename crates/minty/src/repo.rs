@@ -137,10 +137,7 @@ pub trait Repo: Sized {
 
     async fn get_tag(&self, id: Uuid) -> Result<Tag>;
 
-    async fn get_tags(
-        &self,
-        query: &ProfileQuery,
-    ) -> Result<SearchResult<TagPreview>>;
+    async fn get_tags(&self, ids: &[Uuid]) -> Result<Vec<TagPreview>>;
 
     async fn get_user(&self, id: Uuid) -> Result<User>;
 
@@ -161,6 +158,11 @@ pub trait Repo: Sized {
     async fn publish_post(&self, post_id: Uuid) -> Result<()>;
 
     async fn revoke_admin(&self, user_id: Uuid) -> Result<()>;
+
+    async fn search_tags(
+        &self,
+        query: &ProfileQuery,
+    ) -> Result<SearchResult<TagPreview>>;
 
     async fn set_comment_content(
         &self,

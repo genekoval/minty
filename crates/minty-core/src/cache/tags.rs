@@ -136,6 +136,15 @@ impl<'a> Tags<'a> {
             .await
     }
 
+    pub async fn previews(&self, ids: &[Uuid]) -> Result<Vec<TagPreview>> {
+        Ok(self
+            .get_multiple(ids)
+            .await?
+            .into_iter()
+            .filter_map(|tag| tag.preview())
+            .collect())
+    }
+
     pub fn insert(
         &self,
         tag: db::Tag,

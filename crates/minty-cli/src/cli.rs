@@ -141,6 +141,9 @@ pub enum Command {
         command: Option<Tag>,
     },
 
+    /// Display the tags stored in the MINTY_TAGS environment variable
+    Tags,
+
     /// View a user's publicly available information
     User {
         /// User ID

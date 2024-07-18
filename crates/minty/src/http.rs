@@ -468,14 +468,19 @@ impl crate::Repo for Repo {
             .await
     }
 
-    async fn get_tags(
-        &self,
-        query: &ProfileQuery,
-    ) -> Result<SearchResult<TagPreview>> {
-        let query: query::ProfileQuery = query.clone().into();
+    async fn get_tags(&self, ids: &[Uuid]) -> Result<Vec<TagPreview>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let ids = ids
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+
         self.client
-            .get("tags")
-            .query(&query)
+            .get(format!("tags/{ids}"))
             .send()
             .await?
             .deserialize()
@@ -539,6 +544,20 @@ impl crate::Repo for Repo {
             .send()
             .await?;
         Ok(())
+    }
+
+    async fn search_tags(
+        &self,
+        query: &ProfileQuery,
+    ) -> Result<SearchResult<TagPreview>> {
+        let query: query::ProfileQuery = query.clone().into();
+        self.client
+            .get("tags")
+            .query(&query)
+            .send()
+            .await?
+            .deserialize()
+            .await
     }
 
     async fn set_comment_content(

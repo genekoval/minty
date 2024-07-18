@@ -1,6 +1,6 @@
 use crate::{Repo, Result};
 
-use minty::{ProfileQuery, SearchResult, TagPreview};
+use minty::{ProfileQuery, SearchResult, TagPreview, Uuid};
 
 pub struct Tags<'a> {
     repo: &'a Repo,
@@ -9,6 +9,10 @@ pub struct Tags<'a> {
 impl<'a> Tags<'a> {
     pub(super) fn new(repo: &'a Repo) -> Self {
         Self { repo }
+    }
+
+    pub async fn get(&self, tags: &[Uuid]) -> Result<Vec<TagPreview>> {
+        self.repo.cache.tags().previews(tags).await
     }
 
     pub async fn find(
@@ -21,15 +25,7 @@ impl<'a> Tags<'a> {
             .find_entities(&self.repo.search.indices.tag, query)
             .await?;
 
-        let hits = self
-            .repo
-            .cache
-            .tags()
-            .get_multiple(&hits)
-            .await?
-            .into_iter()
-            .filter_map(|tag| tag.preview())
-            .collect();
+        let hits = self.repo.cache.tags().previews(&hits).await?;
 
         Ok(SearchResult { total, hits })
     }
