@@ -4,6 +4,22 @@ use clap::{Parser, Subcommand};
 use minty::{text, PostSort, Url, Uuid};
 use std::path::PathBuf;
 
+mod env {
+    macro_rules! var {
+        ($name:ident) => {
+            pub const $name: &str = concat!("MINTY", '_', stringify!($name));
+        };
+    }
+
+    var!(CONFIG);
+    var!(HUMAN_READABLE);
+    var!(JSON);
+    var!(LIMIT);
+    var!(SERVER);
+    var!(TAGS);
+    var!(USER);
+}
+
 #[derive(Debug, Parser)]
 #[command(name = "minty", version, arg_required_else_help = true)]
 /// A Minty client for the command line
@@ -12,7 +28,7 @@ pub struct Cli {
         short,
         long,
         value_name = "FILE",
-        env = "MINTY_CONFIG",
+        env = env::CONFIG,
         global = true
     )]
     /// Config file in TOML format
@@ -21,22 +37,22 @@ pub struct Cli {
     #[arg(
         long,
         value_name = "ALIAS",
-        env = "MINTY_SERVER",
+        env = env::SERVER,
         global = true,
         default_value = "default"
     )]
     /// The configured server to use
     pub server: String,
 
-    #[arg(long, value_name = "ALIAS", env = "MINTY_USER", global = true)]
+    #[arg(long, value_name = "ALIAS", env = env::USER, global = true)]
     /// The configured user to act as
     pub user: Option<String>,
 
-    #[arg(short = 'H', long, env = "MINTY_HUMAN_READABLE", global = true)]
+    #[arg(short = 'H', long, env = env::HUMAN_READABLE, global = true)]
     /// Print data in a human-readable format
     pub human_readable: bool,
 
-    #[arg(short, long, env = "MINTY_JSON", global = true)]
+    #[arg(short, long, env = env::JSON, global = true)]
     /// Print data in JSON format
     pub json: bool,
 
@@ -65,7 +81,7 @@ pub enum Command {
             short = 'n',
             long,
             value_name = "LIMIT",
-            env = "MINTY_LIMIT",
+            env = env::LIMIT,
             default_value = "50",
             global = true
         )]
@@ -141,8 +157,12 @@ pub enum Command {
         command: Option<Tag>,
     },
 
-    /// Display the tags stored in the MINTY_TAGS environment variable
-    Tags,
+    /// Display the given tags
+    Tags {
+        #[arg(value_delimiter = ' ', env = env::TAGS)]
+        /// Tag IDs
+        tags: Vec<Uuid>,
+    },
 
     /// View a user's publicly available information
     User {
@@ -158,7 +178,7 @@ pub enum Command {
 
     /// Log into a user account
     Login {
-        #[arg(long, value_name = "ALIAS", env = "MINTY_USER")]
+        #[arg(long, value_name = "ALIAS", env = env::USER)]
         /// The configured user to log in as
         user: String,
     },
@@ -168,7 +188,7 @@ pub enum Command {
 
     /// Create a new account
     Signup {
-        #[arg(long, value_name = "ALIAS", env = "MINTY_USER")]
+        #[arg(long, value_name = "ALIAS", env = env::USER)]
         /// The configured user to sign up as
         user: String,
 
@@ -251,7 +271,7 @@ pub enum Find {
         /// Result sorting
         sort_by: PostSort,
 
-        #[arg(short, long)]
+        #[arg(short, long, value_delimiter = ' ', env = env::TAGS)]
         /// Search for posts with the given tags
         tag: Vec<Uuid>,
 
@@ -293,7 +313,13 @@ pub enum New {
         /// Link related posts
         post: Option<Vec<Uuid>>,
 
-        #[arg(short, long, value_name = "ID")]
+        #[arg(
+            short,
+            long,
+            value_name = "ID",
+            value_delimiter = ' ',
+            env = env::TAGS
+        )]
         /// Add tags to the post
         tag: Option<Vec<Uuid>>,
 

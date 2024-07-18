@@ -22,8 +22,6 @@ use std::{
 use tokio::fs::File;
 use tokio_util::io::{ReaderStream, StreamReader};
 
-const ENV_TAGS: &str = "MINTY_TAGS";
-
 const USER_AGENT: &str =
     concat!(env!("CARGO_PKG_NAME"), '/', env!("CARGO_PKG_VERSION"));
 
@@ -461,19 +459,8 @@ impl Client {
         self.print(self.repo.get_tag(id).await?)
     }
 
-    pub async fn get_tags(&self) -> Result {
-        let Some(value) = env::var(ENV_TAGS).ok() else {
-            return Ok(());
-        };
-
-        let ids: Vec<Uuid> = value
-            .split(' ')
-            .filter_map(|id| Uuid::try_parse(id).ok())
-            .collect();
-
-        let tags = self.repo.get_tags(&ids).await?;
-
-        self.print(tags.list())
+    pub async fn get_tags(&self, ids: &[Uuid]) -> Result {
+        self.print(self.repo.get_tags(ids).await?.list())
     }
 
     pub async fn get_user(&self, id: Uuid) -> Result {
