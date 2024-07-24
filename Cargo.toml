@@ -19,7 +19,7 @@ clap = "4"
 cookie = "0.18"
 cookie_store = "0.21"
 crossterm = "0.27"
-dashmap = "5"
+dashmap = "6"
 dmon = { version = "0.1", registry = "genya" }
 elasticsearch = "8.5.0-alpha.1"
 ffmpeg-sys-next = "6"
