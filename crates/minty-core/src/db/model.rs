@@ -10,9 +10,6 @@ use sqlx::{
     },
     Decode, Encode, FromRow, Postgres, Type,
 };
-use std::error::Error;
-
-type EncodeResult = Result<IsNull, Box<dyn Error + Send + Sync>>;
 
 pub trait Id {
     fn id(&self) -> Uuid;
@@ -77,7 +74,10 @@ impl<'r> Decode<'r, Postgres> for Object {
 }
 
 impl Encode<'_, Postgres> for Object {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> EncodeResult {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<IsNull, BoxDynError> {
         let mut encoder = PgRecordEncoder::new(buf);
 
         encoder.encode(self.id)?;
@@ -224,7 +224,10 @@ impl<'r> Decode<'r, Postgres> for Source {
 }
 
 impl Encode<'_, Postgres> for Source {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> EncodeResult {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<IsNull, BoxDynError> {
         let mut encoder = PgRecordEncoder::new(buf);
 
         encoder.encode(self.id)?;
@@ -405,7 +408,10 @@ impl<'r> Decode<'r, Postgres> for Visibility {
 }
 
 impl Encode<'_, Postgres> for Visibility {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> EncodeResult {
+    fn encode_by_ref(
+        &self,
+        buf: &mut PgArgumentBuffer,
+    ) -> Result<IsNull, BoxDynError> {
         let val = self.as_str();
         <&str as Encode<'_, Postgres>>::encode(val, buf)
     }
