@@ -10,6 +10,9 @@ use sqlx::{
     },
     Decode, Encode, FromRow, Postgres, Type,
 };
+use std::error::Error;
+
+type EncodeResult = Result<IsNull, Box<dyn Error + Send + Sync>>;
 
 pub trait Id {
     fn id(&self) -> Uuid;
@@ -74,14 +77,14 @@ impl<'r> Decode<'r, Postgres> for Object {
 }
 
 impl Encode<'_, Postgres> for Object {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> EncodeResult {
         let mut encoder = PgRecordEncoder::new(buf);
 
-        encoder.encode(self.id);
-        encoder.encode(self.preview_id);
+        encoder.encode(self.id)?;
+        encoder.encode(self.preview_id)?;
 
         encoder.finish();
-        IsNull::No
+        Ok(IsNull::No)
     }
 }
 
@@ -221,15 +224,15 @@ impl<'r> Decode<'r, Postgres> for Source {
 }
 
 impl Encode<'_, Postgres> for Source {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> EncodeResult {
         let mut encoder = PgRecordEncoder::new(buf);
 
-        encoder.encode(self.id);
-        encoder.encode(&self.url);
-        encoder.encode(self.icon);
+        encoder.encode(self.id)?;
+        encoder.encode(&self.url)?;
+        encoder.encode(self.icon)?;
 
         encoder.finish();
-        IsNull::No
+        Ok(IsNull::No)
     }
 }
 
@@ -402,7 +405,7 @@ impl<'r> Decode<'r, Postgres> for Visibility {
 }
 
 impl Encode<'_, Postgres> for Visibility {
-    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> EncodeResult {
         let val = self.as_str();
         <&str as Encode<'_, Postgres>>::encode(val, buf)
     }
