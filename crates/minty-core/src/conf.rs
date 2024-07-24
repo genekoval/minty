@@ -19,7 +19,8 @@ const DEFAULT_SQL_DIRECTORY: &str =
 pub struct DatabaseConfig {
     pub connection: DbConnection,
 
-    pub max_connections: Option<u32>,
+    #[serde(default = "DatabaseConfig::default_max_connections")]
+    pub max_connections: u32,
 
     #[serde(default)]
     pub psql: Psql,
@@ -35,6 +36,10 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
+    fn default_max_connections() -> u32 {
+        10
+    }
+
     fn default_sql_directory() -> PathBuf {
         DEFAULT_SQL_DIRECTORY.into()
     }

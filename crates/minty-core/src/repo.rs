@@ -25,7 +25,7 @@ use crate::{
     auth::Auth,
     cache::{self, Cache, Cached},
     conf::RepoConfig,
-    db::{self, Database, Password},
+    db::{Database, Password},
     error::{Found, Result},
     ico::Favicons,
     model::Invitation,
@@ -53,19 +53,7 @@ pub struct Repo {
 
 impl Repo {
     pub async fn new(config: &RepoConfig) -> result::Result<Self, String> {
-        let mut pool = db::PoolOptions::new();
-
-        if let Some(max_connections) = config.database.max_connections {
-            pool = pool.max_connections(max_connections);
-        }
-
-        let pool = pool
-            .connect(config.database.connection.as_url().as_str())
-            .await
-            .map_err(|err| {
-                format!("failed to establish database connection: {err}")
-            })?;
-
+        let database = Database::from_config(&config.database).await?;
         let db_support = pgtools::Database::new(
             crate::VERSION,
             pgtools::Options {
@@ -76,8 +64,6 @@ impl Repo {
                 sql_directory: &config.database.sql_directory,
             },
         )?;
-
-        let database = Database::new(pool);
         let bucket = Bucket::new(&config.objects).await?;
         let cache = Cache::new(database.clone(), bucket.clone(), &config.cache);
         let favicons = Favicons::new(bucket.clone());

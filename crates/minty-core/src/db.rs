@@ -4,10 +4,18 @@ mod model;
 
 pub use model::*;
 
-pub use sqlx::postgres::PgPoolOptions as PoolOptions;
+use crate::conf::DatabaseConfig;
 
+use core::time::Duration;
+use log::LevelFilter;
 use minty::model::export::Data;
-use sqlx::types::Json;
+use sqlx::{
+    postgres::{
+        PgConnectOptions as ConnectOptions, PgPoolOptions as PoolOptions,
+    },
+    types::Json,
+    ConnectOptions as _,
+};
 use sqlx_helper_macros::{database, transaction};
 
 database! {
@@ -157,6 +165,28 @@ transaction! {
     ) -> Option<(DateTime,)>;
 
     update_post_title(post_id: Uuid, title: &str) -> Option<(DateTime,)>;
+}
+
+impl Database {
+    pub async fn from_config(config: &DatabaseConfig) -> Result<Self, String> {
+        let url = config.connection.as_url();
+
+        let options = ConnectOptions::from_url(&url)
+            .map_err(|err| {
+                format!("failed to create database connect options: {err}")
+            })?
+            .log_slow_statements(LevelFilter::Debug, Duration::from_secs(30));
+
+        let pool = PoolOptions::new()
+            .max_connections(config.max_connections)
+            .connect_with(options)
+            .await
+            .map_err(|err| {
+                format!("failed to establish database connection: {err}")
+            })?;
+
+        Ok(Self::new(pool))
+    }
 }
 
 impl Clone for Database {
