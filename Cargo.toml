@@ -36,7 +36,7 @@ num-format = "0.4"
 owo-colors = "4"
 pgtools = { version = "0.1", registry = "genya" }
 rand = "0.8"
-ratatui = "0.26"
+ratatui = "0.27"
 regex = "1"
 reqwest = "0.12"
 rpassword = "7"

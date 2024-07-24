@@ -5,6 +5,7 @@ use ratatui::{
     prelude::*,
     style::palette::tailwind,
     widgets::{block::Title, Block, Borders, Gauge},
+    TerminalOptions, Viewport,
 };
 use std::io::{stdout, Stdout};
 use tokio::{
