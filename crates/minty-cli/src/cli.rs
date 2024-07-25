@@ -15,7 +15,9 @@ mod env {
     var!(HUMAN_READABLE);
     var!(JSON);
     var!(LIMIT);
+    var!(POST);
     var!(SERVER);
+    var!(TAG);
     var!(TAGS);
     var!(USER);
 }
@@ -100,6 +102,7 @@ pub enum Command {
 
     /// Read or modify a post
     Post {
+        #[arg(env = env::POST)]
         /// Post ID
         id: Uuid,
 
@@ -150,6 +153,7 @@ pub enum Command {
 
     /// Read about or modify a tag
     Tag {
+        #[arg(env = env::TAG)]
         /// Tag ID
         id: Uuid,
 
