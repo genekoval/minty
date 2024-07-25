@@ -1,4 +1,7 @@
-use super::{session::SessionCookie, AppState, Result, Router};
+use super::{
+    session::{CookieJarSession, SessionCookie},
+    AppState, Result, Router,
+};
 
 use axum::{
     extract::{Query, State},
@@ -14,6 +17,10 @@ async fn sign_up(
     jar: CookieJar,
     Form(sign_up): Form<SignUp>,
 ) -> Result<(CookieJar, String)> {
+    if let Some(session) = jar.get_session() {
+        repo.sessions().delete(session).await?;
+    }
+
     let invitation = query.invitation.as_deref();
     let session = repo.sign_up(sign_up, invitation).await?;
 

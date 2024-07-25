@@ -31,6 +31,10 @@ async fn create_session(
     jar: CookieJar,
     Json(login): Json<Login>,
 ) -> Result<(CookieJar, String)> {
+    if let Some(session) = jar.get_session() {
+        repo.sessions().delete(session).await?;
+    }
+
     let session = repo.authenticate(&login).await?;
 
     Ok((jar.add(session.cookie()), session.user_id.to_string()))
