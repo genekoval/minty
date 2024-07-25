@@ -19,7 +19,6 @@ mod env {
     var!(SERVER);
     var!(TAG);
     var!(TAGS);
-    var!(USER);
 }
 
 #[derive(Debug, Parser)]
@@ -45,10 +44,6 @@ pub struct Cli {
     )]
     /// The configured server to use
     pub server: String,
-
-    #[arg(long, value_name = "ALIAS", env = env::USER, global = true)]
-    /// The configured user to act as
-    pub user: Option<String>,
 
     #[arg(short = 'H', long, env = env::HUMAN_READABLE, global = true)]
     /// Print data in a human-readable format
@@ -182,9 +177,8 @@ pub enum Command {
 
     /// Log into a user account
     Login {
-        #[arg(long, value_name = "ALIAS", env = env::USER)]
-        /// The configured user to log in as
-        user: String,
+        /// The email of the user to log in as
+        email: String,
     },
 
     /// Close the current session
@@ -192,9 +186,8 @@ pub enum Command {
 
     /// Create a new account
     Signup {
-        #[arg(long, value_name = "ALIAS", env = env::USER)]
-        /// The configured user to sign up as
-        user: String,
+        /// The email to sign up with
+        email: text::Email,
 
         /// New user's display name
         username: text::Name,

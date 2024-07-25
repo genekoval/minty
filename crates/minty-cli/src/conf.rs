@@ -5,7 +5,7 @@ use file::File;
 use crate::{Error, Result};
 
 use log::LevelFilter;
-use minty::{text::Email, Url};
+use minty::Url;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -20,8 +20,6 @@ pub struct Config {
     pub log: Log,
 
     pub servers: BTreeMap<String, Url>,
-
-    pub users: BTreeMap<String, Email>,
 
     cookies: Option<PathBuf>,
 }
@@ -46,10 +44,6 @@ impl ConfigFile {
 
     pub fn server(&self, alias: &str) -> Option<&Url> {
         self.0.data().servers.get(alias)
-    }
-
-    pub fn user(&self, alias: &str) -> Option<&Email> {
-        self.0.data().users.get(alias)
     }
 
     pub fn cookies(&self) -> PathBuf {

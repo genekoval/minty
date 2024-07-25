@@ -10,7 +10,6 @@ type Result = minty_cli::Result<()>;
 
 struct Client {
     client: minty_cli::Client,
-    config: ConfigFile,
 }
 
 impl Client {
@@ -35,7 +34,7 @@ impl Client {
             },
         )?;
 
-        Ok(Self { client, config })
+        Ok(Self { client })
     }
 
     fn run(&self, args: Cli) -> Result {
@@ -62,7 +61,7 @@ impl Client {
             } => self.find(command, Pagination { from, size }).await,
             Command::Grant { command } => self.grant(command).await,
             Command::Invite => self.client.get_invitation().await,
-            Command::Login { user } => self.login(user).await,
+            Command::Login { email } => self.login(email).await,
             Command::Logout => self.logout().await,
             Command::Me { command } => self.me(command).await,
             Command::New { command } => self.cmd_new(command).await,
@@ -75,10 +74,10 @@ impl Client {
             }
             Command::Revoke { command } => self.revoke(command).await,
             Command::Signup {
+                email,
                 username,
-                user,
                 invitation,
-            } => self.sign_up(username, user, invitation).await,
+            } => self.sign_up(email, username, invitation).await,
             Command::Tag { id, command } => self.tag(id, command).await,
             Command::Tags { tags } => self.client.get_tags(&tags).await,
             Command::User { id } => self.client.get_user(id).await,
@@ -152,16 +151,8 @@ impl Client {
         }
     }
 
-    async fn login(&self, user: String) -> Result {
-        let Some(email) = self.config.user(&user) else {
-            return Err(Error::Config(format!(
-                "user alias '{}' not defined",
-                user
-            )));
-        };
-
-        self.client.authenticate(email.to_string()).await?;
-
+    async fn login(&self, email: String) -> Result {
+        self.client.authenticate(email).await?;
         Ok(())
     }
 
@@ -315,19 +306,11 @@ impl Client {
 
     async fn sign_up(
         &self,
+        email: text::Email,
         name: text::Name,
-        user: String,
         invitation: Option<String>,
     ) -> Result {
-        let Some(email) = self.config.user(&user) else {
-            return Err(Error::Config(format!(
-                "user alias '{}' not defined",
-                user
-            )));
-        };
-
-        self.client.sign_up(name, email.clone(), invitation).await?;
-
+        self.client.sign_up(name, email, invitation).await?;
         Ok(())
     }
 
