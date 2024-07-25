@@ -178,10 +178,13 @@ impl Client {
         Ok(())
     }
 
-    pub async fn authenticate(&self, email: String) -> crate::Result<String> {
+    pub async fn authenticate(&self, email: String) -> Result {
         let password = prompt_password(format!("Password for '{email}': "))?;
         let login = Login { email, password };
-        Ok(self.repo.authenticate(&login).await?)
+
+        self.repo.authenticate(&login).await?;
+
+        Ok(())
     }
 
     pub async fn create_post(&self, parts: PostParts) -> Result {
@@ -607,7 +610,7 @@ impl Client {
         username: text::Name,
         email: text::Email,
         invitation: Option<String>,
-    ) -> crate::Result<String> {
+    ) -> Result {
         if let Some(invitation) = invitation.as_deref() {
             let inviter = self.repo.get_inviter(invitation).await?;
             let name = inviter.profile.name.as_str();
@@ -625,7 +628,9 @@ impl Client {
             password,
         };
 
-        Ok(self.repo.sign_up(&info, invitation).await?)
+        self.repo.sign_up(&info, invitation).await?;
+
+        Ok(())
     }
 
     async fn upload_file(&self, path: PathBuf) -> crate::Result<Uuid> {

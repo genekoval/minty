@@ -218,13 +218,13 @@ impl crate::Repo for Repo {
             .await
     }
 
-    async fn authenticate(&self, login: &Login) -> Result<String> {
+    async fn authenticate(&self, login: &Login) -> Result<Uuid> {
         self.client
             .post("user/session")
             .json(login)
             .send()
             .await?
-            .text()
+            .uuid()
             .await
     }
 
@@ -684,7 +684,7 @@ impl crate::Repo for Repo {
         &self,
         info: &SignUp,
         invitation: Option<String>,
-    ) -> Result<String> {
+    ) -> Result<Uuid> {
         let query = query::SignUp { invitation };
 
         self.client
@@ -693,7 +693,7 @@ impl crate::Repo for Repo {
             .form(info)
             .send()
             .await?
-            .text()
+            .uuid()
             .await
     }
 }

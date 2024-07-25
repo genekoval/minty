@@ -1,9 +1,7 @@
 use minty_cli::*;
 
 use clap::Parser;
-use minty::{
-    text, Pagination, PostParts, PostQuery, ProfileQuery, Uuid, Visibility,
-};
+use minty::{Pagination, PostParts, PostQuery, ProfileQuery, Uuid, Visibility};
 use std::process::ExitCode;
 
 type Result = minty_cli::Result<()>;
@@ -61,8 +59,8 @@ impl Client {
             } => self.find(command, Pagination { from, size }).await,
             Command::Grant { command } => self.grant(command).await,
             Command::Invite => self.client.get_invitation().await,
-            Command::Login { email } => self.login(email).await,
-            Command::Logout => self.logout().await,
+            Command::Login { email } => self.client.authenticate(email).await,
+            Command::Logout => self.client.sign_out().await,
             Command::Me { command } => self.me(command).await,
             Command::New { command } => self.cmd_new(command).await,
             Command::Obj { id, command } => self.object(id, command).await,
@@ -77,7 +75,7 @@ impl Client {
                 email,
                 username,
                 invitation,
-            } => self.sign_up(email, username, invitation).await,
+            } => self.client.sign_up(username, email, invitation).await,
             Command::Tag { id, command } => self.tag(id, command).await,
             Command::Tags { tags } => self.client.get_tags(&tags).await,
             Command::User { id } => self.client.get_user(id).await,
@@ -149,16 +147,6 @@ impl Client {
         match command {
             Grant::Admin { id } => self.client.set_user_admin(id, true).await,
         }
-    }
-
-    async fn login(&self, email: String) -> Result {
-        self.client.authenticate(email).await?;
-        Ok(())
-    }
-
-    async fn logout(&self) -> Result {
-        self.client.sign_out().await?;
-        Ok(())
     }
 
     async fn me(&self, command: Option<Me>) -> Result {
@@ -302,16 +290,6 @@ impl Client {
         match command {
             Revoke::Admin { id } => self.client.set_user_admin(id, false).await,
         }
-    }
-
-    async fn sign_up(
-        &self,
-        email: text::Email,
-        name: text::Name,
-        invitation: Option<String>,
-    ) -> Result {
-        self.client.sign_up(name, email, invitation).await?;
-        Ok(())
     }
 
     async fn tag(&self, id: Uuid, command: Option<Tag>) -> Result {

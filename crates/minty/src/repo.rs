@@ -56,7 +56,7 @@ pub trait Repo: Sized {
         objects: &[Uuid],
     ) -> Result<DateTime>;
 
-    async fn authenticate(&self, login: &Login) -> Result<String>;
+    async fn authenticate(&self, login: &Login) -> Result<Uuid>;
 
     async fn create_post(&self, parts: &PostParts) -> Result<Uuid>;
 
@@ -211,5 +211,5 @@ pub trait Repo: Sized {
         &self,
         info: &SignUp,
         invitation: Option<String>,
-    ) -> Result<String>;
+    ) -> Result<Uuid>;
 }
