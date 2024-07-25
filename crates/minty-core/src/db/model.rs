@@ -426,10 +426,4 @@ impl Type<Postgres> for Visibility {
     fn type_info() -> PgTypeInfo {
         PgTypeInfo::with_name("data.visibility")
     }
-
-    fn compatible(ty: &PgTypeInfo) -> bool {
-        // Workaround for https://github.com/launchbadge/sqlx/issues/2831
-        // sqlx::Type macro doesn't work with types in schemas outside search_path
-        *ty == PgTypeInfo::with_name("visibility")
-    }
 }
