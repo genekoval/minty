@@ -1759,7 +1759,7 @@ dependencies = [
 
 [[package]]
 name = "minty"
-version = "0.6.1-dev"
+version = "0.7.0"
 dependencies = [
  "bytes",
  "chrono",
@@ -1777,7 +1777,7 @@ dependencies = [
 
 [[package]]
 name = "minty-cli"
-version = "0.1.1-dev"
+version = "0.2.0"
 dependencies = [
  "bytesize",
  "chrono",
@@ -1799,7 +1799,7 @@ dependencies = [
 
 [[package]]
 name = "minty-core"
-version = "0.6.1-dev"
+version = "0.7.0"
 dependencies = [
  "argon2",
  "base64 0.22.1",
@@ -1855,7 +1855,7 @@ dependencies = [
 
 [[package]]
 name = "mintyd"
-version = "0.6.1-dev"
+version = "0.7.0"
 dependencies = [
  "axum",
  "axum-extra",
