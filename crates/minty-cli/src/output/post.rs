@@ -93,6 +93,14 @@ impl HumanReadable for PostPreview {
         )?;
 
         write!(w, "{:1$}", "", indent)?;
+        write!(w, "{} ", icon::ACCOUNT.fg::<color::Label>())?;
+        if let Some(poster) = &self.poster {
+            writeln!(w, "{}", poster.name.fg::<color::Secodary>())?;
+        } else {
+            writeln!(w, "{}", "Deleted".italic().fg::<color::Secodary>())?;
+        }
+
+        write!(w, "{:1$}", "", indent)?;
         write!(
             w,
             "{} {}",
