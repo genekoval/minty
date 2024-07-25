@@ -31,19 +31,22 @@ where
 {
     fn human_readable<W: Write>(&self, w: &mut W, indent: usize) -> Result<()> {
         let list = self.0;
-        let digits = (list.len().ilog10() + 1) as usize;
 
-        for (i, t) in self.0.iter().enumerate() {
-            if i > 0 {
-                writeln!(w)?;
+        if !list.is_empty() {
+            let digits = (list.len().ilog10() + 1) as usize;
+
+            for (i, t) in list.iter().enumerate() {
+                if i > 0 {
+                    writeln!(w)?;
+                }
+
+                let i = i + 1;
+
+                write!(w, "{:>1$}", i.fg::<color::Index>(), digits)?;
+                write!(w, "{}", SEPARATOR)?;
+
+                t.human_readable(w, indent + digits + SEPARATOR_LEN)?;
             }
-
-            let i = i + 1;
-
-            write!(w, "{:>1$}", i.fg::<color::Index>(), digits)?;
-            write!(w, "{}", SEPARATOR)?;
-
-            t.human_readable(w, indent + digits + SEPARATOR_LEN)?;
         }
 
         Ok(())
