@@ -55,7 +55,9 @@ where
         })
     }
 
-    pub fn relative(&self, path: &Path) -> PathBuf {
+    pub fn relative<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        let path = path.as_ref();
+
         if path.is_relative() {
             self.path.parent().unwrap().join(path)
         } else {

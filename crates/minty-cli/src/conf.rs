@@ -14,6 +14,8 @@ use std::{
 };
 use timber::Sink;
 
+const CONFIG_FILE: &str = "minty.toml";
+
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
@@ -51,7 +53,7 @@ impl ConfigFile {
             .data()
             .cookies
             .clone()
-            .unwrap_or_else(|| self.0.relative(Path::new("cookies.json")))
+            .unwrap_or_else(|| self.0.relative("cookies.json"))
     }
 }
 
@@ -95,25 +97,14 @@ fn find_config() -> Option<PathBuf> {
 
 fn search_home() -> Option<PathBuf> {
     let home = env::var_os("HOME")?;
+    let path = Path::new(&home).join(".config").join("minty");
 
-    let home = Path::new(&home);
-    let config = home.join(".config");
-
-    let path = config.join("minty");
-    if path.is_dir() {
-        return Some(path);
-    }
-
-    None
+    path.is_dir().then(|| path.join(CONFIG_FILE))
 }
 
 fn search_xdg_config_home() -> Option<PathBuf> {
     let config = env::var_os("XDG_CONFIG_HOME")?;
+    let path = Path::new(&config).join("minty");
 
-    let confdir = Path::new(&config).join("minty");
-    if confdir.is_dir() {
-        return Some(confdir);
-    }
-
-    None
+    path.is_dir().then(|| path.join(CONFIG_FILE))
 }
