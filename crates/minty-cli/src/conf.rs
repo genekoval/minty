@@ -40,8 +40,8 @@ impl ConfigFile {
         Ok(Self(file))
     }
 
-    pub fn set_logger(&self) -> Result<()> {
-        self.0.data().log.set_logger()
+    pub fn set_logger(&self, level: Option<LevelFilter>) -> Result<()> {
+        self.0.data().log.set_logger(level)
     }
 
     pub fn server(&self, alias: &str) -> Option<&Url> {
@@ -71,9 +71,9 @@ impl Log {
         LevelFilter::Info
     }
 
-    fn set_logger(&self) -> Result<()> {
+    fn set_logger(&self, level: Option<LevelFilter>) -> Result<()> {
         timber::new()
-            .max_level(self.level)
+            .max_level(level.unwrap_or(self.level))
             .sink(self.sink.clone())
             .init()
             .map_err(|err| format!("failed to initialize logger: {err}"))?;

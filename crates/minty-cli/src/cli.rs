@@ -1,6 +1,7 @@
 use crate::{ConfigFile, Result};
 
 use clap::{Parser, Subcommand};
+use log::LevelFilter;
 use minty::{text, PostSort, Url, Uuid};
 use std::path::PathBuf;
 
@@ -15,6 +16,7 @@ mod env {
     var!(HUMAN_READABLE);
     var!(JSON);
     var!(LIMIT);
+    var!(LOG_LEVEL);
     var!(POST);
     var!(SERVER);
     var!(TAG);
@@ -52,6 +54,16 @@ pub struct Cli {
     #[arg(short, long, env = env::JSON, global = true)]
     /// Print data in JSON format
     pub json: bool,
+
+    #[arg(
+        short,
+        long,
+        value_name = "LEVEL",
+        env = env::LOG_LEVEL,
+        global = true
+    )]
+    /// Level of log verbosity
+    pub log_level: Option<LevelFilter>,
 
     #[command(subcommand)]
     pub command: Command,

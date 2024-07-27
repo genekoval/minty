@@ -13,7 +13,7 @@ struct Client {
 impl Client {
     fn new(args: &Cli) -> minty_cli::Result<Self> {
         let config = args.config()?;
-        config.set_logger()?;
+        config.set_logger(args.log_level)?;
 
         let Some(server) = config.server(&args.server) else {
             return Err(Error::Config(format!(
