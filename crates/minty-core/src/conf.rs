@@ -54,8 +54,11 @@ pub struct BucketConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SearchConfig {
     pub node: Url,
+
     pub auth: SearchAuth,
+
     pub namespace: String,
+
     #[serde(default = "SearchConfig::default_refresh")]
     pub refresh: Refresh,
 }
@@ -82,13 +85,18 @@ impl From<SearchAuth> for elasticsearch::auth::Credentials {
 pub struct RepoConfig {
     #[serde(default)]
     pub cache: Cache,
+
     pub database: DatabaseConfig,
-    #[serde(default)]
+
     pub jwt_secret: String,
+
     pub objects: BucketConfig,
+
     #[serde(default)]
     pub require_account: bool,
+
     #[serde(default)]
     pub require_invitation: bool,
+
     pub search: SearchConfig,
 }
