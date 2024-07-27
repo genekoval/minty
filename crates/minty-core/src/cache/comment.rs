@@ -62,11 +62,17 @@ impl Comment {
     }
 
     pub fn count(&self) -> usize {
-        self.children
+        let sum = self
+            .children
             .iter()
             .map(|child| child.count())
-            .sum::<usize>()
-            + 1 // Add one for self
+            .sum::<usize>();
+
+        if self.content.is_empty() {
+            sum
+        } else {
+            sum + 1
+        }
     }
 
     fn decrement_count(&self, recursive: bool) {
