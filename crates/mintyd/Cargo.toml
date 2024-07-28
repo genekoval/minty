@@ -1,6 +1,6 @@
 [package]
 name = "mintyd"
-version = "0.7.0"
+version = "0.7.1"
 edition.workspace = true
 repository.workspace = true
 
@@ -35,5 +35,5 @@ features = ["http"]
 
 [dependencies.minty-core]
 path = "../minty-core"
-version = "0.7.0"
+version = "0.7.1"
 registry = "minty"
