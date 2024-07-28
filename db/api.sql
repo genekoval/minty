@@ -905,12 +905,16 @@ $$ LANGUAGE plpgsql;
 CREATE FUNCTION read_posts(a_posts uuid[]) RETURNS SETOF post AS $$
     SELECT post.*
     FROM (
+        SELECT *
+        FROM post
+        WHERE post_id = ANY(a_posts)
+    ) post
+    JOIN (
         SELECT
             ordinality,
             unnest AS post_id
         FROM unnest(a_posts) WITH ORDINALITY
-    ) posts
-    JOIN post USING (post_id)
+    ) list USING (post_id)
     ORDER BY ordinality;
 $$ LANGUAGE SQL;
 
