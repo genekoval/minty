@@ -37,9 +37,9 @@ CREATE VIEW object AS
 SELECT
     object_id,
     preview_id,
-    array_agg(post_id ORDER BY date_added DESC) AS posts
+    array_remove(array_agg(post_id ORDER BY date_added DESC), NULL) AS posts
 FROM data.object
-JOIN data.post_object USING (object_id)
+LEFT JOIN data.post_object USING (object_id)
 GROUP BY object_id;
 
 CREATE VIEW object_preview_error AS
