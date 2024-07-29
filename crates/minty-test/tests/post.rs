@@ -1,7 +1,7 @@
 use minty_test::{admin, not_found, objects, posts, tags, users};
 
 use minty::{
-    text::{Description, PostTitle},
+    text::{Description, Name, PostTitle},
     ErrorKind, Post, PostParts, Repo, Uuid, Visibility,
 };
 use tokio::test;
@@ -20,13 +20,15 @@ async fn add_post_tag() {
 
     not_found!(repo.add_post_tag(id, tag).await, "tag", tag);
 
-    tag = tags::VIDEOS;
+    tag = repo.add_tag(Name::new("Test Tag").unwrap()).await.unwrap();
 
     for _ in 0..2 {
         repo.add_post_tag(id, tag).await.unwrap();
         let tags = repo.get_post(id).await.unwrap().tags;
         assert_eq!(tags.len(), 1);
         assert_eq!(tags.first().unwrap().id, tag);
+
+        assert_eq!(repo.get_tag(tag).await.unwrap().post_count, 1);
     }
 }
 
@@ -210,7 +212,7 @@ async fn delete_post_objects() {
 async fn delete_post_tag() {
     let repo = admin().await;
 
-    let tag = tags::VIDEOS;
+    let tag = repo.add_tag(Name::new("Test Tag").unwrap()).await.unwrap();
     let id = repo
         .create_post(&PostParts {
             tags: Some(vec![tag]),
@@ -220,9 +222,13 @@ async fn delete_post_tag() {
         .unwrap();
 
     repo.delete_post_tag(id, tag).await.unwrap();
+
     assert!(repo.get_post(id).await.unwrap().tags.is_empty());
+    assert_eq!(repo.get_tag(tag).await.unwrap().post_count, 0);
 
     not_found!(repo.delete_post_tag(id, tag).await, "tag was removed");
+
+    assert_eq!(repo.get_tag(tag).await.unwrap().post_count, 0);
 }
 
 #[test]

@@ -81,34 +81,31 @@ impl<'a> Edit<'a> {
     }
 
     pub async fn add_tag(&self, tag: Uuid) -> Result<()> {
-        let tag = self.repo.cache.tags().get(tag).await?.found("tag", tag)?;
         let mut tx = self.repo.database.begin().await?;
 
-        tx.create_post_tag(self.post.id, tag.id)
-            .await
-            .map_err(|err| {
-                err.as_database_error()
-                    .and_then(|e| e.constraint())
-                    .and_then(|constraint| match constraint {
-                        "post_tag_post_id_fkey" => Some(Error::NotFound {
-                            entity: "post",
-                            id: self.post.id,
-                        }),
-                        "post_tag_tag_id_fkey" => Some(Error::NotFound {
-                            entity: "tag",
-                            id: tag.id,
-                        }),
-                        _ => None,
-                    })
-                    .unwrap_or_else(|| err.into())
-            })?;
+        tx.create_post_tag(self.post.id, tag).await.map_err(|err| {
+            err.as_database_error()
+                .and_then(|e| e.constraint())
+                .and_then(|constraint| match constraint {
+                    "post_tag_post_id_fkey" => Some(Error::NotFound {
+                        entity: "post",
+                        id: self.post.id,
+                    }),
+                    "post_tag_tag_id_fkey" => Some(Error::NotFound {
+                        entity: "tag",
+                        id: tag,
+                    }),
+                    _ => None,
+                })
+                .unwrap_or_else(|| err.into())
+        })?;
 
-        self.repo.search.add_post_tag(self.post.id, tag.id).await?;
+        self.repo.search.add_post_tag(self.post.id, tag).await?;
 
-        tx.commit().await?;
-
+        let tag = self.repo.cache.tags().get(tag).await?.found("tag", tag)?;
         self.post.add_tag(tag);
 
+        tx.commit().await?;
         Ok(())
     }
 
@@ -153,12 +150,11 @@ impl<'a> Edit<'a> {
                 .search
                 .remove_post_tag(self.post.id, tag_id)
                 .await?;
+
+            self.post.delete_tag(tag_id);
         }
 
         tx.commit().await?;
-
-        self.post.delete_tag(tag_id);
-
         Ok(found)
     }
 

@@ -42,6 +42,7 @@ impl PostMut {
         self.tags.retain(|tag| !tag.is_deleted());
 
         if !self.tags.contains(&tag) {
+            tag.update(|tag| tag.post_count += 1);
             self.tags.push(tag);
         }
     }
@@ -122,7 +123,14 @@ impl PostMut {
     }
 
     fn delete_tag(&mut self, id: Uuid) {
-        self.tags.retain(|tag| !tag.is_deleted() && tag.id != id);
+        self.tags.retain(|tag| {
+            if tag.id == id {
+                tag.update(|tag| tag.post_count -= 1);
+                false
+            } else {
+                !tag.is_deleted()
+            }
+        })
     }
 
     fn reply(&mut self, path: &[usize], reply: Comment) -> Option<usize> {
