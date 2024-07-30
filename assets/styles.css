@@ -1,10 +1,16 @@
 @font-face {
     font-family: OpenSans;
-    src: url('fonts/OpenSans-VariableFont_wdth,wght.ttf') format('ttf');
+    src: local('fonts/OpenSans-VariableFont_wdth,wght.ttf') format('ttf');
+}
+
+:root {
+    --font-sans: OpenSans, sans-serif;
+    --main-bg-color: #0b0b09;
+    --main-fg-color: #fafafa;
 }
 
 html {
-    font-family: OpenSans, sans-serif;
-    color: #fafafa;
-    background-color: #0b0b09;
+    color: var(--main-fg-color);
+    background-color: var(--main-bg-color);
+    font-family: var(--font-sans);
 }
