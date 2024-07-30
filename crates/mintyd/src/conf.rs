@@ -2,8 +2,16 @@ use axum_unix::Endpoint;
 use log::LevelFilter;
 use minty_core::conf::RepoConfig;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use timber::Sink;
+
+const ASSETS: &str = match option_env!("MINTY_ASSETS") {
+    Some(path) => path,
+    None => "assets",
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -38,7 +46,25 @@ impl Config {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Http {
+    #[serde(default = "Http::default_assets")]
+    pub assets: PathBuf,
+
     pub listen: Vec<Endpoint>,
+}
+
+impl Http {
+    fn default_assets() -> PathBuf {
+        PathBuf::from(ASSETS)
+    }
+}
+
+impl Default for Http {
+    fn default() -> Self {
+        Self {
+            assets: Self::default_assets(),
+            listen: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

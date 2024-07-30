@@ -1,6 +1,9 @@
+mod css;
 mod post;
 
 pub use post::Post;
+
+use css::Css;
 
 use super::accept::Accept;
 
@@ -27,6 +30,7 @@ where
             html {
                 head {
                     title { (self.data.to_string()) }
+                    (Css("/assets/styles.css"))
                 }
                 body {
                     (self.data)

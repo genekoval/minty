@@ -22,6 +22,8 @@ use super::{error::Result, AppState};
 use axum::{extract::State, routing::get, Json};
 use minty::model::export::Data;
 use minty_core::About;
+use std::path::Path;
+use tower_http::services::ServeDir;
 
 pub type Router = axum::Router<AppState>;
 
@@ -38,7 +40,7 @@ async fn export(
     Ok(Json(repo.export().await?))
 }
 
-pub fn routes() -> Router {
+pub fn routes(assets: &Path) -> Router {
     Router::new()
         .route("/", get(about))
         .route("/export", get(export))
@@ -55,4 +57,5 @@ pub fn routes() -> Router {
         .nest("/tags", tags::routes())
         .nest("/user", user::routes())
         .nest("/users", users::routes())
+        .nest_service("/assets", ServeDir::new(assets))
 }
