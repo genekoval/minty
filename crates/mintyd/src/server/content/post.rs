@@ -25,6 +25,16 @@ impl Post {
             }
         }
     }
+
+    fn poster(&self) -> Markup {
+        html! {
+            @if let Some(poster) = &self.0.poster {
+                a href=(format!("/user/{}", poster.id)) { (poster.name) }
+            } @else {
+                span { "Deleted" }
+            }
+        }
+    }
 }
 
 impl Display for Post {
@@ -42,6 +52,7 @@ impl Display for Post {
 impl Render for Post {
     fn render(&self) -> Markup {
         html! {
+            div { (self.poster()) }
             (self.title())
             (self.description())
         }

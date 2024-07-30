@@ -5,12 +5,26 @@
 
 :root {
     --font-sans: OpenSans, sans-serif;
-    --main-bg-color: #0b0b09;
-    --main-fg-color: #fafafa;
+    --text: #fafafa;
+    --primary: #bababa;
+    --secondary: #3a3a3a;
+    --accent: #16ef74;
+    --primary-background: #090b09;
+    --secondary-background: #131513;
 }
 
 html {
-    color: var(--main-fg-color);
-    background-color: var(--main-bg-color);
+    color: var(--text);
+    background-color: var(--primary-background);
     font-family: var(--font-sans);
+}
+
+a:link {
+    text-decoration: none;
+    color: var(--primary);
+}
+
+a:visited {
+    text-decoration: none;
+    color: var(--primary);
 }
