@@ -1,4 +1,10 @@
-body {
+@font-face {
+    font-family: OpenSans;
+    src: url('fonts/OpenSans-VariableFont_wdth,wght.ttf') format('ttf');
+}
+
+html {
+    font-family: OpenSans, sans-serif;
     color: #fafafa;
     background-color: #0b0b09;
 }
