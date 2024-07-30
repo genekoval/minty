@@ -5,13 +5,18 @@ use super::{
     AppState, Result, Router,
 };
 
+use crate::server::{
+    accept::Accept,
+    content::{Content, Post},
+};
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     routing::{get, post, put},
     Json,
 };
-use minty::{text, Modification, Post, PostParts, Uuid};
+use minty::{text, Modification, PostParts, Uuid};
 
 async fn add_objects(
     State(AppState { repo }): State<AppState>,
@@ -155,9 +160,14 @@ async fn delete_tag(
 async fn get_post(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
+    accept: Accept,
     OptionalUser(user): OptionalUser,
-) -> Result<Json<Post>> {
-    Ok(Json(repo.optional_user(user)?.post(id).await?.get().await?))
+) -> Result<Content<Post>> {
+    let post = repo.optional_user(user)?.post(id).await?.get().await?;
+    Ok(Content {
+        accept,
+        data: Post(post),
+    })
 }
 
 async fn publish_post(

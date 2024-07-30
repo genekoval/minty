@@ -13,7 +13,10 @@ use crate::{model::*, text, Error, Result};
 
 use bytes::Bytes;
 use futures_core::{Stream, TryStream};
-use reqwest::ClientBuilder;
+use reqwest::{
+    header::{HeaderMap, HeaderValue, ACCEPT},
+    ClientBuilder,
+};
 use std::{error::Error as StdError, io, sync::Arc};
 
 #[derive(Clone, Debug)]
@@ -32,10 +35,12 @@ pub struct RepoBuilder {
 
 impl RepoBuilder {
     fn new(url: Url) -> Self {
-        Self {
-            builder: ClientBuilder::new(),
-            url,
-        }
+        let mut headers = HeaderMap::new();
+        headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+
+        let builder = ClientBuilder::new().default_headers(headers);
+
+        Self { builder, url }
     }
 
     pub fn build(self) -> Result<Repo> {

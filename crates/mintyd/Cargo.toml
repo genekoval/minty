@@ -19,6 +19,8 @@ cookie = { workspace = true }
 crossterm = { workspace = true }
 dmon = { workspace = true }
 log = { workspace = true, features = ["serde"] }
+maud = { workspace = true, features = ["axum"] }
+mediatype = { workspace = true }
 ratatui = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 sync_wrapper = { workspace = true, features = ["futures"] }
