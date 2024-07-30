@@ -6,27 +6,44 @@ use std::fmt::{self, Display, Formatter};
 pub struct Post(pub minty::Post);
 
 impl Post {
-    fn title(&self) -> &str {
+    fn title(&self) -> Markup {
         let title = self.0.title.as_str();
 
-        if title.is_empty() {
-            "Untitled"
-        } else {
-            title
+        html! {
+            @if !title.is_empty() {
+                h1 { (title) }
+            }
+        }
+    }
+
+    fn description(&self) -> Markup {
+        let description = self.0.description.as_str();
+
+        html! {
+            @if !description.is_empty() {
+                p { (description) }
+            }
         }
     }
 }
 
 impl Display for Post {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(self.title())
+        let title = self.0.title.as_str();
+
+        if title.is_empty() {
+            f.write_str("Untitled")
+        } else {
+            f.write_str(title)
+        }
     }
 }
 
 impl Render for Post {
     fn render(&self) -> Markup {
         html! {
-            h1 { (self.title()) }
+            (self.title())
+            (self.description())
         }
     }
 }
