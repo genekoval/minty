@@ -1,7 +1,8 @@
 mod css;
 mod post;
+mod user_preview;
 
-pub use post::Post;
+pub use user_preview::UserPreview;
 
 use css::Css;
 
@@ -13,7 +14,18 @@ use axum::{
 };
 use maud::{html, Markup, Render, DOCTYPE};
 use serde::Serialize;
-use std::fmt::Display;
+
+pub trait PageTitle {
+    fn page_title(&self) -> &str;
+}
+
+pub trait IntoPage: Sized {
+    type View: From<Self> + Render + PageTitle;
+
+    fn into_page(self) -> Self::View {
+        self.into()
+    }
+}
 
 pub struct Content<T> {
     pub accept: Accept,
@@ -22,18 +34,20 @@ pub struct Content<T> {
 
 impl<T> Content<T>
 where
-    T: Display + Render,
+    T: IntoPage,
 {
-    fn html(&self) -> Markup {
+    fn html(self) -> Markup {
+        let page = self.data.into_page();
+
         html! {
             (DOCTYPE)
             html {
                 head {
-                    title { (self.data.to_string()) }
+                    title { (page.page_title()) }
                     (Css("/assets/styles.css"))
                 }
                 body {
-                    (self.data)
+                    (page)
                 }
             }
         }
@@ -48,7 +62,7 @@ impl<T: Serialize> Content<T> {
 
 impl<T> IntoResponse for Content<T>
 where
-    T: Display + Render + Serialize,
+    T: IntoPage + Serialize,
 {
     fn into_response(self) -> Response {
         match self.accept {

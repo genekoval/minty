@@ -1,35 +1,35 @@
-use maud::{html, Markup, Render};
-use serde::Serialize;
-use std::fmt::{self, Display, Formatter};
+use super::{IntoPage, PageTitle, UserPreview};
 
-#[derive(Debug, Serialize)]
-pub struct Post(pub minty::Post);
+use maud::{html, Markup, Render};
+
+#[derive(Debug)]
+pub struct Post {
+    title: String,
+    description: String,
+    poster: Option<UserPreview>,
+}
 
 impl Post {
     fn title(&self) -> Markup {
-        let title = self.0.title.as_str();
-
         html! {
-            @if !title.is_empty() {
-                h1 { (title) }
+            @if !self.title.is_empty() {
+                h1 { (self.title) }
             }
         }
     }
 
     fn description(&self) -> Markup {
-        let description = self.0.description.as_str();
-
         html! {
-            @if !description.is_empty() {
-                p { (description) }
+            @if !self.description.is_empty() {
+                p { (self.description) }
             }
         }
     }
 
     fn poster(&self) -> Markup {
         html! {
-            @if let Some(poster) = &self.0.poster {
-                a href=(format!("/user/{}", poster.id)) { (poster.name) }
+            @if let Some(poster) = &self.poster {
+                (poster)
             } @else {
                 span { "Deleted" }
             }
@@ -37,14 +37,12 @@ impl Post {
     }
 }
 
-impl Display for Post {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let title = self.0.title.as_str();
-
-        if title.is_empty() {
-            f.write_str("Untitled")
-        } else {
-            f.write_str(title)
+impl From<minty::Post> for Post {
+    fn from(value: minty::Post) -> Self {
+        Self {
+            title: value.title,
+            description: value.description,
+            poster: value.poster.map(Into::into),
         }
     }
 }
@@ -57,4 +55,18 @@ impl Render for Post {
             (self.description())
         }
     }
+}
+
+impl PageTitle for Post {
+    fn page_title(&self) -> &str {
+        if self.title.is_empty() {
+            "Untitled"
+        } else {
+            &self.title
+        }
+    }
+}
+
+impl IntoPage for minty::Post {
+    type View = Post;
 }
