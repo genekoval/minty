@@ -2,7 +2,7 @@ use super::{
     color,
     icon::{self, Icon},
     metadata::Metadata,
-    time::{FormatDate, RelativeUnits},
+    time::FormatDate,
     HumanReadable,
 };
 
@@ -63,7 +63,7 @@ impl HumanReadable for CommentData {
                     .map(|user| user.name.as_str())
                     .unwrap_or("[deleted]"),
             )?
-            .push(icon::CLOCK, self.created.relative_abbrev(1))
+            .push(icon::CLOCK, self.created.relative_abbrev())
         })?
         .text(&self.content)?;
 

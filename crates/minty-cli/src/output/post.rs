@@ -1,8 +1,5 @@
 use super::{
-    color, icon,
-    metadata::Metadata,
-    text::StringExt,
-    time::{FormatDate, RelativeUnits},
+    color, icon, metadata::Metadata, text::StringExt, time::FormatDate,
     HumanReadable,
 };
 
@@ -117,7 +114,7 @@ impl HumanReadable for PostPreview {
             w,
             "  {} {}",
             icon::CLOCK.fg::<color::Label>(),
-            self.created.relative_abbrev(1).fg::<color::Secodary>()
+            self.created.relative_abbrev().fg::<color::Secodary>()
         )?;
         writeln!(w)?;
 

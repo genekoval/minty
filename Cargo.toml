@@ -7,6 +7,7 @@ edition = "2021"
 repository = "https://git.aurora.aur/minty/minty"
 
 [workspace.dependencies]
+ago = { version = "0.1", registry = "genya" }
 argon2 = "0.5"
 axum = "0.7"
 axum-extra = "0.9"
