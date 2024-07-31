@@ -6,8 +6,7 @@
 :root {
     --font-sans: OpenSans, sans-serif;
     --text: #fafafa;
-    --primary: #bababa;
-    --secondary: #3a3a3a;
+    --secondary: #bababa;
     --accent: #16ef74;
     --primary-background: #090b09;
     --secondary-background: #131513;
@@ -21,10 +20,18 @@ html {
 
 a:link {
     text-decoration: none;
-    color: var(--primary);
+    color: var(--secondary);
 }
 
 a:visited {
     text-decoration: none;
-    color: var(--primary);
+    color: var(--secondary);
+}
+
+.font-smaller {
+    font-size: smaller;
+}
+
+.secondary {
+    color: var(--secondary);
 }

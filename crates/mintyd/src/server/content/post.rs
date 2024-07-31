@@ -1,4 +1,4 @@
-use super::{IntoPage, PageTitle, UserPreview};
+use super::{date_time::DateTime, IntoPage, PageTitle, UserPreview};
 
 use maud::{html, Markup, Render};
 
@@ -7,6 +7,8 @@ pub struct Post {
     title: String,
     description: String,
     poster: Option<UserPreview>,
+    created: DateTime,
+    modified: Option<DateTime>,
 }
 
 impl Post {
@@ -39,10 +41,15 @@ impl Post {
 
 impl From<minty::Post> for Post {
     fn from(value: minty::Post) -> Self {
+        let modified = (value.modified != value.created)
+            .then(|| DateTime::new(value.modified).prefix("Last modified"));
+
         Self {
             title: value.title,
             description: value.description,
             poster: value.poster.map(Into::into),
+            created: DateTime::new(value.created).prefix("Posted"),
+            modified,
         }
     }
 }
@@ -52,6 +59,12 @@ impl Render for Post {
         html! {
             div { (self.poster()) }
             (self.title())
+
+            div { (self.created) }
+            @if let Some(modified) = self.modified {
+                div { (modified) }
+            }
+
             (self.description())
         }
     }

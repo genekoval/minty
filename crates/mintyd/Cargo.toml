@@ -6,6 +6,7 @@ repository.workspace = true
 
 [dependencies]
 axum = { workspace = true, features = ["http2"] }
+ago = { workspace = true }
 axum-extra = { workspace = true, features = [
     "async-read-body",
     "cookie",
