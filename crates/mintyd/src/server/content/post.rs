@@ -1,4 +1,4 @@
-use super::{date_time::DateTime, IntoPage, PageTitle, UserPreview};
+use super::{icon, DateTime, IntoPage, PageTitle, UserPreview};
 
 use maud::{html, Markup, Render};
 
@@ -6,7 +6,7 @@ use maud::{html, Markup, Render};
 pub struct Post {
     title: String,
     description: String,
-    poster: Option<UserPreview>,
+    poster: UserPreview,
     created: DateTime,
     modified: Option<DateTime>,
 }
@@ -30,26 +30,29 @@ impl Post {
 
     fn poster(&self) -> Markup {
         html! {
-            @if let Some(poster) = &self.poster {
-                (poster)
-            } @else {
-                span { "Deleted" }
-            }
+            (self.poster)
         }
     }
 }
 
 impl From<minty::Post> for Post {
     fn from(value: minty::Post) -> Self {
-        let modified = (value.modified != value.created)
-            .then(|| DateTime::new(value.modified).prefix("Last modified"));
-
         Self {
             title: value.title,
             description: value.description,
-            poster: value.poster.map(Into::into),
-            created: DateTime::new(value.created).prefix("Posted"),
-            modified,
+            poster: UserPreview::new(value.poster).font_smaller().secondary(),
+            created: DateTime::new(value.created)
+                .icon(icon::CLOCK)
+                .prefix("Posted")
+                .font_smaller()
+                .secondary(),
+            modified: (value.modified != value.created).then(|| {
+                DateTime::new(value.modified)
+                    .icon(icon::PENCIL)
+                    .prefix("Last modified")
+                    .font_smaller()
+                    .secondary()
+            }),
         }
     }
 }
@@ -57,8 +60,9 @@ impl From<minty::Post> for Post {
 impl Render for Post {
     fn render(&self) -> Markup {
         html! {
-            div { (self.poster()) }
             (self.title())
+
+            div { (self.poster()) }
 
             div { (self.created) }
             @if let Some(modified) = self.modified {

@@ -35,3 +35,13 @@ a:visited {
 .secondary {
     color: var(--secondary);
 }
+
+.italic {
+    font-style: italic;
+}
+
+.label-text {
+    display: inline-block;
+    padding: 0 0 0 .4em;
+    transform: translateY(-.15em);
+}
