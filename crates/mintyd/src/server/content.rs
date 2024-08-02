@@ -2,6 +2,7 @@ mod css;
 mod date_time;
 mod icon;
 mod post;
+mod space;
 mod user_preview;
 
 pub use user_preview::UserPreview;
@@ -9,6 +10,7 @@ pub use user_preview::UserPreview;
 use css::Css;
 use date_time::DateTime;
 use icon::Icon;
+use space::Space;
 
 use super::accept::Accept;
 

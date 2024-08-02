@@ -1,6 +1,6 @@
-use super::Icon;
+use super::{Icon, Space};
 
-use ago::{Relative, Unit::Second};
+use ago::{Relative, RelativeBuilder, Unit::Second};
 use maud::{html, Render};
 
 const DATE_FORMAT: &str = "%A, %B %-d, %Y at %r";
@@ -10,8 +10,6 @@ pub struct DateTime {
     value: minty::DateTime,
     icon: Option<Icon>,
     prefix: Option<&'static str>,
-    font_smaller: bool,
-    secondary: bool,
 }
 
 impl DateTime {
@@ -20,14 +18,7 @@ impl DateTime {
             value,
             icon: None,
             prefix: None,
-            font_smaller: false,
-            secondary: false,
         }
-    }
-
-    pub fn font_smaller(mut self) -> Self {
-        self.font_smaller = true;
-        self
     }
 
     pub fn icon(mut self, icon: Icon) -> Self {
@@ -39,40 +30,34 @@ impl DateTime {
         self.prefix = Some(prefix);
         self
     }
-
-    pub fn secondary(mut self) -> Self {
-        self.secondary = true;
-        self
-    }
-
-    fn long_format(&self) -> String {
-        let formatted = self.value.format(DATE_FORMAT);
-        let relative = self
-            .value
-            .relative()
-            .granularity(Second)
-            .with_tense(true)
-            .long_format();
-
-        format!("{relative} on {formatted}")
+    fn relative(&self) -> RelativeBuilder {
+        self.value.relative().granularity(Second).with_tense(true)
     }
 }
 
 impl Render for DateTime {
     fn render(&self) -> maud::Markup {
-        let mut date_time = self.long_format();
-
-        if let Some(prefix) = self.prefix {
-            date_time = format!("{prefix} {date_time}")
-        }
+        let relative = self.relative();
 
         html! {
-            span .font-smaller[self.font_smaller] .secondary[self.secondary] {
+            span {
                 @if let Some(icon) = self.icon {
                     (icon)
-                    span ."label-text" { (date_time) }
-                } @else {
-                    (date_time)
+                }
+
+                span .label-text[self.icon.is_some()] {
+                    @if let Some(prefix) = self.prefix {
+                        (prefix)
+                        (Space)
+                    }
+
+                    span .bold { (relative.long_format()) }
+
+                    (Space)
+                    "on"
+                    (Space)
+
+                    (self.value.format(DATE_FORMAT))
                 }
             }
         }

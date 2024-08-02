@@ -36,6 +36,10 @@ a:visited {
     color: var(--secondary);
 }
 
+.bold {
+    font-weight: bold;
+}
+
 .italic {
     font-style: italic;
 }
@@ -44,4 +48,8 @@ a:visited {
     display: inline-block;
     padding: 0 0 0 .4em;
     transform: translateY(-.15em);
+}
+
+.leading-1-5 {
+    line-height: 1.5em;
 }

@@ -40,41 +40,25 @@ impl Render for UserPreviewInner {
 #[derive(Debug)]
 pub struct UserPreview {
     inner: Option<UserPreviewInner>,
-    font_smaller: bool,
-    secondary: bool,
 }
 
 impl UserPreview {
     pub fn new(user: Option<minty::UserPreview>) -> Self {
         Self {
             inner: user.map(Into::into),
-            font_smaller: false,
-            secondary: false,
         }
-    }
-
-    pub fn font_smaller(mut self) -> Self {
-        self.font_smaller = true;
-        self
-    }
-
-    pub fn secondary(mut self) -> Self {
-        self.secondary = true;
-        self
     }
 }
 
 impl Render for UserPreview {
     fn render(&self) -> Markup {
         html! {
-            span .font-smaller[self.font_smaller] .secondary[self.secondary] {
-                @if let Some(user) = &self.inner {
-                    (user)
-                } @else {
-                    span {
-                        (USER_ICON)
-                        span .italic ."label-text" { "Deleted" }
-                    }
+            @if let Some(user) = &self.inner {
+                (user)
+            } @else {
+                span {
+                    (USER_ICON)
+                    span .italic ."label-text" { "Deleted" }
                 }
             }
         }

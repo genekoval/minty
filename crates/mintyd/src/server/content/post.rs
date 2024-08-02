@@ -33,6 +33,20 @@ impl Post {
             (self.poster)
         }
     }
+
+    fn metadata(&self) -> Markup {
+        html! {
+            div .font-smaller ."leading-1-5" .secondary {
+                div { (self.poster()) }
+
+                div { (self.created) }
+
+                @if let Some(modified) = self.modified {
+                    div { (modified) }
+                }
+            }
+        }
+    }
 }
 
 impl From<minty::Post> for Post {
@@ -40,18 +54,14 @@ impl From<minty::Post> for Post {
         Self {
             title: value.title,
             description: value.description,
-            poster: UserPreview::new(value.poster).font_smaller().secondary(),
+            poster: UserPreview::new(value.poster),
             created: DateTime::new(value.created)
                 .icon(icon::CLOCK)
-                .prefix("Posted")
-                .font_smaller()
-                .secondary(),
+                .prefix("Posted"),
             modified: (value.modified != value.created).then(|| {
                 DateTime::new(value.modified)
                     .icon(icon::PENCIL)
                     .prefix("Last modified")
-                    .font_smaller()
-                    .secondary()
             }),
         }
     }
@@ -61,14 +71,7 @@ impl Render for Post {
     fn render(&self) -> Markup {
         html! {
             (self.title())
-
-            div { (self.poster()) }
-
-            div { (self.created) }
-            @if let Some(modified) = self.modified {
-                div { (modified) }
-            }
-
+            (self.metadata())
             (self.description())
         }
     }
