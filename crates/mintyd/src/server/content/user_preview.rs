@@ -30,7 +30,7 @@ impl Render for UserPreviewInner {
     fn render(&self) -> Markup {
         html! {
             a href=(self.path()) {
-                (USER_ICON)
+                (USER_ICON.inline())
                 span ."label-text" { (self.name) }
             }
         }

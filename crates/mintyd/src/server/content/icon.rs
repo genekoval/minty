@@ -4,6 +4,14 @@ use maud::{html, Markup, PreEscaped, Render};
 pub struct Icon(&'static str);
 
 impl Icon {
+    pub fn inline(self) -> Markup {
+        html! {
+            span ."width-1em" {
+                (self)
+            }
+        }
+    }
+
     fn svg(&self) -> &str {
         // Remove any trailing newlines from SVG file contents
         self.0.trim_end()
@@ -25,5 +33,6 @@ macro_rules! icon {
 }
 
 pub const CLOCK: Icon = icon!("clock");
+pub const FILE_FILL: Icon = icon!("file_fill");
 pub const PENCIL: Icon = icon!("pencil");
 pub const USER_CIRCLE: Icon = icon!("user_circle");

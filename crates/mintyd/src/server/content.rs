@@ -1,6 +1,8 @@
 mod css;
 mod date_time;
 mod icon;
+mod object_grid;
+mod object_preview;
 mod post;
 mod space;
 mod user_preview;
@@ -10,6 +12,8 @@ pub use user_preview::UserPreview;
 use css::Css;
 use date_time::DateTime;
 use icon::Icon;
+use object_grid::ObjectGrid;
+use object_preview::ObjectPreview;
 use space::Space;
 
 use super::accept::Accept;

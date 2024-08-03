@@ -42,7 +42,7 @@ impl Render for DateTime {
         html! {
             span {
                 @if let Some(icon) = self.icon {
-                    (icon)
+                    (icon.inline())
                 }
 
                 span .label-text[self.icon.is_some()] {

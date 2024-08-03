@@ -1,4 +1,4 @@
-use super::{icon, DateTime, IntoPage, PageTitle, UserPreview};
+use super::{icon, DateTime, IntoPage, ObjectGrid, PageTitle, UserPreview};
 
 use maud::{html, Markup, Render};
 
@@ -9,6 +9,7 @@ pub struct Post {
     poster: UserPreview,
     created: DateTime,
     modified: Option<DateTime>,
+    objects: ObjectGrid,
 }
 
 impl Post {
@@ -63,6 +64,7 @@ impl From<minty::Post> for Post {
                     .icon(icon::PENCIL)
                     .prefix("Last modified")
             }),
+            objects: ObjectGrid::new(value.objects),
         }
     }
 }
@@ -73,6 +75,7 @@ impl Render for Post {
             (self.title())
             (self.metadata())
             (self.description())
+            (self.objects)
         }
     }
 }

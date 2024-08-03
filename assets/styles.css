@@ -32,6 +32,10 @@ a:visited {
     font-size: smaller;
 }
 
+.background-color {
+    color: var(--primary-background);
+}
+
 .secondary {
     color: var(--secondary);
 }
@@ -52,4 +56,55 @@ a:visited {
 
 .leading-1-5 {
     line-height: 1.5em;
+}
+
+.fixed {
+    position: fixed;
+}
+
+.relative {
+    position: relative;
+}
+
+.absolute {
+    position: absolute;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(auto, 250px));
+    gap: 3px;
+    justify-items: center;
+    align-items: center;
+}
+
+.flex {
+    display: flex;
+}
+
+.center {
+    justify-content: center;
+    align-items: center;
+}
+
+.max-width-full {
+    max-width: 100%;
+}
+
+.width-1em {
+    display: inline-block;
+    width: 1em;
+}
+
+.z1 {
+    z-index: 1;
+}
+
+.object-placeholder {
+    width: 75%;
+    margin: 50px;
+}
+
+.object-placeholder-text {
+    font-size: min(30px, 5vw);
 }
