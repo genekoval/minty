@@ -1,19 +1,29 @@
 mod css;
 mod date_time;
+mod home;
 mod icon;
+mod label;
+mod list;
 mod object_grid;
 mod object_preview;
 mod post;
+mod post_preview;
+mod search_result;
 mod space;
 mod user_preview;
 
+pub use home::Home;
 pub use user_preview::UserPreview;
 
 use css::Css;
 use date_time::DateTime;
 use icon::Icon;
+use label::Label;
+use list::List;
 use object_grid::ObjectGrid;
 use object_preview::ObjectPreview;
+use post_preview::PostPreview;
+use search_result::SearchResult;
 use space::Space;
 
 use super::accept::Accept;

@@ -1,9 +1,21 @@
-use super::icon::{self, Icon};
+use super::{
+    icon::{self, Icon},
+    Label,
+};
 
 use maud::{html, Markup, Render};
 use minty::Uuid;
 
 const USER_ICON: Icon = icon::USER_CIRCLE;
+
+fn deleted() -> Markup {
+    html! {
+        span {
+            (USER_ICON)
+            span .italic .label-text { "Deleted" }
+        }
+    }
+}
 
 #[derive(Debug)]
 struct UserPreviewInner {
@@ -12,6 +24,10 @@ struct UserPreviewInner {
 }
 
 impl UserPreviewInner {
+    pub fn as_label(&self) -> impl Render + '_ {
+        Label::new(&self.name, USER_ICON)
+    }
+
     fn path(&self) -> String {
         format!("/user/{}", self.id)
     }
@@ -30,8 +46,7 @@ impl Render for UserPreviewInner {
     fn render(&self) -> Markup {
         html! {
             a href=(self.path()) {
-                (USER_ICON.inline())
-                span ."label-text" { (self.name) }
+                (self.as_label())
             }
         }
     }
@@ -48,6 +63,16 @@ impl UserPreview {
             inner: user.map(Into::into),
         }
     }
+
+    pub fn as_label(&self) -> Markup {
+        html! {
+            @if let Some(user) = &self.inner {
+                (user.as_label())
+            } @else {
+                (deleted())
+            }
+        }
+    }
 }
 
 impl Render for UserPreview {
@@ -56,10 +81,7 @@ impl Render for UserPreview {
             @if let Some(user) = &self.inner {
                 (user)
             } @else {
-                span {
-                    (USER_ICON)
-                    span .italic ."label-text" { "Deleted" }
-                }
+                (deleted())
             }
         }
     }

@@ -17,7 +17,11 @@ mod users;
 
 use session::OptionalUser;
 
-use super::{error::Result, AppState};
+use super::{
+    content::{Content, Home},
+    error::Result,
+    Accept, AppState,
+};
 
 use axum::{extract::State, routing::get, Json};
 use minty::model::export::Data;
@@ -26,6 +30,23 @@ use std::path::Path;
 use tower_http::services::ServeDir;
 
 pub type Router = axum::Router<AppState>;
+
+async fn home(
+    State(AppState { repo }): State<AppState>,
+    OptionalUser(user): OptionalUser,
+    accept: Accept,
+) -> Result<Content<Home>> {
+    let posts = repo
+        .optional_user(user)?
+        .posts()
+        .find(Default::default())
+        .await?;
+
+    Ok(Content {
+        accept,
+        data: Home(posts),
+    })
+}
 
 async fn about(
     State(AppState { repo }): State<AppState>,
@@ -42,7 +63,8 @@ async fn export(
 
 pub fn routes(assets: &Path) -> Router {
     Router::new()
-        .route("/", get(about))
+        .route("/", get(home))
+        .route("/about", get(about))
         .route("/export", get(export))
         .nest("/comment", comment::routes())
         .nest("/comments", comments::routes())

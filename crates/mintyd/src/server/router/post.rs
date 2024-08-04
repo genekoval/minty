@@ -5,7 +5,7 @@ use super::{
     AppState, Result, Router,
 };
 
-use crate::server::{accept::Accept, content::Content};
+use crate::server::{content::Content, Accept};
 
 use axum::{
     extract::{Path, State},

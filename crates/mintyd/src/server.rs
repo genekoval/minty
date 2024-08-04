@@ -5,6 +5,7 @@ mod router;
 
 use crate::{conf::Http, Result};
 
+use accept::Accept;
 use axum_unix::shutdown_signal;
 use log::{error, info};
 use minty_core::Repo;

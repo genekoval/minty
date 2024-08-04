@@ -5,11 +5,18 @@ use maud::{html, Render};
 
 const DATE_FORMAT: &str = "%A, %B %-d, %Y at %r";
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Format {
+    Abbrev,
+    Full,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct DateTime {
     value: minty::DateTime,
     icon: Option<Icon>,
     prefix: Option<&'static str>,
+    format: Format,
 }
 
 impl DateTime {
@@ -18,6 +25,7 @@ impl DateTime {
             value,
             icon: None,
             prefix: None,
+            format: Format::Full,
         }
     }
 
@@ -30,6 +38,12 @@ impl DateTime {
         self.prefix = Some(prefix);
         self
     }
+
+    pub fn abbrev(mut self) -> Self {
+        self.format = Format::Abbrev;
+        self
+    }
+
     fn relative(&self) -> RelativeBuilder {
         self.value.relative().granularity(Second).with_tense(true)
     }
@@ -37,7 +51,10 @@ impl DateTime {
 
 impl Render for DateTime {
     fn render(&self) -> maud::Markup {
-        let relative = self.relative();
+        let relative = match self.format {
+            Format::Full => self.relative().long_format(),
+            Format::Abbrev => self.relative().abbrev(),
+        };
 
         html! {
             span {
@@ -51,13 +68,17 @@ impl Render for DateTime {
                         (Space)
                     }
 
-                    span .bold { (relative.long_format()) }
+                    span .bold[self.format == Format::Full] {
+                        (relative)
+                    }
 
-                    (Space)
-                    "on"
-                    (Space)
+                    @if self.format == Format::Full {
+                        (Space)
+                        "on"
+                        (Space)
 
-                    (self.value.format(DATE_FORMAT))
+                        (self.value.format(DATE_FORMAT))
+                    }
                 }
             }
         }

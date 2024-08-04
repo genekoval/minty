@@ -3,15 +3,38 @@ use super::icon;
 use maud::{html, Markup, Render};
 
 #[derive(Debug)]
-pub struct ObjectPreview(pub minty::ObjectPreview);
+pub struct ObjectPreview {
+    object: minty::ObjectPreview,
+    rounded_corners: bool,
+}
 
 impl ObjectPreview {
+    pub fn new(object: minty::ObjectPreview) -> Self {
+        Self {
+            object,
+            rounded_corners: false,
+        }
+    }
+
+    pub fn rounded_corners(mut self) -> Self {
+        self.rounded_corners = true;
+        self
+    }
+
     fn preview(&self) -> Option<String> {
-        self.0.preview_id.map(|id| format!("/object/{id}/data"))
+        self.object
+            .preview_id
+            .map(|id| format!("/object/{id}/data"))
     }
 
     fn file_type(&self) -> String {
-        self.0.r#type.to_uppercase()
+        self.object.r#type.to_uppercase()
+    }
+}
+
+impl From<minty::ObjectPreview> for ObjectPreview {
+    fn from(value: minty::ObjectPreview) -> Self {
+        Self::new(value)
     }
 }
 
@@ -19,7 +42,9 @@ impl Render for ObjectPreview {
     fn render(&self) -> Markup {
         html! {
             @if let Some(preview) = self.preview() {
-                img .max-width-full src=(preview);
+                img src=(preview)
+                    .max-width-full
+                    .rounded-corners[self.rounded_corners];
             } @else {
                 .flex .center {
                     .object-placeholder { (icon::FILE_FILL) }

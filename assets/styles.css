@@ -8,8 +8,10 @@
     --text: #fafafa;
     --secondary: #bababa;
     --accent: #16ef74;
-    --primary-background: #090b09;
+    --primary-background: black;
     --secondary-background: #131513;
+    --divider: #3c413c;
+    --default-padding: 1rem;
 }
 
 html {
@@ -30,6 +32,22 @@ a:visited {
 
 .font-smaller {
     font-size: smaller;
+}
+
+.font-larger {
+    font-size: larger;
+}
+
+.hover-highlight:hover {
+    background-color: var(--secondary-background);
+}
+
+.block {
+    display: block;
+}
+
+.text-color {
+    color: var(--text);
 }
 
 .background-color {
@@ -72,6 +90,24 @@ a:visited {
 
 .grid {
     display: grid;
+}
+
+.post-preview {
+    display: grid;
+    grid-template-columns: minmax(auto, 150px) 1fr;
+    grid-template-rows: auto 1fr;
+}
+
+.divider {
+    border-top: thin solid var(--divider);
+}
+
+.post-preview-image {
+    grid-row: span 2;
+}
+
+.object-grid {
+    display: grid;
     grid-template-columns: repeat(3, minmax(auto, 250px));
     gap: 3px;
     justify-items: center;
@@ -80,6 +116,10 @@ a:visited {
 
 .flex {
     display: flex;
+}
+
+.gap-2 {
+    gap: 2rem;
 }
 
 .center {
@@ -91,9 +131,10 @@ a:visited {
     max-width: 100%;
 }
 
-.width-1em {
+.inline-icon {
     display: inline-block;
     width: 1em;
+    height: 1em;
 }
 
 .z1 {
@@ -107,4 +148,24 @@ a:visited {
 
 .object-placeholder-text {
     font-size: min(30px, 5vw);
+}
+
+.padding {
+    padding: var(--default-padding);
+}
+
+.padding-top {
+    padding-top: var(--default-padding);
+}
+
+.padding-leading {
+    padding-left: var(--default-padding);
+}
+
+.padding-trailing {
+    padding-right: var(--default-padding);
+}
+
+.rounded-corners {
+    border-radius: 10px;
 }

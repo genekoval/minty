@@ -6,9 +6,7 @@ pub struct Icon(&'static str);
 impl Icon {
     pub fn inline(self) -> Markup {
         html! {
-            span ."width-1em" {
-                (self)
-            }
+            span .inline-icon { (self) }
         }
     }
 
@@ -32,7 +30,10 @@ macro_rules! icon {
     };
 }
 
+pub const ALIGN_LEFT: Icon = icon!("align_left");
 pub const CLOCK: Icon = icon!("clock");
+pub const COMMENT: Icon = icon!("comment");
+pub const FILE: Icon = icon!("file");
 pub const FILE_FILL: Icon = icon!("file_fill");
 pub const PENCIL: Icon = icon!("pencil");
 pub const USER_CIRCLE: Icon = icon!("user_circle");
