@@ -24,6 +24,7 @@ maud = { workspace = true, features = ["axum"] }
 mediatype = { workspace = true }
 ratatui = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+serde_urlencoded = { workspace = true }
 sync_wrapper = { workspace = true, features = ["futures"] }
 timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }

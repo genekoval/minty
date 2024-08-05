@@ -3,26 +3,28 @@ mod date_time;
 mod home;
 mod icon;
 mod label;
-mod list;
 mod object_grid;
 mod object_preview;
 mod post;
 mod post_preview;
+mod script;
+mod search;
 mod search_result;
 mod space;
 mod user_preview;
 
 pub use home::Home;
+pub use search::PostSearchResult;
 pub use user_preview::UserPreview;
 
 use css::Css;
 use date_time::DateTime;
 use icon::Icon;
 use label::Label;
-use list::List;
 use object_grid::ObjectGrid;
 use object_preview::ObjectPreview;
 use post_preview::PostPreview;
+use script::Script;
 use search_result::SearchResult;
 use space::Space;
 
@@ -40,10 +42,29 @@ pub trait PageTitle {
 }
 
 pub trait IntoPage: Sized {
-    type View: From<Self> + Render + PageTitle;
+    type View: From<Self> + Html + PageTitle;
 
     fn into_page(self) -> Self::View {
         self.into()
+    }
+}
+
+pub trait Html {
+    fn full(&self) -> Markup;
+
+    fn fragment(&self) -> Markup;
+}
+
+impl<T> Html for T
+where
+    T: Render,
+{
+    fn fragment(&self) -> Markup {
+        self.render()
+    }
+
+    fn full(&self) -> Markup {
+        self.render()
     }
 }
 
@@ -56,7 +77,7 @@ impl<T> Content<T>
 where
     T: IntoPage,
 {
-    fn html(self) -> Markup {
+    fn page(self) -> Markup {
         let page = self.data.into_page();
 
         html! {
@@ -65,12 +86,21 @@ where
                 head {
                     title { (page.page_title()) }
                     (Css("/assets/styles.css"))
+                    (Script("/assets/scripts/htmx-2.0.1.min.js"))
                 }
                 body {
-                    (page)
+                    (page.full())
                 }
             }
         }
+    }
+
+    fn full(self) -> Markup {
+        self.data.into_page().full()
+    }
+
+    fn fragment(self) -> Markup {
+        self.data.into_page().fragment()
     }
 }
 
@@ -86,7 +116,9 @@ where
 {
     fn into_response(self) -> Response {
         match self.accept {
-            Accept::Html => self.html().into_response(),
+            Accept::Html => self.page().into_response(),
+            Accept::Boosted => self.full().into_response(),
+            Accept::Fragment => self.fragment().into_response(),
             Accept::Json => self.json().into_response(),
         }
     }

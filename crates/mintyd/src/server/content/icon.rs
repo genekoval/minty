@@ -33,6 +33,7 @@ macro_rules! icon {
 pub const ALIGN_LEFT: Icon = icon!("align_left");
 pub const CLOCK: Icon = icon!("clock");
 pub const COMMENT: Icon = icon!("comment");
+pub const DOTS_6_ROTATE: Icon = icon!("6-dots-rotate");
 pub const FILE: Icon = icon!("file");
 pub const FILE_FILL: Icon = icon!("file_fill");
 pub const PENCIL: Icon = icon!("pencil");

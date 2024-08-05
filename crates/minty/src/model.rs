@@ -18,6 +18,12 @@ use serde::{Deserialize, Serialize};
 
 pub type DateTime = chrono::DateTime<Local>;
 
+pub trait Query {
+    fn pagination(&self) -> Pagination;
+
+    fn set_pagination(&mut self, pagination: Pagination);
+}
+
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct About {
@@ -237,6 +243,16 @@ pub struct PostQuery {
     pub sort: PostSort,
 }
 
+impl Query for PostQuery {
+    fn pagination(&self) -> Pagination {
+        self.pagination
+    }
+
+    fn set_pagination(&mut self, pagination: Pagination) {
+        self.pagination = pagination;
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct PostSort {
@@ -379,6 +395,16 @@ pub struct ProfileQuery {
 
     #[cfg_attr(feature = "serde", serde(default))]
     pub exclude: Vec<Uuid>,
+}
+
+impl Query for ProfileQuery {
+    fn pagination(&self) -> Pagination {
+        self.pagination
+    }
+
+    fn set_pagination(&mut self, pagination: Pagination) {
+        self.pagination = pagination;
+    }
 }
 
 #[derive(Clone, Debug)]

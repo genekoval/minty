@@ -1960,6 +1960,7 @@ dependencies = [
  "minty-core",
  "ratatui",
  "serde",
+ "serde_urlencoded",
  "sync_wrapper 1.0.1",
  "timber",
  "tokio",

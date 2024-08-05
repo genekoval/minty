@@ -1,12 +1,37 @@
-use super::{IntoPage, PageTitle, PostPreview, SearchResult};
+use super::{
+    Html, IntoPage, PageTitle, PostPreview, PostSearchResult, SearchResult,
+};
 
 use maud::{Markup, Render};
-use serde::Serialize;
+use minty::{http::query, PostQuery};
+use serde::{Serialize, Serializer};
 
-#[derive(Debug, Serialize)]
-pub struct Home(pub minty::SearchResult<minty::PostPreview>);
+#[derive(Debug)]
+pub struct Home(PostSearchResult);
 
-pub struct HomePage(SearchResult<PostPreview>);
+impl Home {
+    pub fn new(
+        query: PostQuery,
+        result: minty::SearchResult<minty::PostPreview>,
+    ) -> Self {
+        Self(PostSearchResult { query, result })
+    }
+}
+
+impl Serialize for Home {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+impl IntoPage for Home {
+    type View = HomePage;
+}
+
+pub struct HomePage(SearchResult<PostPreview, query::PostQuery>);
 
 impl From<Home> for HomePage {
     fn from(value: Home) -> Self {
@@ -16,7 +41,7 @@ impl From<Home> for HomePage {
 
 impl Render for HomePage {
     fn render(&self) -> Markup {
-        self.0.render()
+        self.0.full()
     }
 }
 
@@ -24,8 +49,4 @@ impl PageTitle for HomePage {
     fn page_title(&self) -> &str {
         "Minty"
     }
-}
-
-impl IntoPage for Home {
-    type View = HomePage;
 }

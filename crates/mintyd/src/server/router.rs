@@ -24,7 +24,7 @@ use super::{
 };
 
 use axum::{extract::State, routing::get, Json};
-use minty::model::export::Data;
+use minty::{model::export::Data, PostQuery};
 use minty_core::About;
 use std::path::Path;
 use tower_http::services::ServeDir;
@@ -36,15 +36,17 @@ async fn home(
     OptionalUser(user): OptionalUser,
     accept: Accept,
 ) -> Result<Content<Home>> {
-    let posts = repo
+    let query = PostQuery::default();
+
+    let result = repo
         .optional_user(user)?
         .posts()
-        .find(Default::default())
+        .find(query.clone())
         .await?;
 
     Ok(Content {
         accept,
-        data: Home(posts),
+        data: Home::new(query, result),
     })
 }
 
