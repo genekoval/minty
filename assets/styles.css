@@ -148,6 +148,7 @@ main {
 
 .object-grid {
     display: grid;
+    margin-top: 1rem;
     grid-template-columns: repeat(3, minmax(auto, 250px));
     gap: 3px;
     justify-items: center;
@@ -161,6 +162,15 @@ main {
 .flex-column {
     display: flex;
     flex-direction: column;
+}
+
+.flex-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
 }
 
 .gap-p5em {
@@ -211,6 +221,10 @@ main {
     margin-bottom: var(--default-margin);
 }
 
+.margin-vertical {
+    margin: var(--default-margin) 0;
+}
+
 .padding {
     padding: var(--default-padding);
 }
@@ -233,4 +247,28 @@ main {
 
 .rounded-corners {
     border-radius: 10px;
+}
+
+.tags {
+    flex-wrap: wrap
+}
+
+.tags > a {
+    display: inline-block;
+    font-size: .875rem;
+    font-weight: bold;
+    color: var(--accent);
+    background-color: var(--secondary-background);
+    margin-top: .75rem;
+    margin-right: .75rem;
+    padding: .75rem 1rem;
+    border-radius: 100px;
+}
+
+.tags > a:visited {
+    color: var(--accent);
+}
+
+.tags > a:hover {
+    outline: thin solid var(--accent);
 }

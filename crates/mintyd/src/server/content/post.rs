@@ -1,6 +1,9 @@
-use super::{icon, DateTime, IntoPage, ObjectGrid, PageTitle, UserPreview};
+use super::{
+    icon, DateTime, IntoPage, Label, ObjectGrid, PageTitle, UserPreview,
+};
 
 use maud::{html, Markup, Render};
+use minty::TagPreview;
 
 #[derive(Debug)]
 pub struct Post {
@@ -10,6 +13,7 @@ pub struct Post {
     created: DateTime,
     modified: Option<DateTime>,
     objects: ObjectGrid,
+    tags: Vec<TagPreview>,
 }
 
 impl Post {
@@ -48,6 +52,20 @@ impl Post {
             }
         }
     }
+
+    fn tags(&self) -> Markup {
+        html! {
+            @if !self.tags.is_empty() {
+                .tags .flex-row .flex-wrap {
+                    @for tag in &self.tags {
+                        a href=(format!("/tag/{}", tag.id)) {
+                            (Label::new(&tag.name, icon::HASH))
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl From<minty::Post> for Post {
@@ -65,6 +83,7 @@ impl From<minty::Post> for Post {
                     .prefix("Last modified")
             }),
             objects: ObjectGrid::new(value.objects),
+            tags: value.tags,
         }
     }
 }
@@ -74,6 +93,7 @@ impl Render for Post {
         html! {
             (self.title())
             (self.metadata())
+            (self.tags())
             (self.description())
             (self.objects)
         }
