@@ -16,13 +16,11 @@ impl<'a, V> Navbar<'a, V> {
 impl<'a, V: Html> Render for Navbar<'a, V> {
     fn render(&self) -> Markup {
         html! {
-            div {
-                nav .flex-column {
-                    a href="/" { (icon::HOME) }
-                }
-
-                main { (self.page.full()) }
+            nav .flex-column {
+                a href="/" { (icon::HOME) }
             }
+
+            main { (self.page.full()) }
         }
     }
 }
