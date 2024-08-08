@@ -14,12 +14,18 @@
     --purple: #8b5cf6;
     --default-margin: 1rem;
     --default-padding: 1rem;
+    --nav-width: 5rem;
+    --main-margin: .5rem;
 }
 
 html {
     color: var(--text);
     background-color: var(--primary-background);
     font-family: var(--font-sans);
+}
+
+body {
+    margin: 0;
 }
 
 a:link {
@@ -100,6 +106,30 @@ li {
 
 .grid {
     display: grid;
+}
+
+nav {
+    width: var(--nav-width);
+    height: 100%;
+    border-right: thin solid var(--divider);
+    position: fixed;
+    justify-content: space-between;
+    top: 0;
+    left: 0;
+}
+
+nav > * {
+    margin: 1rem;
+    color: var(--text);
+}
+
+nav > a:visited {
+    color: var(--text);
+}
+
+main {
+    margin: var(--main-margin);
+    margin-left: calc(var(--nav-width) + var(--main-margin));
 }
 
 .post-preview {

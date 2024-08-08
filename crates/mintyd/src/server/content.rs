@@ -3,6 +3,7 @@ mod date_time;
 mod home;
 mod icon;
 mod label;
+mod navbar;
 mod object_grid;
 mod object_preview;
 mod post;
@@ -24,6 +25,7 @@ use css::Css;
 use date_time::DateTime;
 use icon::Icon;
 use label::Label;
+use navbar::Navbar;
 use object_grid::ObjectGrid;
 use object_preview::ObjectPreview;
 use post_preview::PostPreview;
@@ -94,7 +96,7 @@ where
                     (Script("/assets/scripts/htmx-2.0.1.min.js"))
                 }
                 body {
-                    (page.full())
+                    (Navbar::new(&page))
                 }
             }
         }
