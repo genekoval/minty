@@ -11,6 +11,8 @@
     --primary-background: black;
     --secondary-background: #131513;
     --divider: #3c413c;
+    --purple: #8b5cf6;
+    --default-margin: 1rem;
     --default-padding: 1rem;
 }
 
@@ -28,6 +30,14 @@ a:link {
 a:visited {
     text-decoration: none;
     color: var(--secondary);
+}
+
+li {
+    list-style: none;
+}
+
+.fg-purple {
+    color: var(--purple);
 }
 
 .font-smaller {
@@ -118,6 +128,19 @@ a:visited {
     display: flex;
 }
 
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.gap-p5em {
+    gap: .5em;
+}
+
+.gap-p25em {
+    gap: .25em;
+}
+
 .gap-2 {
     gap: 2rem;
 }
@@ -150,6 +173,14 @@ a:visited {
     font-size: min(30px, 5vw);
 }
 
+.margin-top {
+    margin-top: var(--default-margin);
+}
+
+.margin-bottom {
+    margin-bottom: var(--default-margin);
+}
+
 .padding {
     padding: var(--default-padding);
 }
@@ -160,6 +191,10 @@ a:visited {
 
 .padding-leading {
     padding-left: var(--default-padding);
+}
+
+.padding-leading-2 {
+    padding-left: calc(var(--default-padding) * 2);
 }
 
 .padding-trailing {

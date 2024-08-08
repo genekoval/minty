@@ -4,6 +4,7 @@ use maud::{html, Markup, Render};
 use minty::Query;
 use serde::Serialize;
 
+#[derive(Debug)]
 pub struct SearchResult<T, Q> {
     endpoint: &'static str,
     query: Q,

@@ -31,6 +31,7 @@ impl IntoPage for Home {
     type View = HomePage;
 }
 
+#[derive(Debug)]
 pub struct HomePage(SearchResult<PostPreview, query::PostQuery>);
 
 impl From<Home> for HomePage {

@@ -17,11 +17,18 @@ const HX_REQUEST: &str = "HX-Request";
 
 const JSON: MediaType = media_type!(APPLICATION / JSON);
 
+#[derive(Clone, Copy, Debug)]
 pub enum Accept {
     Html,
     Boosted,
     Fragment,
     Json,
+}
+
+impl Accept {
+    pub fn is_api(self) -> bool {
+        matches!(self, Self::Json)
+    }
 }
 
 impl Default for Accept {

@@ -31,10 +31,15 @@ macro_rules! icon {
 }
 
 pub const ALIGN_LEFT: Icon = icon!("align_left");
+pub const BADGE_CHECK: Icon = icon!("badge_check");
+pub const CALENDAR: Icon = icon!("calendar");
 pub const CLOCK: Icon = icon!("clock");
 pub const COMMENT: Icon = icon!("comment");
 pub const DOTS_6_ROTATE: Icon = icon!("6-dots-rotate");
+pub const ENVELOPE: Icon = icon!("envelope");
 pub const FILE: Icon = icon!("file");
 pub const FILE_FILL: Icon = icon!("file_fill");
+pub const FILE_IMAGE: Icon = icon!("file_image");
+pub const HASH: Icon = icon!("hash");
 pub const PENCIL: Icon = icon!("pencil");
 pub const USER_CIRCLE: Icon = icon!("user_circle");

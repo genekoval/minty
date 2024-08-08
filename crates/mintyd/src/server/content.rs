@@ -11,10 +11,13 @@ mod script;
 mod search;
 mod search_result;
 mod space;
+mod user;
 mod user_preview;
+mod view;
 
 pub use home::Home;
 pub use search::PostSearchResult;
+pub use user::User;
 pub use user_preview::UserPreview;
 
 use css::Css;
@@ -27,6 +30,7 @@ use post_preview::PostPreview;
 use script::Script;
 use search_result::SearchResult;
 use space::Space;
+use view::*;
 
 use super::accept::Accept;
 
@@ -36,13 +40,14 @@ use axum::{
 };
 use maud::{html, Markup, Render, DOCTYPE};
 use serde::Serialize;
+use std::fmt::Debug;
 
 pub trait PageTitle {
     fn page_title(&self) -> &str;
 }
 
 pub trait IntoPage: Sized {
-    type View: From<Self> + Html + PageTitle;
+    type View: Debug + From<Self> + Html + PageTitle;
 
     fn into_page(self) -> Self::View {
         self.into()

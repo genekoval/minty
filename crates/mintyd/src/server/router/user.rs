@@ -2,8 +2,10 @@ use super::{
     session::{CookieJarSession, SessionCookie},
     session::{OptionalUser, User},
     text::Text,
-    AppState, Result, Router,
+    Accept, AppState, Result, Router,
 };
+
+use crate::server::content::{self, Content, PostSearchResult};
 
 use axum::{
     extract::{Path, Query, State},
@@ -13,7 +15,8 @@ use axum::{
 };
 use axum_extra::extract::cookie::CookieJar;
 use minty::{
-    http::query::SetProfileName, text, Login, ProfileName, Source, Url, Uuid,
+    http::query::SetProfileName, text, Login, PostQuery, ProfileName, Source,
+    Url, Uuid,
 };
 
 async fn add_source(
@@ -119,10 +122,34 @@ async fn get_user(
     State(AppState { repo }): State<AppState>,
     Path(user): Path<Uuid>,
     OptionalUser(requester): OptionalUser,
-) -> Result<Json<minty::User>> {
-    Ok(Json(
-        repo.optional_user(requester)?.other(user).await?.get()?,
-    ))
+    accept: Accept,
+) -> Result<Content<content::User>> {
+    let user = repo
+        .optional_user(requester.clone())?
+        .other(user)
+        .await?
+        .get()?;
+
+    let posts = if accept.is_api() {
+        None
+    } else {
+        let query = PostQuery {
+            poster: Some(user.id),
+            ..Default::default()
+        };
+
+        let result = repo
+            .optional_user(requester)?
+            .posts()
+            .find(query.clone())
+            .await?;
+
+        Some(PostSearchResult { query, result })
+    };
+
+    let data = content::User::new(user, posts);
+
+    Ok(Content { accept, data })
 }
 
 async fn grant_admin(
