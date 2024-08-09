@@ -1,8 +1,10 @@
 use super::{
     session::{OptionalUser, User},
     text::Text,
-    AppState, Result, Router,
+    Accept, AppState, Result, Router,
 };
+
+use crate::server::content::{self, Content, PostSearchResult};
 
 use axum::{
     extract::{Path, Query, State},
@@ -11,7 +13,8 @@ use axum::{
     Json,
 };
 use minty::{
-    http::query::SetProfileName, text, ProfileName, Source, Tag, Url, Uuid,
+    http::query::SetProfileName, text, PostQuery, ProfileName, Source, Url,
+    Uuid,
 };
 
 async fn add_source(
@@ -98,8 +101,30 @@ async fn get_tag(
     State(AppState { repo }): State<AppState>,
     OptionalUser(user): OptionalUser,
     Path(tag): Path<Uuid>,
-) -> Result<Json<Tag>> {
-    Ok(Json(repo.optional_user(user)?.tag(tag).await?.get()?))
+    accept: Accept,
+) -> Result<Content<content::Tag>> {
+    let tag = repo.optional_user(user.clone())?.tag(tag).await?.get()?;
+
+    let posts = if accept.is_api() {
+        None
+    } else {
+        let query = PostQuery {
+            tags: vec![tag.id],
+            ..Default::default()
+        };
+
+        let result = repo
+            .optional_user(user)?
+            .posts()
+            .find(query.clone())
+            .await?;
+
+        Some(PostSearchResult { query, result })
+    };
+
+    let data = content::Tag { tag, posts };
+
+    Ok(Content { accept, data })
 }
 
 async fn set_description(

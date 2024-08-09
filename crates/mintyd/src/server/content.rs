@@ -11,26 +11,30 @@ mod post_preview;
 mod script;
 mod search;
 mod search_result;
+mod source;
 mod space;
+mod tag;
 mod user;
 mod user_preview;
 mod view;
 
 pub use home::Home;
 pub use search::PostSearchResult;
+pub use tag::Tag;
 pub use user::User;
 pub use user_preview::UserPreview;
 
 use css::Css;
 use date_time::DateTime;
 use icon::Icon;
-use label::Label;
+use label::*;
 use navbar::Navbar;
 use object_grid::ObjectGrid;
 use object_preview::ObjectPreview;
 use post_preview::PostPreview;
 use script::Script;
 use search_result::SearchResult;
+use source::*;
 use space::Space;
 use view::*;
 

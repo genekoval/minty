@@ -59,7 +59,7 @@ impl Post {
                 .tags .flex-row .flex-wrap {
                     @for tag in &self.tags {
                         a href=(format!("/tag/{}", tag.id)) {
-                            (Label::new(&tag.name, icon::HASH))
+                            (Label::icon(&tag.name, icon::HASH))
                         }
                     }
                 }

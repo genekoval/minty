@@ -30,12 +30,16 @@ body {
 
 a:link {
     text-decoration: none;
-    color: var(--secondary);
+    color: var(--accent);
 }
 
 a:visited {
     text-decoration: none;
-    color: var(--secondary);
+    color: var(--accent);
+}
+
+.hover-underline:hover .label-text {
+    text-decoration: underline;
 }
 
 li {
@@ -62,6 +66,10 @@ li {
     display: block;
 }
 
+.inline {
+    display: inline;
+}
+
 .text-color {
     color: var(--text);
 }
@@ -84,7 +92,7 @@ li {
 
 .label-text {
     display: inline-block;
-    padding: 0 0 0 .4em;
+    padding-left: .4em;
     transform: translateY(-.15em);
 }
 
@@ -153,10 +161,6 @@ main {
     gap: 3px;
     justify-items: center;
     align-items: center;
-}
-
-.flex {
-    display: flex;
 }
 
 .flex-column {
@@ -271,4 +275,8 @@ main {
 
 .tags > a:hover {
     outline: thin solid var(--accent);
+}
+
+.fit-content {
+    max-width: fit-content;
 }

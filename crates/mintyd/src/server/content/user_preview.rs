@@ -25,7 +25,7 @@ struct UserPreviewInner {
 
 impl UserPreviewInner {
     pub fn as_label(&self) -> impl Render + '_ {
-        Label::new(&self.name, USER_ICON)
+        Label::icon(&self.name, USER_ICON)
     }
 
     fn path(&self) -> String {

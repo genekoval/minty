@@ -20,11 +20,11 @@ impl PostPreview {
     }
 
     fn object_count(&self) -> impl Render {
-        Label::new(self.object_count.to_string(), icon::FILE)
+        Label::icon(self.object_count.to_string(), icon::FILE)
     }
 
     fn comment_count(&self) -> impl Render {
-        Label::new(self.comment_count.to_string(), icon::COMMENT)
+        Label::icon(self.comment_count.to_string(), icon::COMMENT)
     }
 }
 
@@ -52,8 +52,9 @@ impl Render for PostPreview {
                 .post-preview
                 .divider
                 .hover-highlight
+                .a-plain
             {
-                .post-preview-image {
+                .post-preview-image .secondary {
                     @if let Some(preview) = &self.preview {
                         (preview)
                     } @else {
@@ -61,7 +62,7 @@ impl Render for PostPreview {
                     }
                 }
 
-                .flex .font-smaller .padding .gap-2 {
+                .flex-row .font-smaller .padding .gap-2 .secondary {
                     (self.poster.as_label())
                     (self.created)
                     (self.object_count())

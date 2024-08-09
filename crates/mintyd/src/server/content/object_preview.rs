@@ -46,7 +46,7 @@ impl Render for ObjectPreview {
                     .max-width-full
                     .rounded-corners[self.rounded_corners];
             } @else {
-                .flex .center {
+                .flex-row .center {
                     .object-placeholder { (icon::FILE_FILL) }
                     .object-placeholder-text
                     .absolute

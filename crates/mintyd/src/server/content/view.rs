@@ -25,9 +25,16 @@ impl Classes {
 pub trait View: Sized {
     fn classes_mut(&mut self) -> &mut Classes;
 
-    fn color(mut self, color: Color) -> Self {
-        self.classes_mut().push(format!("fg-{}", color.0));
+    fn class<T>(mut self, class: T) -> Self
+    where
+        T: Into<Class>,
+    {
+        self.classes_mut().push(class);
         self
+    }
+
+    fn color(self, color: Color) -> Self {
+        self.class(format!("fg-{}", color.0))
     }
 }
 
