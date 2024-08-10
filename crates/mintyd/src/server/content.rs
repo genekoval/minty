@@ -9,7 +9,6 @@ mod object_preview;
 mod post;
 mod post_preview;
 mod script;
-mod search;
 mod search_result;
 mod source;
 mod space;
@@ -19,7 +18,8 @@ mod user_preview;
 mod view;
 
 pub use home::Home;
-pub use search::PostSearchResult;
+pub use post::Post;
+pub use search_result::*;
 pub use tag::Tag;
 pub use user::User;
 pub use user_preview::UserPreview;
@@ -33,7 +33,6 @@ use object_grid::ObjectGrid;
 use object_preview::ObjectPreview;
 use post_preview::PostPreview;
 use script::Script;
-use search_result::SearchResult;
 use source::*;
 use space::Space;
 use view::*;
@@ -46,37 +45,19 @@ use axum::{
 };
 use maud::{html, Markup, Render, DOCTYPE};
 use serde::Serialize;
-use std::fmt::Debug;
-
-pub trait PageTitle {
-    fn page_title(&self) -> &str;
-}
-
-pub trait IntoPage: Sized {
-    type View: Debug + From<Self> + Html + PageTitle;
-
-    fn into_page(self) -> Self::View {
-        self.into()
-    }
-}
 
 pub trait Html {
+    fn page_title(&self) -> &str;
+
     fn full(&self) -> Markup;
 
-    fn fragment(&self) -> Markup;
+    fn fragment(&self) -> Markup {
+        self.full()
+    }
 }
 
-impl<T> Html for T
-where
-    T: Render,
-{
-    fn fragment(&self) -> Markup {
-        self.render()
-    }
-
-    fn full(&self) -> Markup {
-        self.render()
-    }
+trait AsRender {
+    fn as_render(&self) -> impl Render;
 }
 
 pub struct Content<T> {
@@ -86,36 +67,37 @@ pub struct Content<T> {
 
 impl<T> Content<T>
 where
-    T: IntoPage,
+    T: Html,
 {
     fn page(self) -> Markup {
-        let page = self.data.into_page();
-
         html! {
             (DOCTYPE)
             html {
                 head {
-                    title { (page.page_title()) }
+                    title { (self.data.page_title()) }
                     (Css("/assets/styles.css"))
                     (Script("/assets/scripts/htmx-2.0.1.min.js"))
                 }
                 body {
-                    (Navbar::new(&page))
+                    (Navbar::new(&self.data))
                 }
             }
         }
     }
 
     fn full(self) -> Markup {
-        self.data.into_page().full()
+        self.data.full()
     }
 
     fn fragment(self) -> Markup {
-        self.data.into_page().fragment()
+        self.data.fragment()
     }
 }
 
-impl<T: Serialize> Content<T> {
+impl<T> Content<T>
+where
+    T: Serialize,
+{
     fn json(self) -> Json<T> {
         Json(self.data)
     }
@@ -123,7 +105,7 @@ impl<T: Serialize> Content<T> {
 
 impl<T> IntoResponse for Content<T>
 where
-    T: IntoPage + Serialize,
+    T: Html + Serialize,
 {
     fn into_response(self) -> Response {
         match self.accept {

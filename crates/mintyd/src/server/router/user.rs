@@ -144,10 +144,10 @@ async fn get_user(
             .find(query.clone())
             .await?;
 
-        Some(PostSearchResult { query, result })
+        Some(PostSearchResult::new(query, result))
     };
 
-    let data = content::User::new(user, posts);
+    let data = content::User { user, posts };
 
     Ok(Content { accept, data })
 }

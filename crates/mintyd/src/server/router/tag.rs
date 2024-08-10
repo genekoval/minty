@@ -4,7 +4,7 @@ use super::{
     Accept, AppState, Result, Router,
 };
 
-use crate::server::content::{self, Content, PostSearchResult};
+use crate::server::content::{Content, PostSearchResult, Tag};
 
 use axum::{
     extract::{Path, Query, State},
@@ -102,7 +102,7 @@ async fn get_tag(
     OptionalUser(user): OptionalUser,
     Path(tag): Path<Uuid>,
     accept: Accept,
-) -> Result<Content<content::Tag>> {
+) -> Result<Content<Tag>> {
     let tag = repo.optional_user(user.clone())?.tag(tag).await?.get()?;
 
     let posts = if accept.is_api() {
@@ -119,10 +119,10 @@ async fn get_tag(
             .find(query.clone())
             .await?;
 
-        Some(PostSearchResult { query, result })
+        Some(PostSearchResult::new(query, result))
     };
 
-    let data = content::Tag { tag, posts };
+    let data = Tag { tag, posts };
 
     Ok(Content { accept, data })
 }

@@ -23,7 +23,7 @@ async fn get_posts(
 
     Ok(Content {
         accept,
-        data: PostSearchResult { query, result },
+        data: PostSearchResult::new(query, result),
     })
 }
 

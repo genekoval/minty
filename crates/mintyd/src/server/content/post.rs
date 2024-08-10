@@ -1,42 +1,46 @@
 use super::{
-    icon, DateTime, IntoPage, Label, ObjectGrid, PageTitle, UserPreview,
+    icon, DateTime, Html, Label, ObjectGrid, PostPreview, UserPreview,
 };
 
 use maud::{html, Markup, Render};
-use minty::TagPreview;
+use serde::{Serialize, Serializer};
 
 #[derive(Debug)]
-pub struct Post {
-    title: String,
-    description: String,
-    poster: UserPreview,
-    created: DateTime,
-    modified: Option<DateTime>,
-    objects: ObjectGrid,
-    tags: Vec<TagPreview>,
-}
+pub struct Post(pub minty::Post);
 
 impl Post {
     fn title(&self) -> Markup {
         html! {
-            @if !self.title.is_empty() {
-                h1 { (self.title) }
+            @if !self.0.title.is_empty() {
+                h1 { (self.0.title) }
             }
         }
     }
 
     fn description(&self) -> Markup {
         html! {
-            @if !self.description.is_empty() {
-                p { (self.description) }
+            @if !self.0.description.is_empty() {
+                p { (self.0.description) }
             }
         }
     }
 
-    fn poster(&self) -> Markup {
-        html! {
-            (self.poster)
-        }
+    fn poster(&self) -> impl Render + '_ {
+        UserPreview::new(self.0.poster.as_ref())
+    }
+
+    fn created(&self) -> impl Render {
+        DateTime::new(self.0.created)
+            .icon(icon::CLOCK)
+            .prefix("Posted")
+    }
+
+    fn modified(&self) -> Option<impl Render> {
+        (self.0.modified != self.0.created).then(|| {
+            DateTime::new(self.0.modified)
+                .icon(icon::PENCIL)
+                .prefix("Last modified")
+        })
     }
 
     fn metadata(&self) -> Markup {
@@ -44,10 +48,26 @@ impl Post {
             div .font-smaller ."leading-1-5" .secondary {
                 div { (self.poster()) }
 
-                div { (self.created) }
+                div { (self.created()) }
 
-                @if let Some(modified) = self.modified {
+                @if let Some(modified) = self.modified() {
                     div { (modified) }
+                }
+            }
+        }
+    }
+
+    fn objects(&self) -> impl Render + '_ {
+        ObjectGrid(&self.0.objects)
+    }
+
+    fn posts(&self) -> Markup {
+        html! {
+            @if !self.0.posts.is_empty() {
+                .flex-column .margin-top {
+                    @for post in &self.0.posts {
+                        (PostPreview(post))
+                    }
                 }
             }
         }
@@ -55,9 +75,9 @@ impl Post {
 
     fn tags(&self) -> Markup {
         html! {
-            @if !self.tags.is_empty() {
+            @if !self.0.tags.is_empty() {
                 .tags .flex-row .flex-wrap {
-                    @for tag in &self.tags {
+                    @for tag in &self.0.tags {
                         a href=(format!("/tag/{}", tag.id)) {
                             (Label::icon(&tag.name, icon::HASH))
                         }
@@ -70,46 +90,38 @@ impl Post {
 
 impl From<minty::Post> for Post {
     fn from(value: minty::Post) -> Self {
-        Self {
-            title: value.title,
-            description: value.description,
-            poster: UserPreview::new(value.poster),
-            created: DateTime::new(value.created)
-                .icon(icon::CLOCK)
-                .prefix("Posted"),
-            modified: (value.modified != value.created).then(|| {
-                DateTime::new(value.modified)
-                    .icon(icon::PENCIL)
-                    .prefix("Last modified")
-            }),
-            objects: ObjectGrid::new(value.objects),
-            tags: value.tags,
-        }
+        Self(value)
     }
 }
 
-impl Render for Post {
-    fn render(&self) -> Markup {
+impl Serialize for Post {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+impl Html for Post {
+    fn page_title(&self) -> &str {
+        let title = self.0.title.as_str();
+
+        if title.is_empty() {
+            "Untitled"
+        } else {
+            title
+        }
+    }
+
+    fn full(&self) -> Markup {
         html! {
             (self.title())
             (self.metadata())
-            (self.tags())
             (self.description())
-            (self.objects)
+            (self.objects())
+            (self.posts())
+            (self.tags())
         }
     }
-}
-
-impl PageTitle for Post {
-    fn page_title(&self) -> &str {
-        if self.title.is_empty() {
-            "Untitled"
-        } else {
-            &self.title
-        }
-    }
-}
-
-impl IntoPage for minty::Post {
-    type View = Post;
 }

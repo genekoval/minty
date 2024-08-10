@@ -1,23 +1,71 @@
-use crate::server::content::Html;
-
 use super::{
-    color::PURPLE, icon, DateTime, IntoPage, Label, PageTitle,
-    PostSearchResult, SourceList, View,
+    color::PURPLE, icon, DateTime, Html, Label, PostSearchResult, SourceList,
+    View,
 };
 
 use maud::{html, Markup, Render};
-use minty::Source;
 use serde::{Serialize, Serializer};
 
 #[derive(Debug)]
 pub struct User {
-    user: minty::User,
-    posts: Option<PostSearchResult>,
+    pub user: minty::User,
+    pub posts: Option<PostSearchResult>,
 }
 
 impl User {
-    pub fn new(user: minty::User, posts: Option<PostSearchResult>) -> Self {
-        Self { user, posts }
+    fn admin(&self) -> Option<impl Render> {
+        self.user
+            .admin
+            .then(|| Label::icon("Admin", icon::BADGE_CHECK).color(PURPLE))
+    }
+
+    fn email(&self) -> impl Render + '_ {
+        Label::icon(&self.user.email, icon::ENVELOPE)
+    }
+
+    fn created(&self) -> impl Render {
+        DateTime::new(self.user.profile.created)
+            .icon(icon::CALENDAR)
+            .prefix("Joined")
+    }
+
+    fn comment_count(&self) -> impl Render {
+        let count = format!(
+            "{} Comment{}",
+            self.user.comment_count,
+            match self.user.comment_count {
+                1 => "",
+                _ => "s",
+            }
+        );
+
+        Label::icon(count, icon::COMMENT)
+    }
+
+    fn post_count(&self) -> impl Render {
+        let count = format!(
+            "{} Post{}",
+            self.user.post_count,
+            match self.user.post_count {
+                1 => "",
+                _ => "s",
+            }
+        );
+
+        Label::icon(count, icon::FILE_IMAGE)
+    }
+
+    fn tag_count(&self) -> impl Render {
+        let count = format!(
+            "{} Tag{}",
+            self.user.tag_count,
+            match self.user.tag_count {
+                1 => "",
+                _ => "s",
+            }
+        );
+
+        Label::icon(count, icon::HASH)
     }
 }
 
@@ -30,101 +78,28 @@ impl Serialize for User {
     }
 }
 
-impl IntoPage for User {
-    type View = UserView;
-}
-
-#[derive(Debug)]
-pub struct UserView {
-    name: String,
-    aliases: Vec<String>,
-    description: String,
-    sources: Vec<Source>,
-    created: DateTime,
-    email: String,
-    admin: bool,
-    post_count: u32,
-    comment_count: u32,
-    tag_count: u32,
-    posts: Option<<PostSearchResult as IntoPage>::View>,
-}
-
-impl UserView {
-    fn comment_count(&self) -> String {
-        format!(
-            "{} Comment{}",
-            self.comment_count,
-            match self.comment_count {
-                1 => "",
-                _ => "s",
-            }
-        )
+impl Html for User {
+    fn page_title(&self) -> &str {
+        &self.user.profile.name
     }
 
-    fn post_count(&self) -> String {
-        format!(
-            "{} Post{}",
-            self.post_count,
-            match self.post_count {
-                1 => "",
-                _ => "s",
-            }
-        )
-    }
-
-    fn tag_count(&self) -> String {
-        format!(
-            "{} Tag{}",
-            self.tag_count,
-            match self.tag_count {
-                1 => "",
-                _ => "s",
-            }
-        )
-    }
-}
-
-impl From<User> for UserView {
-    fn from(value: User) -> Self {
-        let user = value.user;
-        let profile = user.profile;
-
-        Self {
-            name: profile.name,
-            aliases: profile.aliases,
-            description: profile.description,
-            sources: profile.sources,
-            created: DateTime::new(profile.created)
-                .icon(icon::CALENDAR)
-                .prefix("Joined"),
-            email: user.email,
-            admin: user.admin,
-            post_count: user.post_count,
-            comment_count: user.comment_count,
-            tag_count: user.tag_count,
-            posts: value.posts.map(IntoPage::into_page),
-        }
-    }
-}
-
-impl Render for UserView {
-    fn render(&self) -> Markup {
+    fn full(&self) -> Markup {
         html! {
-            h1 { (self.name) }
+            h1 { (self.user.profile.name) }
 
-            @if !self.aliases.is_empty() {
+            @if !self.user.profile.aliases.is_empty() {
                 ul .bold {
-                    @for alias in &self.aliases {
+                    @for alias in &self.user.profile.aliases {
                         li { (alias) }
                     }
                 }
             }
 
-            @if !self.description.is_empty() {
-                p { (self.description) }
+            @if !self.user.profile.description.is_empty() {
+                p { (self.user.profile.description) }
             }
 
-            (SourceList(&self.sources))
+            (SourceList(&self.user.profile.sources))
 
             .flex-column
             .gap-p5em
@@ -133,28 +108,20 @@ impl Render for UserView {
             .margin-top
             .margin-bottom
             {
-                @if self.admin {
-                    (Label::icon("Admin", icon::BADGE_CHECK).color(PURPLE))
+                @if let Some(admin) = self.admin() {
+                    (admin)
                 }
 
-                (Label::icon(&self.email, icon::ENVELOPE))
-
-                (self.created)
-
-                (Label::icon(self.post_count(), icon::FILE_IMAGE))
-                (Label::icon(self.comment_count(), icon::COMMENT))
-                (Label::icon(self.tag_count(), icon::HASH))
+                (self.email())
+                (self.created())
+                (self.post_count())
+                (self.comment_count())
+                (self.tag_count())
             }
 
             @if let Some(posts) = &self.posts {
                 (posts.full())
             }
         }
-    }
-}
-
-impl PageTitle for UserView {
-    fn page_title(&self) -> &str {
-        &self.name
     }
 }

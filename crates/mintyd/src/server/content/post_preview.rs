@@ -1,50 +1,42 @@
-use super::{icon, DateTime, Label, ObjectPreview, UserPreview};
+use super::{icon, AsRender, DateTime, Label, ObjectPreview, UserPreview};
 
 use maud::{html, Markup, Render};
-use minty::Uuid;
 
 #[derive(Debug)]
-pub struct PostPreview {
-    id: Uuid,
-    poster: UserPreview,
-    title: String,
-    preview: Option<ObjectPreview>,
-    comment_count: u32,
-    object_count: u32,
-    created: DateTime,
-}
+pub struct PostPreview<'a>(pub &'a minty::PostPreview);
 
-impl PostPreview {
+impl<'a> PostPreview<'a> {
     fn path(&self) -> String {
-        format!("/post/{}", self.id)
+        format!("/post/{}", self.0.id)
+    }
+
+    fn created(&self) -> impl Render {
+        DateTime::new(self.0.created).icon(icon::CLOCK).abbrev()
     }
 
     fn object_count(&self) -> impl Render {
-        Label::icon(self.object_count.to_string(), icon::FILE)
+        Label::icon(self.0.object_count.to_string(), icon::FILE)
     }
 
     fn comment_count(&self) -> impl Render {
-        Label::icon(self.comment_count.to_string(), icon::COMMENT)
+        Label::icon(self.0.comment_count.to_string(), icon::COMMENT)
+    }
+
+    fn preview(&self) -> Option<impl Render + '_> {
+        self.0
+            .preview
+            .as_ref()
+            .map(|preview| ObjectPreview::new(preview).rounded_corners())
     }
 }
 
-impl From<minty::PostPreview> for PostPreview {
-    fn from(value: minty::PostPreview) -> Self {
-        Self {
-            id: value.id,
-            poster: UserPreview::new(value.poster),
-            title: value.title,
-            preview: value
-                .preview
-                .map(|preview| ObjectPreview::new(preview).rounded_corners()),
-            comment_count: value.comment_count,
-            object_count: value.object_count,
-            created: DateTime::new(value.created).icon(icon::CLOCK).abbrev(),
-        }
+impl<'a> From<&'a minty::PostPreview> for PostPreview<'a> {
+    fn from(value: &'a minty::PostPreview) -> Self {
+        Self(value)
     }
 }
 
-impl Render for PostPreview {
+impl<'a> Render for PostPreview<'a> {
     fn render(&self) -> Markup {
         html! {
             a href=(self.path())
@@ -55,7 +47,7 @@ impl Render for PostPreview {
                 .a-plain
             {
                 .post-preview-image .secondary {
-                    @if let Some(preview) = &self.preview {
+                    @if let Some(preview) = self.preview() {
                         (preview)
                     } @else {
                         (icon::ALIGN_LEFT)
@@ -63,8 +55,8 @@ impl Render for PostPreview {
                 }
 
                 .flex-row .font-smaller .padding .gap-2 .secondary {
-                    (self.poster.as_label())
-                    (self.created)
+                    (UserPreview::new(self.0.poster.as_ref()).as_label())
+                    (self.created())
                     (self.object_count())
                     (self.comment_count())
                 }
@@ -75,9 +67,15 @@ impl Render for PostPreview {
                     .padding-leading
                     .padding-trailing
                 {
-                    (self.title)
+                    (self.0.title)
                 }
             }
         }
+    }
+}
+
+impl AsRender for minty::PostPreview {
+    fn as_render(&self) -> impl Render {
+        PostPreview(self)
     }
 }

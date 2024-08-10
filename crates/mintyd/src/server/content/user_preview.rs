@@ -4,7 +4,6 @@ use super::{
 };
 
 use maud::{html, Markup, Render};
-use minty::Uuid;
 
 const USER_ICON: Icon = icon::USER_CIRCLE;
 
@@ -18,31 +17,19 @@ fn deleted() -> Markup {
 }
 
 #[derive(Debug)]
-struct UserPreviewInner {
-    id: Uuid,
-    name: String,
-}
+struct UserPreviewInner<'a>(&'a minty::UserPreview);
 
-impl UserPreviewInner {
+impl<'a> UserPreviewInner<'a> {
     pub fn as_label(&self) -> impl Render + '_ {
-        Label::icon(&self.name, USER_ICON)
+        Label::icon(&self.0.name, USER_ICON)
     }
 
     fn path(&self) -> String {
-        format!("/user/{}", self.id)
+        format!("/user/{}", self.0.id)
     }
 }
 
-impl From<minty::UserPreview> for UserPreviewInner {
-    fn from(value: minty::UserPreview) -> Self {
-        Self {
-            id: value.id,
-            name: value.name,
-        }
-    }
-}
-
-impl Render for UserPreviewInner {
+impl<'a> Render for UserPreviewInner<'a> {
     fn render(&self) -> Markup {
         html! {
             a href=(self.path()) {
@@ -53,20 +40,16 @@ impl Render for UserPreviewInner {
 }
 
 #[derive(Debug)]
-pub struct UserPreview {
-    inner: Option<UserPreviewInner>,
-}
+pub struct UserPreview<'a>(Option<UserPreviewInner<'a>>);
 
-impl UserPreview {
-    pub fn new(user: Option<minty::UserPreview>) -> Self {
-        Self {
-            inner: user.map(Into::into),
-        }
+impl<'a> UserPreview<'a> {
+    pub fn new(user: Option<&'a minty::UserPreview>) -> Self {
+        Self(user.map(UserPreviewInner))
     }
 
     pub fn as_label(&self) -> Markup {
         html! {
-            @if let Some(user) = &self.inner {
+            @if let Some(user) = &self.0 {
                 (user.as_label())
             } @else {
                 (deleted())
@@ -75,10 +58,10 @@ impl UserPreview {
     }
 }
 
-impl Render for UserPreview {
+impl<'a> Render for UserPreview<'a> {
     fn render(&self) -> Markup {
         html! {
-            @if let Some(user) = &self.inner {
+            @if let Some(user) = &self.0 {
                 (user)
             } @else {
                 (deleted())

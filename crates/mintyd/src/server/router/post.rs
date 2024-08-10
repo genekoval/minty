@@ -5,7 +5,10 @@ use super::{
     AppState, Result, Router,
 };
 
-use crate::server::{content::Content, Accept};
+use crate::server::{
+    content::{Content, Post},
+    Accept,
+};
 
 use axum::{
     extract::{Path, State},
@@ -13,7 +16,7 @@ use axum::{
     routing::{get, post, put},
     Json,
 };
-use minty::{text, Modification, Post, PostParts, Uuid};
+use minty::{text, Modification, PostParts, Uuid};
 
 async fn add_objects(
     State(AppState { repo }): State<AppState>,
@@ -161,7 +164,11 @@ async fn get_post(
     OptionalUser(user): OptionalUser,
 ) -> Result<Content<Post>> {
     let post = repo.optional_user(user)?.post(id).await?.get().await?;
-    Ok(Content { accept, data: post })
+
+    Ok(Content {
+        accept,
+        data: post.into(),
+    })
 }
 
 async fn publish_post(

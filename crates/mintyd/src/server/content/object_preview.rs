@@ -3,13 +3,13 @@ use super::icon;
 use maud::{html, Markup, Render};
 
 #[derive(Debug)]
-pub struct ObjectPreview {
-    object: minty::ObjectPreview,
+pub struct ObjectPreview<'a> {
+    object: &'a minty::ObjectPreview,
     rounded_corners: bool,
 }
 
-impl ObjectPreview {
-    pub fn new(object: minty::ObjectPreview) -> Self {
+impl<'a> ObjectPreview<'a> {
+    pub fn new(object: &'a minty::ObjectPreview) -> Self {
         Self {
             object,
             rounded_corners: false,
@@ -32,13 +32,7 @@ impl ObjectPreview {
     }
 }
 
-impl From<minty::ObjectPreview> for ObjectPreview {
-    fn from(value: minty::ObjectPreview) -> Self {
-        Self::new(value)
-    }
-}
-
-impl Render for ObjectPreview {
+impl<'a> Render for ObjectPreview<'a> {
     fn render(&self) -> Markup {
         html! {
             @if let Some(preview) = self.preview() {
