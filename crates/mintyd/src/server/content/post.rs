@@ -1,43 +1,47 @@
 use super::{
-    icon, DateTime, Html, Label, ObjectGrid, PostPreview, UserPreview,
+    icon, Comments, DateTime, Html, Label, ObjectGrid, PostPreview, UserPreview,
 };
 
 use maud::{html, Markup, Render};
+use minty::CommentData;
 use serde::{Serialize, Serializer};
 
 #[derive(Debug)]
-pub struct Post(pub minty::Post);
+pub struct Post {
+    pub post: minty::Post,
+    pub comments: Vec<CommentData>,
+}
 
 impl Post {
     fn title(&self) -> Markup {
         html! {
-            @if !self.0.title.is_empty() {
-                h1 { (self.0.title) }
+            @if !self.post.title.is_empty() {
+                h1 { (self.post.title) }
             }
         }
     }
 
     fn description(&self) -> Markup {
         html! {
-            @if !self.0.description.is_empty() {
-                p { (self.0.description) }
+            @if !self.post.description.is_empty() {
+                p { (self.post.description) }
             }
         }
     }
 
     fn poster(&self) -> impl Render + '_ {
-        UserPreview::new(self.0.poster.as_ref())
+        UserPreview::new(self.post.poster.as_ref())
     }
 
     fn created(&self) -> impl Render {
-        DateTime::new(self.0.created)
+        DateTime::new(self.post.created)
             .icon(icon::CLOCK)
             .prefix("Posted")
     }
 
     fn modified(&self) -> Option<impl Render> {
-        (self.0.modified != self.0.created).then(|| {
-            DateTime::new(self.0.modified)
+        (self.post.modified != self.post.created).then(|| {
+            DateTime::new(self.post.modified)
                 .icon(icon::PENCIL)
                 .prefix("Last modified")
         })
@@ -58,14 +62,14 @@ impl Post {
     }
 
     fn objects(&self) -> impl Render + '_ {
-        ObjectGrid(&self.0.objects)
+        ObjectGrid(&self.post.objects)
     }
 
     fn posts(&self) -> Markup {
         html! {
-            @if !self.0.posts.is_empty() {
+            @if !self.post.posts.is_empty() {
                 .flex-column .margin-top {
-                    @for post in &self.0.posts {
+                    @for post in &self.post.posts {
                         (PostPreview(post))
                     }
                 }
@@ -75,9 +79,9 @@ impl Post {
 
     fn tags(&self) -> Markup {
         html! {
-            @if !self.0.tags.is_empty() {
+            @if !self.post.tags.is_empty() {
                 .tags .flex-row .flex-wrap {
-                    @for tag in &self.0.tags {
+                    @for tag in &self.post.tags {
                         a href=(format!("/tag/{}", tag.id)) {
                             (Label::icon(&tag.name, icon::HASH))
                         }
@@ -88,24 +92,18 @@ impl Post {
     }
 }
 
-impl From<minty::Post> for Post {
-    fn from(value: minty::Post) -> Self {
-        Self(value)
-    }
-}
-
 impl Serialize for Post {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        self.0.serialize(serializer)
+        self.post.serialize(serializer)
     }
 }
 
 impl Html for Post {
     fn page_title(&self) -> &str {
-        let title = self.0.title.as_str();
+        let title = self.post.title.as_str();
 
         if title.is_empty() {
             "Untitled"
@@ -122,6 +120,8 @@ impl Html for Post {
             (self.objects())
             (self.posts())
             (self.tags())
+
+            (Comments(&self.comments))
         }
     }
 }

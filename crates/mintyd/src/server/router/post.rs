@@ -163,12 +163,18 @@ async fn get_post(
     accept: Accept,
     OptionalUser(user): OptionalUser,
 ) -> Result<Content<Post>> {
-    let post = repo.optional_user(user)?.post(id).await?.get().await?;
+    let repo = repo.optional_user(user)?.post(id).await?;
+    let post = repo.get().await?;
 
-    Ok(Content {
-        accept,
-        data: post.into(),
-    })
+    let comments = if accept.is_api() {
+        Vec::new()
+    } else {
+        repo.get_comments().await?
+    };
+
+    let data = Post { post, comments };
+
+    Ok(Content { accept, data })
 }
 
 async fn publish_post(

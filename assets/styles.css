@@ -185,6 +185,10 @@ main {
     gap: .25em;
 }
 
+.gap-1 {
+    gap: 1rem;
+}
+
 .gap-2 {
     gap: 2rem;
 }
@@ -279,4 +283,32 @@ main {
 
 .fit-content {
     max-width: fit-content;
+}
+
+.comment-grid {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    grid-template-rows: repeat(2, auto);
+}
+
+.comment {
+    border-bottom: thin solid var(--divider);
+    grid-column: span 2;
+}
+
+.comment-metadata {
+    margin: .5rem .5rem 0 .5rem;
+}
+
+.comment-content {
+    margin: .5rem;
+}
+
+.comment-indent {
+    width: 2rem;
+    border-right: thin solid var(--divider);
+}
+
+.comment-indent:hover {
+    background-color: var(--secondary-background);
 }

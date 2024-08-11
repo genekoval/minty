@@ -1,3 +1,4 @@
+mod comment;
 mod css;
 mod date_time;
 mod home;
@@ -24,6 +25,7 @@ pub use tag::Tag;
 pub use user::User;
 pub use user_preview::UserPreview;
 
+use comment::Comments;
 use css::Css;
 use date_time::DateTime;
 use icon::Icon;
