@@ -20,6 +20,7 @@ pub struct Comment {
     #[sqlx(rename = "comment_id")]
     pub id: Uuid,
     pub user_id: Option<Uuid>,
+    pub post_id: Uuid,
     pub parent_id: Option<Uuid>,
     #[sqlx(rename = "indent", try_from = "i16")]
     pub level: u16,

@@ -84,6 +84,7 @@ impl<'a> Comments<'a> {
     ) -> CommentData {
         user.update(|user| user.comment_count += 1);
 
+        let post_id = comment.post_id;
         let comment = Comment::new(comment, Some(user));
         let data = comment.data();
 
@@ -96,6 +97,8 @@ impl<'a> Comments<'a> {
 
                 self.cache.comments.insert(data.id, &post, path);
             }
+        } else if let Some(post) = self.cache.posts.get_cached(post_id) {
+            post.increment_comment_count();
         }
 
         data

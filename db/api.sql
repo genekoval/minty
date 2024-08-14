@@ -5,15 +5,6 @@ CREATE TYPE password AS (
     password        text
 );
 
-CREATE TYPE post_comment AS (
-    comment_id      uuid,
-    user_id         uuid,
-    parent_id       uuid,
-    indent          smallint,
-    content         text,
-    date_created    timestamptz
-);
-
 CREATE TYPE profile_name AS (
     name            text,
     aliases         text[]
@@ -303,7 +294,7 @@ RETURNS anyarray AS $$
 $$ LANGUAGE sql;
 
 CREATE FUNCTION create_comment(a_user_id uuid, a_post_id uuid, a_content text)
-RETURNS SETOF post_comment AS $$
+RETURNS SETOF data.post_comment AS $$
     INSERT INTO data.post_comment (
         user_id,
         post_id,
@@ -312,13 +303,7 @@ RETURNS SETOF post_comment AS $$
         a_user_id,
         a_post_id,
         a_content
-    ) RETURNING
-        comment_id,
-        user_id,
-        parent_id,
-        indent,
-        content,
-        date_created;
+    ) RETURNING *;
 $$ LANGUAGE SQL;
 
 CREATE FUNCTION create_entity(a_name text) RETURNS uuid AS $$
@@ -523,7 +508,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION create_reply(a_user_id uuid, a_parent_id uuid, a_content text)
-RETURNS SETOF post_comment AS $$
+RETURNS SETOF data.post_comment AS $$
     INSERT INTO data.post_comment(
         user_id,
         post_id,
@@ -539,13 +524,7 @@ RETURNS SETOF post_comment AS $$
         a_content
     FROM data.post_comment parent
     WHERE comment_id = a_parent_id
-    RETURNING
-        comment_id,
-        user_id,
-        parent_id,
-        indent,
-        content,
-        date_created;
+    RETURNING *;
 $$ LANGUAGE SQL;
 
 CREATE FUNCTION create_site(
@@ -839,14 +818,8 @@ CREATE FUNCTION read_comment_post(a_comment_id uuid) RETURNS uuid AS $$
 $$ LANGUAGE SQL;
 
 CREATE FUNCTION read_comments(a_post_id uuid)
-RETURNS SETOF post_comment AS $$
-    SELECT
-        comment_id,
-        user_id,
-        parent_id,
-        indent,
-        content,
-        date_created
+RETURNS SETOF data.post_comment AS $$
+    SELECT *
     FROM data.post_comment
     WHERE post_id = a_post_id
     ORDER BY

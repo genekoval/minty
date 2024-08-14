@@ -134,8 +134,8 @@ impl PostMut {
     }
 
     fn reply(&mut self, path: &[usize], reply: Comment) -> Option<usize> {
+        self.comment_count += 1;
         self.comment(path, |parent| parent.reply(reply))
-            .inspect(|_| self.comment_count += 1)
     }
 }
 
@@ -486,6 +486,10 @@ impl Post {
 
     pub fn delete_tag(&self, id: Uuid) {
         self.mutable.update(|post| post.delete_tag(id));
+    }
+
+    pub fn increment_comment_count(&self) {
+        self.mutable.update(|post| post.comment_count += 1);
     }
 
     pub fn publish(&self, timestamp: DateTime) {

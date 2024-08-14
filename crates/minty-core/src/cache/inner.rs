@@ -46,6 +46,15 @@ impl<T: Id> From<Option<Weak<Cached<T>>>> for CacheResult<T> {
     }
 }
 
+impl<T: Id> From<CacheResult<T>> for Option<Arc<Cached<T>>> {
+    fn from(value: CacheResult<T>) -> Self {
+        match value {
+            CacheResult::Hit(hit) => Some(hit),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Cache<T: Id> {
     token: BufferToken,
@@ -95,6 +104,17 @@ impl<T: Id> Cache<T> {
         self.emit(Event::None(id));
     }
 
+    fn _get(&self, id: T::Id) -> CacheResult<T> {
+        self.map
+            .get(&id)
+            .map(|node| node.clone().into())
+            .unwrap_or(CacheResult::Miss)
+    }
+
+    pub fn get_cached(&self, id: T::Id) -> Option<Arc<Cached<T>>> {
+        self._get(id).into()
+    }
+
     pub async fn get<F, Fut, E>(
         self: &Arc<Self>,
         id: T::Id,
@@ -104,12 +124,7 @@ impl<T: Id> Cache<T> {
         F: FnOnce() -> Fut,
         Fut: Future<Output = Result<Option<T>, E>>,
     {
-        match self
-            .map
-            .get(&id)
-            .map(|node| node.clone().into())
-            .unwrap_or(CacheResult::Miss)
-        {
+        match self._get(id) {
             CacheResult::Hit(hit) => {
                 self.emit(Event::Access(id));
                 Ok(Some(hit))
@@ -141,12 +156,7 @@ impl<T: Id> Cache<T> {
         let mut misses = Vec::new();
 
         for id in ids.iter().copied() {
-            match self
-                .map
-                .get(&id)
-                .map(|node| node.clone().into())
-                .unwrap_or(CacheResult::Miss)
-            {
+            match self._get(id) {
                 CacheResult::Hit(hit) => {
                     self.emit(Event::Access(id));
                     result.push(Ok(hit));
