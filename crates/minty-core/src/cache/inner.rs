@@ -39,8 +39,11 @@ enum CacheResult<T: Id> {
 
 impl<T: Id> From<Option<Weak<Cached<T>>>> for CacheResult<T> {
     fn from(value: Option<Weak<Cached<T>>>) -> Self {
-        match value.and_then(|weak| weak.upgrade()) {
-            Some(value) => Self::Hit(value),
+        match value {
+            Some(weak) => match weak.upgrade() {
+                Some(strong) => Self::Hit(strong),
+                None => Self::Miss,
+            },
             None => Self::None,
         }
     }
