@@ -2,6 +2,17 @@ use crate::model::{PostSort, PostSortValue, SortOrder, Uuid, Visibility};
 
 use serde::{Deserialize, Serialize};
 
+pub trait QueryParams: Sized {
+    type Params: From<Self> + Serialize;
+
+    fn into_query_params(self) -> String {
+        let params: Self::Params = self.into();
+
+        serde_urlencoded::to_string(&params)
+            .expect("query serialization should always succeed")
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 pub struct DeleteComment {
     pub recursive: Option<bool>,
@@ -136,6 +147,10 @@ impl From<crate::PostQuery> for PostQuery {
     }
 }
 
+impl QueryParams for crate::PostQuery {
+    type Params = PostQuery;
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ProfileQuery {
     pub from: Option<u32>,
@@ -194,6 +209,10 @@ impl From<crate::ProfileQuery> for ProfileQuery {
             },
         }
     }
+}
+
+impl QueryParams for crate::ProfileQuery {
+    type Params = ProfileQuery;
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]

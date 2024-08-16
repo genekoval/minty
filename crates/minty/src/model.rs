@@ -22,6 +22,8 @@ pub trait Query {
     fn pagination(&self) -> Pagination;
 
     fn set_pagination(&mut self, pagination: Pagination);
+
+    fn text(&self) -> Option<&str>;
 }
 
 #[derive(Clone, Debug)]
@@ -251,6 +253,10 @@ impl Query for PostQuery {
     fn set_pagination(&mut self, pagination: Pagination) {
         self.pagination = pagination;
     }
+
+    fn text(&self) -> Option<&str> {
+        (!self.text.is_empty()).then_some(&self.text)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -404,6 +410,10 @@ impl Query for ProfileQuery {
 
     fn set_pagination(&mut self, pagination: Pagination) {
         self.pagination = pagination;
+    }
+
+    fn text(&self) -> Option<&str> {
+        (!self.name.is_empty()).then_some(&self.name)
     }
 }
 

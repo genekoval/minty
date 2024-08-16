@@ -43,5 +43,6 @@ pub const FILE_IMAGE: Icon = icon!("file_image");
 pub const HASH: Icon = icon!("hash");
 pub const HOME: Icon = icon!("home");
 pub const LINK: Icon = icon!("link");
+pub const MAGNIFYING_GLASS: Icon = icon!("magnifying_glass");
 pub const PENCIL: Icon = icon!("pencil");
 pub const USER_CIRCLE: Icon = icon!("user_circle");

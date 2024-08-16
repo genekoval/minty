@@ -9,7 +9,7 @@
     --secondary: #bababa;
     --accent: #16ef74;
     --primary-background: black;
-    --secondary-background: #131513;
+    --secondary-background: #1c1c1c;
     --divider: #3c413c;
     --purple: #8b5cf6;
     --default-margin: 1rem;
@@ -26,6 +26,57 @@ html {
 
 body {
     margin: 0;
+}
+
+.search-controls {
+    display: flex;
+    gap: .5rem;
+    height: 3rem;
+    background: var(--primary-background);
+    padding: 1rem .5rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: thin solid var(--divider);
+}
+
+.search-controls button {
+    color: var(--secondary);
+    background: var(--secondary-background);
+    border-radius: 10px;
+    height: 100%;
+    padding: .75rem;
+    outline: none;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--text);
+        background: var(--accent);
+    }
+
+    &:focus {
+        color: var(--text);
+        background: var(--accent);
+    }
+}
+
+.search-field {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    background: var(--secondary-background);
+    padding-left: 1rem;
+}
+
+.search-field input[type=text] {
+    width: 100%;
+    height: 100%;
+    font-size: medium;
+    color: var(--text);
+    background: none;
+    border: none;
+    outline: none;
 }
 
 a:link {
