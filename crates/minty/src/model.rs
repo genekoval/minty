@@ -14,7 +14,10 @@ use std::{
 };
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{self, value::MapAccessDeserializer, MapAccess, Visitor},
+    Deserialize, Deserializer, Serialize,
+};
 
 pub type DateTime = chrono::DateTime<Local>;
 
@@ -260,7 +263,7 @@ impl Query for PostQuery {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct PostSort {
     pub value: PostSortValue,
     pub order: SortOrder,
@@ -294,6 +297,15 @@ impl Default for PostSort {
         let order = value.default_order();
 
         Self { value, order }
+    }
+}
+
+impl From<PostSortValue> for PostSort {
+    fn from(value: PostSortValue) -> Self {
+        Self {
+            value,
+            order: value.default_order(),
+        }
     }
 }
 
@@ -359,6 +371,41 @@ impl FromStr for PostSort {
         }
 
         Ok(Self { value, order })
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for PostSort {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct PostSortVisitor;
+
+        impl<'de> Visitor<'de> for PostSortVisitor {
+            type Value = PostSort;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string or map")
+            }
+
+            fn visit_map<M>(self, map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let deserializer = MapAccessDeserializer::new(map);
+                Deserialize::deserialize(deserializer)
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                v.parse().map_err(de::Error::custom)
+            }
+        }
+
+        deserializer.deserialize_any(PostSortVisitor)
     }
 }
 

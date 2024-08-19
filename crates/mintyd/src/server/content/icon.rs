@@ -31,9 +31,15 @@ macro_rules! icon {
 }
 
 pub const ALIGN_LEFT: Icon = icon!("align_left");
+pub const ARROW_DOWN_A_Z: Icon = icon!("arrow-down-a-z");
+pub const ARROW_DOWN_Z_A: Icon = icon!("arrow-down-z-a");
+pub const ARROW_DOWN_NARROW_WIDE: Icon = icon!("arrow-down-narrow-wide");
+pub const ARROW_DOWN_WIDE_NARROW: Icon = icon!("arrow-down-wide-narrow");
 pub const BADGE_CHECK: Icon = icon!("badge_check");
 pub const CALENDAR: Icon = icon!("calendar");
 pub const CLOCK: Icon = icon!("clock");
+pub const CLOCK_ARROW_DOWN: Icon = icon!("clock-arrow-down");
+pub const CLOCK_ARROW_UP: Icon = icon!("clock-arrow-up");
 pub const COMMENT: Icon = icon!("comment");
 pub const DOTS_6_ROTATE: Icon = icon!("6-dots-rotate");
 pub const ENVELOPE: Icon = icon!("envelope");

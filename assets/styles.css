@@ -32,7 +32,8 @@ body {
     display: flex;
     gap: .5rem;
     height: 3rem;
-    background: var(--primary-background);
+    background: hsl(var(--primary-background) / .6);
+    backdrop-filter: blur(8px);
     padding: 1rem .5rem;
     position: sticky;
     top: 0;
@@ -40,12 +41,21 @@ body {
     border-bottom: thin solid var(--divider);
 }
 
+.search-controls > * {
+    height: 100%;
+}
+
+.search-controls minty-switch {
+    background: var(--secondary-background);
+    padding: 0 .5rem;
+    cursor: pointer;
+    border-radius: 10px;
+}
+
 .search-controls button {
     color: var(--secondary);
     background: var(--secondary-background);
     border-radius: 10px;
-    height: 100%;
-    padding: .75rem;
     outline: none;
     border: none;
     cursor: pointer;
@@ -63,7 +73,6 @@ body {
 
 .search-field {
     width: 100%;
-    height: 100%;
     border-radius: 10px;
     background: var(--secondary-background);
     padding-left: 1rem;

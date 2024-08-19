@@ -100,7 +100,8 @@ impl PostSearchResult {
         html! {
             form
                 hx-get=(self.0.path)
-                hx-trigger="submit, change find select"
+                hx-trigger=
+                    "submit, change find minty-select, change find minty-switch"
                 hx-target="#post-search-results"
                 .search-controls
                 .flex-row
@@ -115,11 +116,39 @@ impl PostSearchResult {
                         tab-index="0";
                 }
 
-                select name="sort" {
-                    option value="created" { "Created" }
-                    option value="modified" { "Modified" }
-                    option value="title" { "Title" }
-                    option value="relevance" { "Relevance" }
+                minty-select name="sort" {
+                    minty-option value="created.desc" {
+                        minty-icon { (icon::CLOCK_ARROW_DOWN) }
+                        minty-title { "Newest" }
+                    }
+                    minty-option value="created.asc" {
+                        minty-icon { (icon::CLOCK_ARROW_UP) }
+                        minty-title { "Oldest" }
+                    }
+                    minty-option value="modified.desc" {
+                        minty-icon { (icon::PENCIL) }
+                        minty-title { "Latest Modified" }
+                    }
+                    minty-option value="modified.asc" {
+                        minty-icon { (icon::PENCIL) }
+                        minty-title { "Earliest Modified" }
+                    }
+                    minty-option value="title.asc" {
+                        minty-icon { (icon::ARROW_DOWN_A_Z) }
+                        minty-title { "A-Z" }
+                    }
+                    minty-option value="title.desc" {
+                        minty-icon { (icon::ARROW_DOWN_Z_A) }
+                        minty-title { "Z-A" }
+                    }
+                    minty-option value="relevance.desc" {
+                        minty-icon { (icon::ARROW_DOWN_WIDE_NARROW) }
+                        minty-title { "Most Relevant" }
+                    }
+                    minty-option value="relevance.asc" {
+                        minty-icon { (icon::ARROW_DOWN_NARROW_WIDE) }
+                        minty-title { "Least Relevance" }
+                    }
                 }
 
                 button { (icon::MAGNIFYING_GLASS) }

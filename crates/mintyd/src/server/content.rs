@@ -79,6 +79,7 @@ where
                     title { (self.data.page_title()) }
                     (Css("/assets/styles.css"))
                     (Script("/assets/scripts/htmx-2.0.1.min.js"))
+                    (Script("/assets/scripts/templates.js"))
                 }
                 body {
                     (Navbar::new(&self.data))

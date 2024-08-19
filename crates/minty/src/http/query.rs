@@ -1,6 +1,6 @@
 use crate::model::{PostSort, PostSortValue, SortOrder, Uuid, Visibility};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 
 pub trait QueryParams: Sized {
     type Params: From<Self> + Serialize;
@@ -53,8 +53,21 @@ pub struct PostQuery {
     pub q: Option<String>,
     pub tags: Option<String>,
     pub vis: Option<Visibility>,
-    pub sort: Option<PostSortValue>,
+    #[serde(serialize_with = "PostQuery::serialize_sort")]
+    pub sort: Option<PostSort>,
     pub order: Option<SortOrder>,
+}
+
+impl PostQuery {
+    fn serialize_sort<S: Serializer>(
+        sort: &Option<PostSort>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        match sort {
+            Some(sort) => sort.value.serialize(serializer),
+            None => serializer.serialize_none(),
+        }
+    }
 }
 
 impl From<PostQuery> for crate::PostQuery {
@@ -70,7 +83,11 @@ impl From<PostQuery> for crate::PostQuery {
             order,
         }: PostQuery,
     ) -> Self {
-        let sort_value = sort.unwrap_or_default();
+        let mut sort = sort.unwrap_or_default();
+
+        if let Some(order) = order {
+            sort.order = order;
+        }
 
         Self {
             pagination: Pagination { from, size }.into(),
@@ -84,10 +101,7 @@ impl From<PostQuery> for crate::PostQuery {
                 })
                 .unwrap_or_default(),
             visibility: vis.unwrap_or_default(),
-            sort: PostSort {
-                value: sort_value,
-                order: order.unwrap_or(sort_value.default_order()),
-            },
+            sort,
         }
     }
 }
@@ -134,7 +148,7 @@ impl From<crate::PostQuery> for PostQuery {
                 None
             },
             sort: if sort.value != PostSortValue::default() {
-                Some(sort.value)
+                Some(sort.value.into())
             } else {
                 None
             },
