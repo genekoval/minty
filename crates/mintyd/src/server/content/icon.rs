@@ -51,4 +51,5 @@ pub const HOME: Icon = icon!("home");
 pub const LINK: Icon = icon!("link");
 pub const MAGNIFYING_GLASS: Icon = icon!("magnifying_glass");
 pub const PENCIL: Icon = icon!("pencil");
+pub const ROTATE_CW: Icon = icon!("rotate-cw");
 pub const USER_CIRCLE: Icon = icon!("user_circle");

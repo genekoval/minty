@@ -90,7 +90,7 @@ impl PostSearchResult {
         result: minty::SearchResult<PostPreview>,
     ) -> Self {
         Self(SearchResult {
-            path: "posts",
+            path: "/posts",
             query,
             result,
         })
@@ -108,6 +108,8 @@ impl PostSearchResult {
                 .center
             {
                 .search-field {
+                    (icon::MAGNIFYING_GLASS.inline())
+
                     input
                         type="text"
                         name="q"
@@ -151,7 +153,7 @@ impl PostSearchResult {
                     }
                 }
 
-                button { (icon::MAGNIFYING_GLASS) }
+                button { (icon::ROTATE_CW) }
             }
         }
     }
