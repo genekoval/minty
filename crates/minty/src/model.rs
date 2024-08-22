@@ -109,6 +109,7 @@ pub struct Object {
     pub size: u64,
     pub r#type: String,
     pub subtype: String,
+    pub extension: Option<String>,
     pub added: DateTime,
     pub preview_id: Option<Uuid>,
     pub posts: Vec<PostPreview>,
@@ -128,6 +129,7 @@ pub struct ObjectPreview {
     pub preview_id: Option<Uuid>,
     pub r#type: String,
     pub subtype: String,
+    pub extension: Option<String>,
 }
 
 impl PartialEq for ObjectPreview {

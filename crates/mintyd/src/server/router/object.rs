@@ -39,7 +39,7 @@ async fn get_object(
 async fn get_object_data(
     State(AppState { repo }): State<AppState>,
     OptionalUser(user): OptionalUser,
-    Path(id): Path<Uuid>,
+    Path((id, _name)): Path<(Uuid, String)>,
 ) -> Result<Response> {
     let (ObjectSummary { media_type, size }, stream) =
         repo.optional_user(user)?.object(id).get_data().await?;
@@ -59,5 +59,5 @@ pub fn routes() -> Router {
     Router::new()
         .route("/", post(add_object))
         .route("/:id", get(get_object))
-        .route("/:id/data", get(get_object_data))
+        .route("/:id/:name", get(get_object_data))
 }

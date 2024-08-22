@@ -2,6 +2,9 @@ pub mod cookie;
 pub mod query;
 
 mod client;
+mod model;
+
+pub use model::*;
 
 use client::Client;
 use cookie::{CookieFile, Jar};

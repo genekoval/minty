@@ -47,6 +47,7 @@ impl<'a> Objects<'a> {
             preview_id: preview,
             r#type: object.r#type,
             subtype: object.subtype,
+            extension: object.extension,
         })
     }
 }

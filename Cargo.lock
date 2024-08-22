@@ -1007,9 +1007,9 @@ dependencies = [
 
 [[package]]
 name = "fstore"
-version = "0.4.1"
+version = "0.4.2"
 source = "sparse+https://git.aurora.aur/api/packages/fstore/cargo/"
-checksum = "b56f755c70139d7947134a2d2e4be8ba276fc37796bc011003a528cf09fc1ea9"
+checksum = "880c41f56c6df8946f7eb9c69356f70f03f6fffa071e56c75123755215e089a2"
 dependencies = [
  "bytes",
  "chrono",
@@ -1643,7 +1643,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]

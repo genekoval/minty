@@ -12,6 +12,7 @@ pub struct Object {
     pub size: u64,
     pub r#type: String,
     pub subtype: String,
+    pub extension: Option<String>,
     pub added: DateTime,
     pub preview_id: Option<Uuid>,
     posts: RwLock<Vec<Uuid>>,
@@ -25,6 +26,7 @@ impl Object {
             size: obj.size,
             r#type: obj.r#type,
             subtype: obj.subtype,
+            extension: obj.extension,
             added: obj.added,
             preview_id: data.preview_id,
             posts: RwLock::new(data.posts),
@@ -45,6 +47,7 @@ impl Object {
             size: self.size,
             r#type: self.r#type.clone(),
             subtype: self.subtype.clone(),
+            extension: self.extension.clone(),
             added: self.added,
             preview_id: self.preview_id,
             posts,
@@ -57,6 +60,7 @@ impl Object {
             preview_id: self.preview_id,
             r#type: self.r#type.clone(),
             subtype: self.subtype.clone(),
+            extension: self.extension.clone(),
         }
     }
 
