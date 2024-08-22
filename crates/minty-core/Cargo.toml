@@ -1,6 +1,6 @@
 [package]
 name = "minty-core"
-version = "0.7.1"
+version = "0.7.2"
 edition.workspace = true
 repository.workspace = true
 
