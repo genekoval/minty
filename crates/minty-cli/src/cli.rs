@@ -12,6 +12,7 @@ mod env {
         };
     }
 
+    var!(COMMENT);
     var!(CONFIG);
     var!(HUMAN_READABLE);
     var!(JSON);
@@ -134,6 +135,7 @@ pub enum Command {
 
     /// Read a single comment
     Comment {
+        #[arg(env = env::COMMENT)]
         /// Comment ID
         id: Uuid,
 
@@ -143,19 +145,9 @@ pub enum Command {
 
     /// Read a post's comments
     Comments {
+        #[arg(env = env::POST)]
         /// Post ID
         post: Uuid,
-    },
-
-    /// Reply to a comment
-    Reply {
-        /// Parent comment ID
-        comment: Uuid,
-
-        /// Comment text
-        ///
-        /// If not present, content will be read from STDIN.
-        content: Option<text::Comment>,
     },
 
     /// Read about or modify a tag
@@ -241,6 +233,14 @@ pub enum Command {
 
 #[derive(Debug, Subcommand)]
 pub enum Comment {
+    /// Reply to a comment
+    Reply {
+        /// Comment text
+        ///
+        /// If not present, content will be read from STDIN.
+        content: Option<text::Comment>,
+    },
+
     /// Change a comment's content
     Edit {
         /// The comment's new comment
@@ -338,6 +338,7 @@ pub enum New {
 
     /// Comment on a post
     Comment {
+        #[arg(env = env::POST)]
         /// Post ID
         post: Uuid,
 

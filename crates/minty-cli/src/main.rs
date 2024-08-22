@@ -67,9 +67,6 @@ impl Client {
             Command::Objects { command } => self.objects(command).await,
             Command::Password => self.client.set_user_password().await,
             Command::Post { id, command } => self.post(id, command).await,
-            Command::Reply { comment, content } => {
-                self.client.reply(comment, content).await
-            }
             Command::Revoke { command } => self.revoke(command).await,
             Command::Signup {
                 email,
@@ -95,6 +92,7 @@ impl Client {
             Comment::Rm { force, recursive } => {
                 self.client.delete_comment(id, force, recursive).await
             }
+            Comment::Reply { content } => self.client.reply(id, content).await,
         }
     }
 
