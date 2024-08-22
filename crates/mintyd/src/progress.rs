@@ -83,7 +83,7 @@ impl ProgressBar {
         };
 
         self.terminal
-            .draw(|frame| frame.render_widget(&progress, frame.size()))
+            .draw(|frame| frame.render_widget(&progress, frame.area()))
             .map_err(|err| format!("failed to draw progress bar: {err}"))?;
 
         Ok(())
