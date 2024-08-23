@@ -93,7 +93,7 @@ impl crate::Repo for Repo {
     }
 
     async fn about(&self) -> Result<About> {
-        self.client.get("/").send().await?.deserialize().await
+        self.client.get("about").send().await?.deserialize().await
     }
 
     async fn add_comment(
