@@ -1,0 +1,64 @@
+:host {
+    position: relative;
+}
+
+button {
+    padding: .4rem;
+    font-size: 1rem;
+    height: 100%;
+    color: var(--text);
+    background: none;
+    border: none;
+    border-radius: calc(.5rem - 2px);
+
+    &:focus {
+        outline: none;
+    }
+}
+
+.closed:hover {
+    background: var(--secondary-background);
+}
+
+.menu {
+    background: hsl(var(--primary-background) / .6);
+    backdrop-filter: blur(8px);
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, .25rem);
+    border: 1px solid var(--divider);
+    border-radius: calc(.5rem - 2px);
+    padding: .25rem;
+}
+
+.menu > div {
+    padding: .5rem;
+    cursor: pointer;
+    border-radius: calc(.5rem - 2px);
+
+    &:hover {
+        background: var(--secondary-background);
+    }
+
+    &:focus {
+        background: var(--secondary-background);
+        outline: none;
+    }
+}
+
+.closed + .menu {
+    display: none;
+}
+
+.option {
+    display: flex;
+}
+
+.option minty-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.option minty-title {
+    transform: translate(.4em, -.15em);
+}

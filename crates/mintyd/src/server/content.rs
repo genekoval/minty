@@ -14,6 +14,7 @@ mod search_result;
 mod source;
 mod space;
 mod tag;
+mod templates;
 mod user;
 mod user_preview;
 mod view;
@@ -37,6 +38,7 @@ use post_preview::PostPreview;
 use script::Script;
 use source::*;
 use space::Space;
+use templates::Templates;
 use view::*;
 
 use super::accept::Accept;
@@ -77,10 +79,11 @@ where
             html {
                 head {
                     title { (self.data.page_title()) }
-                    (Css("/assets/styles.css"))
-                    (Script("/assets/scripts/htmx-2.0.1.min.js"))
-                    (Script("/assets/scripts/templates.js"))
+                    (Css("/assets/style.css"))
+                    (Script("/assets/script.js"))
+                    (Templates)
                 }
+
                 body {
                     (Navbar::new(&self.data))
                 }

@@ -1,5 +1,6 @@
 /.vscode
 /assets/fonts
-/assets/scripts/htmx-*
+/assets/script.js
 /minty*
+!/minty-web
 /target
