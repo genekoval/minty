@@ -4,21 +4,19 @@ class MintySelect extends HTMLElement {
     constructor() {
         super();
 
-        const template = document
-            .getElementById('minty-select-template')
-            .content
-            .cloneNode(true);
+        const template = document.getElementById('minty-select-template');
+        const node = template.content.cloneNode(true);
 
-        this.attachShadow({ mode: 'open' }).appendChild(template);
+        this.attachShadow({ mode: 'open' }).appendChild(node);
 
         this.internals = this.attachInternals();
         this.menu = this.shadowRoot.querySelector('.menu');
         this.button = this.shadowRoot.querySelector('button');
-        this.closeListener = event => this.handleCloseEvent(event);
+        this.closeListener = (event) => this.handleCloseEvent(event);
 
         const slot = this.button.querySelector('slot');
 
-        slot.addEventListener('slotchange', event => {
+        slot.addEventListener('slotchange', (event) => {
             const elements = event.target.assignedElements();
             const first = elements[0];
 
@@ -42,12 +40,12 @@ class MintySelect extends HTMLElement {
                 div.classList.add('option');
                 div.innerHTML = element.innerHTML;
 
-                div.addEventListener('click', event => {
+                div.addEventListener('click', (event) => {
                     event.stopPropagation();
                     this.select(div, value);
                 });
 
-                div.addEventListener('keydown', event => {
+                div.addEventListener('keydown', (event) => {
                     if (event.key === 'Enter') {
                         event.stopPropagation();
                         this.select(div, value);
@@ -60,7 +58,7 @@ class MintySelect extends HTMLElement {
     }
 
     connectedCallback() {
-        this.button.addEventListener('click', event => {
+        this.button.addEventListener('click', (event) => {
             event.stopPropagation();
             this.toggleMenu();
         });
