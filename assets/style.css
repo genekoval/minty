@@ -15,7 +15,7 @@
     --default-margin: 1rem;
     --default-padding: 1rem;
     --nav-width: 5rem;
-    --main-margin: .5rem;
+    --main-margin: 0.5rem;
 }
 
 html {
@@ -30,11 +30,11 @@ body {
 
 .search-controls {
     display: flex;
-    gap: .5rem;
+    gap: 0.5rem;
     height: 3rem;
-    background: hsl(var(--primary-background) / .6);
+    background: hsl(var(--primary-background) / 0.6);
     backdrop-filter: blur(8px);
-    padding: 1rem .5rem;
+    padding: 1rem 0.5rem;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -47,16 +47,16 @@ body {
 
 .search-controls minty-switch {
     background: var(--secondary-background);
-    padding: 0 .5rem;
+    padding: 0 0.5rem;
     cursor: pointer;
     border-radius: 10px;
 }
 
 .search-controls button {
-    padding: .4rem;
+    padding: 0.4rem;
     color: var(--text);
     background: none;
-    border-radius: calc(.5rem - 2px);
+    border-radius: calc(0.5rem - 2px);
     outline: none;
     border: none;
     cursor: pointer;
@@ -69,23 +69,23 @@ body {
 .search-field {
     display: flex;
     align-items: center;
-    gap: .5em;
+    gap: 0.5em;
     width: 100%;
     border-radius: 10px;
     background: var(--secondary-background);
     padding-left: 1rem;
 }
 
-.search-field:has(input[type=text]:focus) {
+.search-field:has(input[type='text']:focus) {
     outline: thin solid var(--accent);
 }
 
 .search-field .inline-icon {
     color: var(--secondary);
-    opacity: .75;
+    opacity: 0.75;
 }
 
-.search-field input[type=text] {
+.search-field input[type='text'] {
     width: 100%;
     height: 100%;
     font-size: medium;
@@ -95,9 +95,9 @@ body {
     outline: none;
 }
 
-.search-field input[type=text]::placeholder {
+.search-field input[type='text']::placeholder {
     color: var(--secondary);
-    opacity: .75;
+    opacity: 0.75;
 }
 
 a:link {
@@ -164,8 +164,8 @@ li {
 
 .label-text {
     display: inline-block;
-    padding-left: .4em;
-    transform: translateY(-.15em);
+    padding-left: 0.4em;
+    transform: translateY(-0.15em);
 }
 
 .leading-1-5 {
@@ -254,11 +254,11 @@ main {
 }
 
 .gap-p5em {
-    gap: .5em;
+    gap: 0.5em;
 }
 
 .gap-p25em {
-    gap: .25em;
+    gap: 0.25em;
 }
 
 .gap-1 {
@@ -334,18 +334,18 @@ main {
 }
 
 .tags {
-    flex-wrap: wrap
+    flex-wrap: wrap;
 }
 
 .tags > a {
     display: inline-block;
-    font-size: .875rem;
+    font-size: 0.875rem;
     font-weight: bold;
     color: var(--accent);
     background-color: var(--secondary-background);
-    margin-top: .75rem;
-    margin-right: .75rem;
-    padding: .75rem 1rem;
+    margin-top: 0.75rem;
+    margin-right: 0.75rem;
+    padding: 0.75rem 1rem;
     border-radius: 100px;
 }
 
@@ -373,11 +373,11 @@ main {
 }
 
 .comment-metadata {
-    margin: .5rem .5rem 0 .5rem;
+    margin: 0.5rem 0.5rem 0 0.5rem;
 }
 
 .comment-content {
-    margin: .5rem;
+    margin: 0.5rem;
 }
 
 .comment-indent {
