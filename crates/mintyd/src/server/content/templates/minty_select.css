@@ -23,6 +23,7 @@ button {
 .menu {
     background: hsl(var(--primary-background) / 0.6);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     position: absolute;
     left: 50%;
     transform: translate(-50%, 0.25rem);
