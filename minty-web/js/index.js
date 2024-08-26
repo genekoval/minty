@@ -1,1 +1,1 @@
-import './minty-select.js';
+import './minty-select';

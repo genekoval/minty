@@ -1,15 +1,11 @@
-class MintySelect extends HTMLElement {
-    static formAssociated = true;
+import FormComponent from './form-component';
 
+const NAME = 'minty-select';
+
+export default class MintySelect extends FormComponent {
     constructor() {
-        super();
+        super(NAME);
 
-        const template = document.getElementById('minty-select-template');
-        const node = template.content.cloneNode(true);
-
-        this.attachShadow({ mode: 'open' }).appendChild(node);
-
-        this.internals = this.attachInternals();
         this.menu = this.shadowRoot.querySelector('.menu');
         this.button = this.shadowRoot.querySelector('button');
         this.closeListener = (event) => this.handleCloseEvent(event);
@@ -97,6 +93,4 @@ class MintySelect extends HTMLElement {
     }
 }
 
-customElements.define('minty-select', MintySelect);
-
-export default MintySelect;
+customElements.define(NAME, MintySelect);
