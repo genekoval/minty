@@ -21,7 +21,7 @@ button {
 }
 
 .menu {
-    background: hsl(var(--primary-background) / 0.6);
+    background: color(from var(--primary-background) srgb r g b / 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     position: absolute;
