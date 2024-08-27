@@ -1,8 +1,4 @@
-@font-face {
-    font-family: Roboto;
-    src: url('./fonts/RobotoFlex-VariableFont_GRAD,XOPQ,XTRA,YOPQ,YTAS,YTDE,YTFI,YTLC,YTUC,opsz,slnt,wdth,wght.ttf')
-        format('truetype');
-}
+@import url('./fonts');
 
 :root {
     --font-sans: Roboto, sans-serif;

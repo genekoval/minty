@@ -24,6 +24,6 @@ pub fn routes() -> Router {
     serve! {
         ("/index.css", "text/css"),
         ("/index.js", "application/javascript"),
-        ("/fonts/RobotoFlex-VariableFont_GRAD,XOPQ,XTRA,YOPQ,YTAS,YTDE,YTFI,YTLC,YTUC,opsz,slnt,wdth,wght.ttf", "font/ttf"),
+        ("/fonts/OpenSans.ttf", "font/ttf"),
     }
 }
