@@ -30,7 +30,7 @@ timber = { workspace = true, features = ["serde"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
 tokio-util = { workspace = true, features = ["io"] }
 toml = { workspace = true, features = ["parse"] }
-tower-http = { workspace = true, features = ["fs"] }
+tower-http = { workspace = true, optional = true, features = ["fs"] }
 
 [dependencies.minty]
 path = "../minty"
@@ -42,3 +42,6 @@ features = ["http"]
 path = "../minty-core"
 version = "0.7.1"
 registry = "minty"
+
+[features]
+servedir = ["dep:tower-http"]

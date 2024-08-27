@@ -79,8 +79,8 @@ where
             html {
                 head {
                     title { (self.data.page_title()) }
-                    (Css("/assets/style.css"))
-                    (Script("/assets/script.js"))
+                    (Css("/assets/index.css"))
+                    (Script("/assets/index.js"))
                     (Templates)
                 }
 

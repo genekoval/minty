@@ -1,6 +1,9 @@
 export default {
+    loader: { '.ttf': 'file' },
     entryPoints: ['index.js'],
+    assetNames: '[dir]/[name]',
     bundle: true,
-    outfile: '../assets/script.js',
+    outdir: '../crates/mintyd/assets',
+    publicPath: '/assets',
     logLevel: 'info',
 };

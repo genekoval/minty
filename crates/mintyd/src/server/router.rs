@@ -1,3 +1,4 @@
+mod assets;
 mod comment;
 mod comments;
 mod invitation;
@@ -26,8 +27,6 @@ use super::{
 use axum::{extract::State, routing::get, Json};
 use minty::{model::export::Data, PostQuery};
 use minty_core::About;
-use std::path::Path;
-use tower_http::services::ServeDir;
 
 pub type Router = axum::Router<AppState>;
 
@@ -63,11 +62,12 @@ async fn export(
     Ok(Json(repo.export().await?))
 }
 
-pub fn routes(assets: &Path) -> Router {
+pub fn routes() -> Router {
     Router::new()
         .route("/", get(home))
         .route("/about", get(about))
         .route("/export", get(export))
+        .nest("/assets", assets::routes())
         .nest("/comment", comment::routes())
         .nest("/comments", comments::routes())
         .nest("/invitation", invitation::routes())
@@ -81,5 +81,4 @@ pub fn routes(assets: &Path) -> Router {
         .nest("/tags", tags::routes())
         .nest("/user", user::routes())
         .nest("/users", users::routes())
-        .nest_service("/assets", ServeDir::new(assets))
 }

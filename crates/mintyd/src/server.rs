@@ -26,8 +26,7 @@ pub async fn serve(
 
     repo.prepare().await?;
 
-    let assets = config.assets.as_path();
-    let app = router::routes(assets).with_state(AppState { repo });
+    let app = router::routes().with_state(AppState { repo });
     let token = CancellationToken::new();
 
     let mut handles = Vec::new();

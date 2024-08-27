@@ -1,10 +1,11 @@
 @font-face {
-    font-family: OpenSans;
-    src: local('fonts/OpenSans-VariableFont_wdth,wght.ttf') format('ttf');
+    font-family: Roboto;
+    src: url('./fonts/RobotoFlex-VariableFont_GRAD,XOPQ,XTRA,YOPQ,YTAS,YTDE,YTFI,YTLC,YTUC,opsz,slnt,wdth,wght.ttf')
+        format('truetype');
 }
 
 :root {
-    --font-sans: OpenSans, sans-serif;
+    --font-sans: Roboto, sans-serif;
     --text: #fafafa;
     --secondary: #bababa;
     --accent: #16ef74;
