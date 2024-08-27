@@ -1,7 +1,7 @@
 @import url('./fonts');
 
 :root {
-    --font-sans: Roboto, sans-serif;
+    --font-sans: OpenSans, sans-serif;
     --text: #fafafa;
     --secondary: #bababa;
     --accent: #16ef74;
