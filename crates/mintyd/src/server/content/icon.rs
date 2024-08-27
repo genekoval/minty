@@ -25,31 +25,32 @@ impl Render for Icon {
 }
 
 macro_rules! icon {
-    ($name:literal) => {
-        Icon(include_str!(concat!("icon/", $name, ".svg")))
+    ($var:ident, $name:literal) => {
+        pub const $var: Icon =
+            Icon(include_str!(concat!("icon/", $name, ".svg")));
     };
 }
 
-pub const ALIGN_LEFT: Icon = icon!("align_left");
-pub const ARROW_DOWN_A_Z: Icon = icon!("arrow-down-a-z");
-pub const ARROW_DOWN_Z_A: Icon = icon!("arrow-down-z-a");
-pub const ARROW_DOWN_NARROW_WIDE: Icon = icon!("arrow-down-narrow-wide");
-pub const ARROW_DOWN_WIDE_NARROW: Icon = icon!("arrow-down-wide-narrow");
-pub const BADGE_CHECK: Icon = icon!("badge_check");
-pub const CALENDAR: Icon = icon!("calendar");
-pub const CLOCK: Icon = icon!("clock");
-pub const CLOCK_ARROW_DOWN: Icon = icon!("clock-arrow-down");
-pub const CLOCK_ARROW_UP: Icon = icon!("clock-arrow-up");
-pub const COMMENT: Icon = icon!("comment");
-pub const DOTS_6_ROTATE: Icon = icon!("6-dots-rotate");
-pub const ENVELOPE: Icon = icon!("envelope");
-pub const FILE: Icon = icon!("file");
-pub const FILE_FILL: Icon = icon!("file_fill");
-pub const FILE_IMAGE: Icon = icon!("file_image");
-pub const HASH: Icon = icon!("hash");
-pub const HOME: Icon = icon!("home");
-pub const LINK: Icon = icon!("link");
-pub const MAGNIFYING_GLASS: Icon = icon!("magnifying_glass");
-pub const PENCIL: Icon = icon!("pencil");
-pub const ROTATE_CW: Icon = icon!("rotate-cw");
-pub const USER_CIRCLE: Icon = icon!("user_circle");
+icon!(ALIGN_LEFT, "align_left");
+icon!(ARROW_DOWN_A_Z, "arrow-down-a-z");
+icon!(ARROW_DOWN_Z_A, "arrow-down-z-a");
+icon!(ARROW_DOWN_NARROW_WIDE, "arrow-down-narrow-wide");
+icon!(ARROW_DOWN_WIDE_NARROW, "arrow-down-wide-narrow");
+icon!(BADGE_CHECK, "badge_check");
+icon!(CALENDAR, "calendar");
+icon!(CLOCK, "clock");
+icon!(CLOCK_ARROW_DOWN, "clock-arrow-down");
+icon!(CLOCK_ARROW_UP, "clock-arrow-up");
+icon!(COMMENT, "comment");
+icon!(DOTS_6_ROTATE, "6-dots-rotate");
+icon!(ENVELOPE, "envelope");
+icon!(FILE, "file");
+icon!(FILE_FILL, "file_fill");
+icon!(FILE_IMAGE, "file_image");
+icon!(HASH, "hash");
+icon!(HOME, "home");
+icon!(LINK, "link");
+icon!(MAGNIFYING_GLASS, "magnifying_glass");
+icon!(PENCIL, "pencil");
+icon!(ROTATE_CW, "rotate-cw");
+icon!(USER_CIRCLE, "user_circle");
