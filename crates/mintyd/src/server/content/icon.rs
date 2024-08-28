@@ -55,4 +55,5 @@ icon!(LOG_IN, "log-in");
 icon!(MAGNIFYING_GLASS, "magnifying_glass");
 icon!(PENCIL, "pencil");
 icon!(ROTATE_CW, "rotate-cw");
+icon!(SETTINGS, "settings");
 icon!(USER_CIRCLE, "user_circle");

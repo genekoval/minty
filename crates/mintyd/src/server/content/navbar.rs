@@ -20,12 +20,19 @@ impl<'a, V: Html> Render for Navbar<'a, V> {
     fn render(&self) -> Markup {
         html! {
             nav .flex-column {
-                a href="/" { (icon::HOME) }
+                .nav-primary .nav-section {
+                    a href="/" { (icon::HOME) }
 
-                @if let Some(link) = self.user_link() {
-                    a href=(link) { (icon::CIRCLE_USER_ROUND) }
-                } @else {
-                    a href="/signin" { (icon::LOG_IN) }
+                }
+
+                .nav-secondary .nav-section {
+                    @if let Some(link) = self.user_link() {
+                        a href=(link) { (icon::CIRCLE_USER_ROUND) }
+                    } @else {
+                        a href="/signin" { (icon::LOG_IN) }
+                    }
+
+                    button { (icon::SETTINGS) }
                 }
             }
 
