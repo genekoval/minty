@@ -16,6 +16,14 @@ impl<'a, V: Html> Render for Navbar<'a, V> {
                 .nav-primary .nav-section {
                     a href="/" { (icon::HOME) }
 
+                    minty-menu {
+                        span slot="menu-button" { (icon::PLUS) }
+
+                        a href="/post" {
+                            minty-icon { (icon::FILE_IMAGE) }
+                            minty-title { "New Post" }
+                        }
+                    }
                 }
 
                 .nav-secondary .nav-section {

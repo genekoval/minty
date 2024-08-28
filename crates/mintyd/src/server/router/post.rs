@@ -13,10 +13,11 @@ use crate::server::{
 use axum::{
     extract::{Path, State},
     http::StatusCode,
+    response::Redirect,
     routing::{get, post, put},
     Json,
 };
-use minty::{text, Modification, PostParts, Uuid};
+use minty::{text, Modification, PostParts, Uuid, Visibility};
 
 async fn add_objects(
     State(AppState { repo }): State<AppState>,
@@ -76,6 +77,25 @@ async fn add_tag(
         .add_tag(tag)
         .await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn create_draft(
+    State(AppState { repo }): State<AppState>,
+    OptionalUser(user): OptionalUser,
+) -> Result<Redirect> {
+    if let Some(user) = user {
+        let parts = PostParts {
+            visibility: Some(Visibility::Draft),
+            ..Default::default()
+        };
+
+        let id = repo.with_user(user).posts().add(&parts).await?.id();
+        let path = format!("/post/{id}");
+
+        Ok(Redirect::to(&path))
+    } else {
+        Ok(Redirect::to("/signin"))
+    }
 }
 
 async fn create_post(
@@ -225,7 +245,7 @@ async fn set_title(
 
 pub fn routes() -> Router {
     Router::new()
-        .route("/", post(create_post))
+        .route("/", get(create_draft).post(create_post))
         .route("/:id", get(get_post).put(publish_post).delete(delete_post))
         .route("/:id/description", put(set_description))
         .route("/:id/objects", post(append_objects).delete(delete_objects))
