@@ -114,8 +114,34 @@ async fn delete_user(
 async fn get_authenticated_user(
     State(AppState { repo }): State<AppState>,
     User(user): User,
-) -> Result<Json<minty::User>> {
-    Ok(Json(repo.with_user(user).get_self()?))
+    accept: Accept,
+) -> Result<Content<content::User>> {
+    let info = repo.with_user(user.clone()).get_self()?;
+
+    let posts = if accept.is_api() {
+        None
+    } else {
+        let query = PostQuery {
+            poster: Some(user.id),
+            ..Default::default()
+        };
+
+        let result = repo
+            .optional_user(Some(user.clone()))?
+            .posts()
+            .find(query.clone())
+            .await?;
+
+        Some(PostSearchResult::new(query, result))
+    };
+
+    let data = content::User { user: info, posts };
+
+    Ok(Content {
+        accept,
+        data,
+        user: Some(user),
+    })
 }
 
 async fn get_user(
@@ -139,7 +165,7 @@ async fn get_user(
         };
 
         let result = repo
-            .optional_user(requester)?
+            .optional_user(requester.clone())?
             .posts()
             .find(query.clone())
             .await?;
@@ -149,7 +175,11 @@ async fn get_user(
 
     let data = content::User { user, posts };
 
-    Ok(Content { accept, data })
+    Ok(Content {
+        accept,
+        data,
+        user: requester,
+    })
 }
 
 async fn grant_admin(

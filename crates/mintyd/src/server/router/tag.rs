@@ -114,7 +114,7 @@ async fn get_tag(
         };
 
         let result = repo
-            .optional_user(user)?
+            .optional_user(user.clone())?
             .posts()
             .find(query.clone())
             .await?;
@@ -124,7 +124,7 @@ async fn get_tag(
 
     let data = Tag { tag, posts };
 
-    Ok(Content { accept, data })
+    Ok(Content { accept, user, data })
 }
 
 async fn set_description(

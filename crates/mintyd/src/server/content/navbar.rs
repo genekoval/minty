@@ -1,15 +1,18 @@
 use super::{icon, Html};
 
 use maud::{html, Markup, Render};
+use minty_core::{Cached, User};
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct Navbar<'a, V> {
-    page: &'a V,
+    pub page: &'a V,
+    pub user: Option<&'a Arc<Cached<User>>>,
 }
 
 impl<'a, V> Navbar<'a, V> {
-    pub fn new(page: &'a V) -> Self {
-        Self { page }
+    fn user_link(&self) -> Option<String> {
+        self.user.map(|user| format!("/user/{}", user.id))
     }
 }
 
@@ -18,6 +21,12 @@ impl<'a, V: Html> Render for Navbar<'a, V> {
         html! {
             nav .flex-column {
                 a href="/" { (icon::HOME) }
+
+                @if let Some(link) = self.user_link() {
+                    a href=(link) { (icon::CIRCLE_USER_ROUND) }
+                } @else {
+                    a href="/signin" { (icon::LOG_IN) }
+                }
             }
 
             main { (self.page.full()) }

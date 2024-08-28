@@ -16,13 +16,14 @@ async fn get_posts(
 ) -> Result<Content<PostSearchResult>> {
     let query: minty::PostQuery = query.into();
     let result = repo
-        .optional_user(user)?
+        .optional_user(user.clone())?
         .posts()
         .find(query.clone())
         .await?;
 
     Ok(Content {
         accept,
+        user,
         data: PostSearchResult::new(query, result),
     })
 }

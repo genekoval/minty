@@ -98,6 +98,52 @@ body {
     opacity: 0.75;
 }
 
+.text-field {
+    display: flex;
+    background: var(--secondary-background);
+    padding: 0.5rem;
+    border-radius: 10px;
+}
+
+.text-field:has(input:focus) {
+    outline: thin solid var(--accent);
+}
+
+.text-field:has(input:user-invalid) {
+    outline: thin solid red;
+}
+
+.text-field input {
+    width: 100%;
+    height: 100%;
+    font-size: medium;
+    color: var(--text);
+    background: none;
+    border: none;
+    outline: none;
+}
+
+.text-field::placeholder {
+    color: var(--secondary);
+}
+
+.submit-button {
+    font-size: 1rem;
+    color: var(--accent);
+    background: var(--primary-background);
+    width: 100%;
+    padding: 0.5rem 1rem;
+    outline: thin solid var(--secondary-background);
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+
+    &:focus,
+    &:hover {
+        box-shadow: 0 0 3px 3px var(--accent);
+    }
+}
+
 a:link {
     text-decoration: none;
     color: var(--accent);
@@ -385,4 +431,8 @@ main {
 
 .comment-indent:hover {
     background-color: var(--secondary-background);
+}
+
+.full-page {
+    height: 100vh;
 }

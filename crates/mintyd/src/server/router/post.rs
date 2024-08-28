@@ -163,7 +163,7 @@ async fn get_post(
     accept: Accept,
     OptionalUser(user): OptionalUser,
 ) -> Result<Content<Post>> {
-    let repo = repo.optional_user(user)?.post(id).await?;
+    let repo = repo.optional_user(user.clone())?.post(id).await?;
     let post = repo.get().await?;
 
     let comments = if accept.is_api() {
@@ -174,7 +174,7 @@ async fn get_post(
 
     let data = Post { post, comments };
 
-    Ok(Content { accept, data })
+    Ok(Content { accept, user, data })
 }
 
 async fn publish_post(

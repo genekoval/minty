@@ -11,6 +11,7 @@ mod post;
 mod post_preview;
 mod script;
 mod search_result;
+mod sign_in;
 mod source;
 mod space;
 mod tag;
@@ -22,6 +23,7 @@ mod view;
 pub use home::Home;
 pub use post::Post;
 pub use search_result::*;
+pub use sign_in::SignIn;
 pub use tag::Tag;
 pub use user::User;
 pub use user_preview::UserPreview;
@@ -48,7 +50,9 @@ use axum::{
     Json,
 };
 use maud::{html, Markup, Render, DOCTYPE};
+use minty_core::Cached;
 use serde::Serialize;
+use std::sync::Arc;
 
 pub trait Html {
     fn page_title(&self) -> &str;
@@ -57,6 +61,10 @@ pub trait Html {
 
     fn fragment(&self) -> Markup {
         self.full()
+    }
+
+    fn display_navigation(&self) -> bool {
+        true
     }
 }
 
@@ -67,6 +75,7 @@ trait AsRender {
 pub struct Content<T> {
     pub accept: Accept,
     pub data: T,
+    pub user: Option<Arc<Cached<minty_core::User>>>,
 }
 
 impl<T> Content<T>
@@ -85,7 +94,14 @@ where
                 }
 
                 body {
-                    (Navbar::new(&self.data))
+                    @if self.data.display_navigation() {
+                        (Navbar {
+                            page: &self.data,
+                            user: self.user.as_ref(),
+                        })
+                    } @else {
+                        (self.data.full())
+                    }
                 }
             }
         }

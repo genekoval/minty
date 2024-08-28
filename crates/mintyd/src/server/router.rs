@@ -2,12 +2,12 @@ mod assets;
 mod comment;
 mod comments;
 mod invitation;
-mod login;
 mod object;
 mod objects;
 mod post;
 mod posts;
 mod session;
+mod sign_in;
 mod sign_up;
 mod tag;
 mod tags;
@@ -38,13 +38,14 @@ async fn home(
     let query = PostQuery::default();
 
     let result = repo
-        .optional_user(user)?
+        .optional_user(user.clone())?
         .posts()
         .find(query.clone())
         .await?;
 
     Ok(Content {
         accept,
+        user,
         data: Home::new(query, result),
     })
 }
@@ -71,11 +72,11 @@ pub fn routes() -> Router {
         .nest("/comment", comment::routes())
         .nest("/comments", comments::routes())
         .nest("/invitation", invitation::routes())
-        .nest("/login", login::routes())
         .nest("/object", object::routes())
         .nest("/objects", objects::routes())
         .nest("/post", post::routes())
         .nest("/posts", posts::routes())
+        .nest("/signin", sign_in::routes())
         .nest("/signup", sign_up::routes())
         .nest("/tag", tag::routes())
         .nest("/tags", tags::routes())
