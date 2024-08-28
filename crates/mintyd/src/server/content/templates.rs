@@ -10,8 +10,10 @@ macro_rules! style {
 
 use style;
 
+mod minty_menu;
 mod minty_select;
 
+use minty_menu::MintyMenu;
 use minty_select::MintySelect;
 
 use maud::{html, Markup, Render};
@@ -21,6 +23,7 @@ pub struct Templates;
 impl Render for Templates {
     fn render(&self) -> Markup {
         html! {
+            (MintyMenu)
             (MintySelect)
         }
     }

@@ -97,7 +97,7 @@ where
                     @if self.data.display_navigation() {
                         (Navbar {
                             page: &self.data,
-                            user: self.user.as_ref(),
+                            user: self.user.and_then(|user| user.preview()),
                         })
                     } @else {
                         (self.data.full())

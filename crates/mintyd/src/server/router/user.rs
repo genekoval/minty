@@ -9,7 +9,7 @@ use crate::server::content::{self, Content, PostSearchResult};
 
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderName, StatusCode},
     routing::{delete, get, post, put},
     Json,
 };
@@ -56,12 +56,14 @@ async fn delete_alias(
 async fn delete_session(
     State(AppState { repo }): State<AppState>,
     jar: CookieJar,
-) -> Result<(StatusCode, CookieJar)> {
+) -> Result<(StatusCode, [(HeaderName, &'static str); 1], CookieJar)> {
     if let Some(session) = jar.get_session() {
         repo.sessions().delete(session).await?;
     }
 
-    Ok((StatusCode::NO_CONTENT, jar.remove_session_cookie()))
+    let headers = [(HeaderName::from_static("hx-redirect"), "/")];
+
+    Ok((StatusCode::NO_CONTENT, headers, jar.remove_session_cookie()))
 }
 
 async fn delete_source(

@@ -52,6 +52,7 @@ icon!(HASH, "hash");
 icon!(HOME, "home");
 icon!(LINK, "link");
 icon!(LOG_IN, "log-in");
+icon!(LOG_OUT, "log-out");
 icon!(MAGNIFYING_GLASS, "magnifying_glass");
 icon!(PENCIL, "pencil");
 icon!(ROTATE_CW, "rotate-cw");

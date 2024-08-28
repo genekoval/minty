@@ -1,19 +1,12 @@
 use super::{icon, Html};
 
 use maud::{html, Markup, Render};
-use minty_core::{Cached, User};
-use std::sync::Arc;
+use minty::UserPreview;
 
 #[derive(Debug)]
 pub struct Navbar<'a, V> {
     pub page: &'a V,
-    pub user: Option<&'a Arc<Cached<User>>>,
-}
-
-impl<'a, V> Navbar<'a, V> {
-    fn user_link(&self) -> Option<String> {
-        self.user.map(|user| format!("/user/{}", user.id))
-    }
+    pub user: Option<UserPreview>,
 }
 
 impl<'a, V: Html> Render for Navbar<'a, V> {
@@ -26,8 +19,22 @@ impl<'a, V: Html> Render for Navbar<'a, V> {
                 }
 
                 .nav-secondary .nav-section {
-                    @if let Some(link) = self.user_link() {
-                        a href=(link) { (icon::CIRCLE_USER_ROUND) }
+                    @if let Some(user) = &self.user {
+                        minty-menu {
+                            span slot="menu-button" {
+                                (icon::CIRCLE_USER_ROUND)
+                            }
+
+                            a href=(format!("/user/{}", user.id)) {
+                                minty-icon { (icon::CIRCLE_USER_ROUND) }
+                                minty-title { (user.name) }
+                            }
+
+                            button hx-delete="/user/session" {
+                                minty-icon { (icon::LOG_OUT) }
+                                minty-title { "Sign Out" }
+                            }
+                        }
                     } @else {
                         a href="/signin" { (icon::LOG_IN) }
                     }
