@@ -56,6 +56,7 @@ pub struct PostQuery {
     pub q: Option<String>,
 
     #[serde(
+        default,
         serialize_with = "serialize_id_list",
         deserialize_with = "deserialize_id_list"
     )]
@@ -169,6 +170,7 @@ pub struct ProfileQuery {
     pub name: String,
 
     #[serde(
+        default,
         serialize_with = "serialize_id_list",
         deserialize_with = "deserialize_id_list"
     )]
