@@ -38,6 +38,11 @@ impl<'a, V: Html> Render for Navbar<'a, V> {
                                 minty-title { (user.name) }
                             }
 
+                            a href=(format!("/posts?vis=draft")) {
+                                minty-icon { (icon::SQUARE_PEN) }
+                                minty-title { "Drafts" }
+                            }
+
                             button hx-delete="/user/session" {
                                 minty-icon { (icon::LOG_OUT) }
                                 minty-title { "Sign Out" }

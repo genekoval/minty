@@ -118,6 +118,18 @@ impl PostSearchResult {
                         tab-index="0";
                 }
 
+                minty-select name="vis" {
+                    minty-option value="public" {
+                        minty-icon { (icon::EYE) }
+                        minty-title { "Public" }
+                    }
+
+                    minty-option value="draft" {
+                        minty-icon { (icon::SQUARE_PEN) }
+                        minty-title { "Drafts" }
+                    }
+                }
+
                 minty-select name="sort" {
                     minty-option value="created.desc" {
                         minty-icon { (icon::CLOCK_ARROW_DOWN) }
