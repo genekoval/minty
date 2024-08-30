@@ -1,6 +1,6 @@
 use crate::model::{PostSort, PostSortValue, SortOrder, Uuid, Visibility};
 
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 pub trait QueryParams: Sized {
     type Params: From<Self> + Serialize;
@@ -48,13 +48,24 @@ impl From<crate::Pagination> for Pagination {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct PostQuery {
     pub from: Option<u32>,
+
     pub size: Option<u32>,
+
     pub u: Option<Uuid>,
+
     pub q: Option<String>,
-    pub tags: Option<String>,
+
+    #[serde(
+        serialize_with = "serialize_id_list",
+        deserialize_with = "deserialize_id_list"
+    )]
+    pub tags: Option<Vec<Uuid>>,
+
     pub vis: Option<Visibility>,
+
     #[serde(serialize_with = "PostQuery::serialize_sort")]
     pub sort: Option<PostSort>,
+
     pub order: Option<SortOrder>,
 }
 
@@ -93,13 +104,7 @@ impl From<PostQuery> for crate::PostQuery {
             pagination: Pagination { from, size }.into(),
             poster: u,
             text: q.unwrap_or_default(),
-            tags: tags
-                .map(|tags| {
-                    tags.split(',')
-                        .map(|tag| Uuid::parse_str(tag).unwrap())
-                        .collect()
-                })
-                .unwrap_or_default(),
+            tags: tags.unwrap_or_default(),
             visibility: vis.unwrap_or_default(),
             sort,
         }
@@ -131,17 +136,7 @@ impl From<crate::PostQuery> for PostQuery {
                     Some(text.into())
                 }
             },
-            tags: if tags.is_empty() {
-                None
-            } else {
-                let tags = tags
-                    .into_iter()
-                    .map(|id| id.to_string())
-                    .collect::<Vec<String>>()
-                    .join(",");
-
-                Some(tags)
-            },
+            tags: (!tags.is_empty()).then_some(tags),
             vis: if visibility != Visibility::default() {
                 Some(visibility)
             } else {
@@ -168,9 +163,16 @@ impl QueryParams for crate::PostQuery {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ProfileQuery {
     pub from: Option<u32>,
+
     pub size: Option<u32>,
+
     pub name: String,
-    pub exclude: Option<String>,
+
+    #[serde(
+        serialize_with = "serialize_id_list",
+        deserialize_with = "deserialize_id_list"
+    )]
+    pub exclude: Option<Vec<Uuid>>,
 }
 
 impl From<ProfileQuery> for crate::ProfileQuery {
@@ -185,13 +187,7 @@ impl From<ProfileQuery> for crate::ProfileQuery {
         Self {
             pagination: Pagination { from, size }.into(),
             name,
-            exclude: exclude
-                .map(|tags| {
-                    tags.split(',')
-                        .map(|tag| Uuid::parse_str(tag).unwrap())
-                        .collect()
-                })
-                .unwrap_or_default(),
+            exclude: exclude.unwrap_or_default(),
         }
     }
 }
@@ -210,17 +206,7 @@ impl From<crate::ProfileQuery> for ProfileQuery {
             from,
             size,
             name,
-            exclude: if exclude.is_empty() {
-                None
-            } else {
-                let tags = exclude
-                    .into_iter()
-                    .map(|id| id.to_string())
-                    .collect::<Vec<String>>()
-                    .join(",");
-
-                Some(tags)
-            },
+            exclude: (!exclude.is_empty()).then_some(exclude),
         }
     }
 }
@@ -243,4 +229,47 @@ impl SetProfileName {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct SignUp {
     pub invitation: Option<String>,
+}
+
+fn serialize_id_list<S>(
+    list: &Option<Vec<Uuid>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let Some(list) = list else {
+        return serializer.serialize_none();
+    };
+
+    let mut string = String::new();
+
+    for (i, id) in list.iter().enumerate() {
+        string.push_str(&id.to_string());
+
+        if i < list.len() - 1 {
+            string.push(',');
+        }
+    }
+
+    string.serialize(serializer)
+}
+
+fn deserialize_id_list<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<Uuid>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<String> = Option::deserialize(deserializer)?;
+
+    let Some(string) = value else { return Ok(None) };
+
+    let list = string
+        .split(',')
+        .map(Uuid::parse_str)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(de::Error::custom)?;
+
+    Ok(Some(list))
 }

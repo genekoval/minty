@@ -1,9 +1,10 @@
 use super::{
-    icon, Comments, DateTime, Html, Label, ObjectGrid, PostPreview, UserPreview,
+    icon, Comments, DateTime, Html, Label, ObjectGrid, PostBanner, PostPreview,
+    UserPreview,
 };
 
 use maud::{html, Markup, Render};
-use minty::CommentData;
+use minty::{CommentData, Visibility};
 use serde::{Serialize, Serializer};
 
 #[derive(Debug)]
@@ -114,12 +115,21 @@ impl Html for Post {
 
     fn full(&self) -> Markup {
         html! {
-            (self.title())
-            (self.metadata())
-            (self.description())
-            (self.objects())
-            (self.posts())
-            (self.tags())
+            article #post {
+                @if self.post.visibility == Visibility::Draft {
+                    (PostBanner {
+                        post: &self.post,
+                        is_editing: false
+                    })
+                }
+
+                (self.title())
+                (self.metadata())
+                (self.description())
+                (self.objects())
+                (self.posts())
+                (self.tags())
+            }
 
             (Comments(&self.comments))
         }

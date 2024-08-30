@@ -25,6 +25,40 @@ body {
     margin: 0;
 }
 
+textarea {
+    display: block;
+    box-sizing: border-box;
+    margin: 0.5rem 0;
+    padding: 1rem;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--secondary-background);
+    border: none;
+    border-radius: 10px;
+    width: 100%;
+    resize: vertical;
+
+    &:focus {
+        outline: thin solid var(--accent);
+    }
+}
+
+.labeled {
+    margin: 1rem 0.5rem;
+}
+
+.draft-banner {
+    display: flex;
+    justify-content: space-between;
+    background: color(from var(--primary-background) srgb r g b / 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 1rem 0.5rem;
+    position: sticky;
+    border-bottom: thin solid var(--divider);
+}
+
 .search-controls {
     display: flex;
     gap: 0.5rem;
@@ -101,6 +135,7 @@ body {
 .text-field {
     display: flex;
     background: var(--secondary-background);
+    margin: 0.5rem 0;
     padding: 0.5rem;
     border-radius: 10px;
 }

@@ -6,7 +6,7 @@ use super::{
 };
 
 use crate::server::{
-    content::{Content, Post},
+    content::{Content, Post, PostEdit, SavedChanges},
     Accept,
 };
 
@@ -17,7 +17,7 @@ use axum::{
     routing::{get, post, put},
     Json,
 };
-use minty::{text, Modification, PostParts, Uuid, Visibility};
+use minty::{text, PostParts, Uuid, Visibility};
 
 async fn add_objects(
     State(AppState { repo }): State<AppState>,
@@ -177,6 +177,26 @@ async fn delete_tag(
     Ok(status)
 }
 
+async fn edit_post(
+    State(AppState { repo }): State<AppState>,
+    Path(id): Path<Uuid>,
+    OptionalUser(user): OptionalUser,
+    accept: Accept,
+) -> Result<Content<PostEdit>> {
+    let post = repo
+        .optional_user(user.clone())?
+        .post(id)
+        .await?
+        .get()
+        .await?;
+
+    Ok(Content {
+        accept,
+        user,
+        data: PostEdit(post),
+    })
+}
+
 async fn get_post(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
@@ -214,33 +234,53 @@ async fn publish_post(
 async fn set_description(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
+    accept: Accept,
     User(user): User,
     Text(description): Text<text::Description>,
-) -> Result<Json<Modification<String>>> {
-    Ok(Json(
-        repo.with_user(user)
-            .post(id)
-            .await?
-            .edit()?
-            .set_description(description)
-            .await?,
-    ))
+) -> Result<Content<SavedChanges>> {
+    let modified = repo
+        .with_user(user.clone())
+        .post(id)
+        .await?
+        .edit()?
+        .set_description(description)
+        .await?
+        .date_modified;
+
+    Ok(Content {
+        accept,
+        user: Some(user),
+        data: SavedChanges {
+            title: None,
+            modified,
+        },
+    })
 }
 
 async fn set_title(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
+    accept: Accept,
     User(user): User,
     Text(title): Text<text::PostTitle>,
-) -> Result<Json<Modification<String>>> {
-    Ok(Json(
-        repo.with_user(user)
-            .post(id)
-            .await?
-            .edit()?
-            .set_title(title)
-            .await?,
-    ))
+) -> Result<Content<SavedChanges>> {
+    let modified = repo
+        .with_user(user.clone())
+        .post(id)
+        .await?
+        .edit()?
+        .set_title(title.clone())
+        .await?
+        .date_modified;
+
+    Ok(Content {
+        accept,
+        user: Some(user),
+        data: SavedChanges {
+            title: Some(title.into()),
+            modified,
+        },
+    })
 }
 
 pub fn routes() -> Router {
@@ -248,6 +288,7 @@ pub fn routes() -> Router {
         .route("/", get(create_draft).post(create_post))
         .route("/:id", get(get_post).put(publish_post).delete(delete_post))
         .route("/:id/description", put(set_description))
+        .route("/:id/edit", get(edit_post))
         .route("/:id/objects", post(append_objects).delete(delete_objects))
         .route("/:id/objects/:destination", post(add_objects))
         .route(
