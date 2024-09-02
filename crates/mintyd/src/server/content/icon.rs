@@ -61,3 +61,4 @@ icon!(ROTATE_CW, "rotate-cw");
 icon!(SETTINGS, "settings");
 icon!(SQUARE_PEN, "square-pen");
 icon!(USER_CIRCLE, "user_circle");
+icon!(X, "x");

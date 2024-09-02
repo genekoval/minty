@@ -5,6 +5,7 @@ mod home;
 mod icon;
 mod label;
 mod navbar;
+mod object;
 mod object_grid;
 mod object_preview;
 mod post;
@@ -24,6 +25,7 @@ mod user_preview;
 mod view;
 
 pub use home::Home;
+pub use object::Object;
 pub use post::Post;
 pub use post_edit::PostEdit;
 pub use saved_changes::SavedChanges;

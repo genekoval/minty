@@ -1,7 +1,9 @@
 use super::{
     session::{OptionalUser, User},
-    AppState, Result, Router,
+    Accept, AppState, Content, Result, Router,
 };
+
+use crate::server::content::Object;
 
 use axum::{
     extract::{Path, Request, State},
@@ -11,7 +13,7 @@ use axum::{
     Json,
 };
 use axum_extra::body::AsyncReadBody;
-use minty::{Object, ObjectPreview, ObjectSummary, Uuid};
+use minty::{ObjectPreview, ObjectSummary, Uuid};
 use sync_wrapper::SyncStream;
 use tokio_util::io::StreamReader;
 
@@ -30,10 +32,17 @@ async fn add_object(
 
 async fn get_object(
     State(AppState { repo }): State<AppState>,
-    OptionalUser(user): OptionalUser,
     Path(id): Path<Uuid>,
-) -> Result<Json<Object>> {
-    Ok(Json(repo.optional_user(user)?.object(id).get().await?))
+    accept: Accept,
+    OptionalUser(user): OptionalUser,
+) -> Result<Content<Object>> {
+    let object = repo.optional_user(user.clone())?.object(id).get().await?;
+
+    Ok(Content {
+        accept,
+        user,
+        data: Object(object),
+    })
 }
 
 async fn get_object_data(

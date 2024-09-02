@@ -12,7 +12,12 @@ impl<'a> Render for ObjectGrid<'a> {
             @if !self.0.is_empty() {
                 .object-grid {
                     @for object in self.0 {
-                        a href=(object.data_path()) {
+                        a href=(object.data_path())
+                            hx-get=(format!("/object/{}", object.id))
+                            hx-trigger="click"
+                            hx-target="body"
+                            hx-swap="beforeend"
+                        {
                             (ObjectPreview::new(object))
                         }
                     }
