@@ -5,6 +5,7 @@ use super::Html;
 use maud::{html, Markup};
 use minty::Post;
 use serde::Serialize;
+use std::borrow::Cow;
 
 #[derive(Debug, Serialize)]
 pub struct PostEdit(pub Post);
@@ -17,14 +18,9 @@ impl PostEdit {
 }
 
 impl Html for PostEdit {
-    fn page_title(&self) -> &str {
+    fn page_title(&self) -> Cow<str> {
         let title = self.0.title.as_str();
-
-        if title.is_empty() {
-            "Untitled"
-        } else {
-            title
-        }
+        if title.is_empty() { "Untitled" } else { title }.into()
     }
 
     fn full(&self) -> Markup {

@@ -1,6 +1,7 @@
 mod accept;
 mod content;
 mod error;
+mod query;
 mod router;
 
 use crate::{conf::Http, Result};

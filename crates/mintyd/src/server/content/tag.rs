@@ -2,6 +2,7 @@ use super::{icon, DateTime, Html, Label, PostSearchResult, SourceList};
 
 use maud::{html, Markup, Render};
 use serde::{Serialize, Serializer};
+use std::borrow::Cow;
 
 #[derive(Debug)]
 pub struct Tag {
@@ -38,8 +39,8 @@ impl Serialize for Tag {
 }
 
 impl Html for Tag {
-    fn page_title(&self) -> &str {
-        &self.tag.profile.name
+    fn page_title(&self) -> Cow<str> {
+        self.tag.profile.name.as_str().into()
     }
 
     fn full(&self) -> Markup {

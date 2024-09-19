@@ -6,6 +6,7 @@ use super::{
 use maud::{html, Markup, Render};
 use minty::{CommentData, Visibility};
 use serde::{Serialize, Serializer};
+use std::borrow::Cow;
 
 #[derive(Debug)]
 pub struct Post {
@@ -63,7 +64,10 @@ impl Post {
     }
 
     fn objects(&self) -> impl Render + '_ {
-        ObjectGrid(&self.post.objects)
+        ObjectGrid {
+            post: self.post.id,
+            objects: &self.post.objects,
+        }
     }
 
     fn posts(&self) -> Markup {
@@ -103,14 +107,9 @@ impl Serialize for Post {
 }
 
 impl Html for Post {
-    fn page_title(&self) -> &str {
+    fn page_title(&self) -> Cow<str> {
         let title = self.post.title.as_str();
-
-        if title.is_empty() {
-            "Untitled"
-        } else {
-            title
-        }
+        if title.is_empty() { "Untitled" } else { title }.into()
     }
 
     fn full(&self) -> Markup {

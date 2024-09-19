@@ -2,6 +2,7 @@ use super::{DateTime, Html};
 
 use maud::{html, Markup};
 use serde::{Serialize, Serializer};
+use std::borrow::Cow;
 
 #[derive(Clone, Debug)]
 pub struct SavedChanges {
@@ -19,8 +20,8 @@ impl Serialize for SavedChanges {
 }
 
 impl Html for SavedChanges {
-    fn page_title(&self) -> &str {
-        self.title.as_deref().unwrap_or_default()
+    fn page_title(&self) -> Cow<str> {
+        self.title.as_deref().unwrap_or_default().into()
     }
 
     fn full(&self) -> Markup {

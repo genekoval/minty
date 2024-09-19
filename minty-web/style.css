@@ -44,6 +44,10 @@ textarea {
     }
 }
 
+.hidden {
+    display: none;
+}
+
 .labeled {
     margin: 1rem 0.5rem;
 }
@@ -558,7 +562,7 @@ main {
     }
 
     100% {
-        opaction: 1;
+        opacity: 1;
     }
 }
 
@@ -592,30 +596,65 @@ main {
     }
 }
 
-#image-viewer img.displayed {
+#image-viewer {
+    display: flex;
+    gap: 10vw;
+    overflow-x: scroll;
+    overscroll-behavior: contain;
+    scroll-margin: 0;
+    scroll-snap-type: x mandatory;
+    scroll-snap-stop: always;
+    scrollbar-color: transparent transparent;
+    width: 100vw;
+}
+
+.smooth-scroll {
+    scroll-behavior: smooth;
+}
+
+#image-viewer .slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 0 0 100%;
+    scroll-snap-align: center;
+}
+
+#image-viewer img {
     display: block;
     max-width: 100vw;
     max-height: 100vh;
 }
 
-#image-viewer .controls {
+#image-viewer .control {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-}
-
-#image-viewer .close-modal {
-    position: absolute;
-    top: 0;
-    left: 0;
     color: #fafafa;
     background: rgba(0, 0, 0, 0.6);
-    border: none;
     width: 5rem;
     margin: 1rem;
+    border: none;
     clip-path: circle();
     box-shadow: 0 0 5px;
     cursor: pointer;
+}
+
+#image-viewer .close-modal {
+    top: 0;
+    left: 0;
+}
+
+#image-viewer .previous {
+    top: 0;
+    left: 0;
+    bottom: 0;
+}
+
+#image-viewer .next {
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.hide-controls .control {
+    display: none;
 }

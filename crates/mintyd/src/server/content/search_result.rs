@@ -1,8 +1,9 @@
-use super::{icon, AsRender, Html};
+use super::{icon, AsRender, Html, Progress};
 
 use maud::{html, Markup, Render};
 use minty::{http::query::QueryParams, PostPreview, PostQuery, Query};
 use serde::{Serialize, Serializer};
+use std::borrow::Cow;
 
 #[derive(Debug)]
 struct SearchResult<Q, T> {
@@ -45,7 +46,7 @@ where
                 hx-trigger="revealed"
                 hx-swap="outerHTML"
             {
-                (icon::DOTS_6_ROTATE)
+                (Progress)
             }
         }
     }
@@ -181,8 +182,8 @@ impl Serialize for PostSearchResult {
 }
 
 impl Html for PostSearchResult {
-    fn page_title(&self) -> &str {
-        "post search"
+    fn page_title(&self) -> Cow<str> {
+        "post search".into()
     }
 
     fn fragment(&self) -> Markup {

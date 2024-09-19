@@ -5,6 +5,7 @@ use super::{
 
 use maud::{html, Markup, Render};
 use serde::{Serialize, Serializer};
+use std::borrow::Cow;
 
 #[derive(Debug)]
 pub struct User {
@@ -79,8 +80,8 @@ impl Serialize for User {
 }
 
 impl Html for User {
-    fn page_title(&self) -> &str {
-        &self.user.profile.name
+    fn page_title(&self) -> Cow<str> {
+        self.user.profile.name.as_str().into()
     }
 
     fn full(&self) -> Markup {

@@ -3,6 +3,7 @@ use super::{Html, PostSearchResult};
 use maud::Markup;
 use minty::{PostPreview, PostQuery, SearchResult};
 use serde::{Serialize, Serializer};
+use std::borrow::Cow;
 
 #[derive(Debug)]
 pub struct Home(PostSearchResult);
@@ -23,8 +24,8 @@ impl Serialize for Home {
 }
 
 impl Html for Home {
-    fn page_title(&self) -> &str {
-        "Minty"
+    fn page_title(&self) -> Cow<str> {
+        "Minty".into()
     }
 
     fn full(&self) -> Markup {

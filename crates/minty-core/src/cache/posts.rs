@@ -3,7 +3,9 @@ use super::{Cache, CacheLock, Cached, Comment, Id, Object, Result, Tag, User};
 use crate::{db, error::Found, Error};
 
 use dashmap::DashMap;
-use minty::{CommentData, DateTime, PostPreview, Uuid, Visibility};
+use minty::{
+    CommentData, DateTime, ObjectPreview, PostPreview, Uuid, Visibility,
+};
 use std::{
     collections::HashMap,
     sync::{Arc, Weak},
@@ -490,6 +492,12 @@ impl Post {
 
     pub fn increment_comment_count(&self) {
         self.mutable.update(|post| post.comment_count += 1);
+    }
+
+    pub fn objects(&self) -> Option<Vec<ObjectPreview>> {
+        self.mutable.map(|post| {
+            post.objects.iter().map(|object| object.preview()).collect()
+        })
     }
 
     pub fn publish(&self, timestamp: DateTime) {

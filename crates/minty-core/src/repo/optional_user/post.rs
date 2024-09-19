@@ -4,7 +4,7 @@ use crate::{
     Cached, Repo, Result,
 };
 
-use minty::CommentData;
+use minty::{CommentData, ObjectPreview};
 use std::sync::Arc;
 
 pub struct Post<'a> {
@@ -40,5 +40,9 @@ impl<'a> Post<'a> {
 
     pub async fn get_comments(&self) -> Result<Vec<CommentData>> {
         self.comments(|comments| comments.get_all()).await
+    }
+
+    pub fn get_objects(&self) -> Result<Vec<ObjectPreview>> {
+        self.post.objects().found("post", self.post.id)
     }
 }

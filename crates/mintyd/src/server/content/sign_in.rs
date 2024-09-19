@@ -2,13 +2,14 @@ use super::Html;
 
 use maud::{html, Markup};
 use serde::Serialize;
+use std::borrow::Cow;
 
 #[derive(Debug, Serialize)]
 pub struct SignIn;
 
 impl Html for SignIn {
-    fn page_title(&self) -> &str {
-        "Sign In"
+    fn page_title(&self) -> Cow<str> {
+        "Sign In".into()
     }
 
     fn display_navigation(&self) -> bool {

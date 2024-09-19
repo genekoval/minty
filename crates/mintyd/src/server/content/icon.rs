@@ -38,6 +38,8 @@ icon!(ARROW_DOWN_NARROW_WIDE, "arrow-down-narrow-wide");
 icon!(ARROW_DOWN_WIDE_NARROW, "arrow-down-wide-narrow");
 icon!(BADGE_CHECK, "badge_check");
 icon!(CALENDAR, "calendar");
+icon!(CHEVRON_LEFT, "chevron-left");
+icon!(CHEVRON_RIGHT, "chevron-right");
 icon!(CIRCLE_USER_ROUND, "circle-user-round");
 icon!(CLOCK, "clock");
 icon!(CLOCK_ARROW_DOWN, "clock-arrow-down");

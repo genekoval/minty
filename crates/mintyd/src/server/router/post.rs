@@ -6,12 +6,12 @@ use super::{
 };
 
 use crate::server::{
-    content::{Content, Post, PostEdit, SavedChanges},
-    Accept,
+    content::{Content, ImageViewer, Post, PostEdit, SavedChanges},
+    query, Accept,
 };
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::Redirect,
     routing::{get, post, put},
@@ -197,6 +197,26 @@ async fn edit_post(
     })
 }
 
+async fn get_objects(
+    State(AppState { repo }): State<AppState>,
+    Path(id): Path<Uuid>,
+    Query(query): Query<query::ImageViewer>,
+    accept: Accept,
+    OptionalUser(user): OptionalUser,
+) -> Result<Content<ImageViewer>> {
+    let objects = repo
+        .optional_user(user.clone())?
+        .post(id)
+        .await?
+        .get_objects()?;
+
+    Ok(Content {
+        accept,
+        user,
+        data: ImageViewer::new(objects, query.img_index),
+    })
+}
+
 async fn get_post(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
@@ -289,7 +309,10 @@ pub fn routes() -> Router {
         .route("/:id", get(get_post).put(publish_post).delete(delete_post))
         .route("/:id/description", put(set_description))
         .route("/:id/edit", get(edit_post))
-        .route("/:id/objects", post(append_objects).delete(delete_objects))
+        .route(
+            "/:id/objects",
+            get(get_objects).post(append_objects).delete(delete_objects),
+        )
         .route("/:id/objects/:destination", post(add_objects))
         .route(
             "/:id/related/:related",

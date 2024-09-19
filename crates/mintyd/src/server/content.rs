@@ -3,15 +3,16 @@ mod css;
 mod date_time;
 mod home;
 mod icon;
+mod image_viewer;
 mod label;
 mod navbar;
-mod object;
 mod object_grid;
 mod object_preview;
 mod post;
 mod post_banner;
 mod post_edit;
 mod post_preview;
+mod progress;
 mod saved_changes;
 mod script;
 mod search_result;
@@ -25,7 +26,7 @@ mod user_preview;
 mod view;
 
 pub use home::Home;
-pub use object::Object;
+pub use image_viewer::ImageViewer;
 pub use post::Post;
 pub use post_edit::PostEdit;
 pub use saved_changes::SavedChanges;
@@ -45,6 +46,7 @@ use object_grid::ObjectGrid;
 use object_preview::ObjectPreview;
 use post_banner::PostBanner;
 use post_preview::PostPreview;
+use progress::Progress;
 use script::Script;
 use source::*;
 use space::Space;
@@ -60,10 +62,10 @@ use axum::{
 use maud::{html, Markup, Render, DOCTYPE};
 use minty_core::Cached;
 use serde::Serialize;
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 pub trait Html {
-    fn page_title(&self) -> &str;
+    fn page_title(&self) -> Cow<str>;
 
     fn full(&self) -> Markup;
 
