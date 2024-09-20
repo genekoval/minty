@@ -8,6 +8,7 @@ mod label;
 mod navbar;
 mod object_grid;
 mod object_preview;
+mod object_viewer;
 mod post;
 mod post_banner;
 mod post_edit;
@@ -26,7 +27,7 @@ mod user_preview;
 mod view;
 
 pub use home::Home;
-pub use image_viewer::ImageViewer;
+pub use object_viewer::ObjectViewer;
 pub use post::Post;
 pub use post_edit::PostEdit;
 pub use saved_changes::SavedChanges;
@@ -40,6 +41,7 @@ use comment::Comments;
 use css::Css;
 use date_time::DateTime;
 use icon::Icon;
+use image_viewer::ImageViewer;
 use label::*;
 use navbar::Navbar;
 use object_grid::ObjectGrid;
@@ -103,12 +105,13 @@ where
                     (Templates)
                 }
 
-                body {
+                body .nav-container[self.data.display_navigation()] {
                     @if self.data.display_navigation() {
                         (Navbar {
-                            page: &self.data,
                             user: self.user.and_then(|user| user.preview()),
                         })
+
+                        main { (self.data.full()) }
                     } @else {
                         (self.data.full())
                     }

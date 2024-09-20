@@ -1,43 +1,23 @@
-use super::{icon, Html};
+use super::icon;
 
 use maud::{html, Markup, Render};
 use minty::{http::ObjectExt, ObjectPreview};
 use serde::Serialize;
-use std::borrow::Cow;
 
 #[derive(Debug, Serialize)]
-pub struct ImageViewer {
-    images: Vec<ObjectPreview>,
+pub struct ImageViewer<'a> {
+    images: &'a [ObjectPreview],
     index: usize,
 }
 
-impl ImageViewer {
-    pub fn new(objects: Vec<ObjectPreview>, index: usize) -> Self {
-        let images = objects
-            .into_iter()
-            .filter(|object| object.r#type == "image")
-            .collect();
-
+impl<'a> ImageViewer<'a> {
+    pub fn new(images: &'a [ObjectPreview], index: usize) -> Self {
         Self { images, index }
     }
 }
 
-impl Html for ImageViewer {
-    fn page_title(&self) -> Cow<str> {
-        let len = self.images.len();
-
-        format!(
-            "{} image{}",
-            len,
-            match len {
-                1 => "",
-                _ => "s",
-            }
-        )
-        .into()
-    }
-
-    fn full(&self) -> Markup {
+impl<'a> Render for ImageViewer<'a> {
+    fn render(&self) -> Markup {
         let last = self.images.len() - 1;
 
         html! {

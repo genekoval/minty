@@ -44,6 +44,21 @@ textarea {
     }
 }
 
+main {
+    grid-area: main;
+    margin: 0 0.5rem;
+    overflow-y: scroll;
+}
+
+.nav-container {
+    display: grid;
+    height: 100dvh;
+    grid-template-areas: 'nav main';
+    grid-template-columns: var(--nav-width) 1fr;
+    grid-template-rows: 100vh;
+    overflow: hidden;
+}
+
 .hidden {
     display: none;
 }
@@ -272,10 +287,9 @@ li {
 }
 
 nav {
-    width: var(--nav-width);
+    grid-area: nav;
     height: 100%;
     border-right: thin solid var(--divider);
-    position: fixed;
     justify-content: space-between;
     top: 0;
     left: 0;
@@ -317,11 +331,6 @@ nav > a:visited {
     border: none;
     outline: none;
     cursor: pointer;
-}
-
-main {
-    margin-right: var(--main-margin);
-    margin-left: calc(var(--nav-width) + var(--main-margin));
 }
 
 .post-preview {

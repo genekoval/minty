@@ -43,7 +43,7 @@ where
                 .center
                 .secondary
                 hx-get=(endpoint)
-                hx-trigger="revealed"
+                hx-trigger="intersect once"
                 hx-swap="outerHTML"
             {
                 (Progress)

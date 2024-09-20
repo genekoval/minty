@@ -1,15 +1,14 @@
-use super::{icon, Html};
+use super::icon;
 
 use maud::{html, Markup, Render};
 use minty::UserPreview;
 
 #[derive(Debug)]
-pub struct Navbar<'a, V> {
-    pub page: &'a V,
+pub struct Navbar {
     pub user: Option<UserPreview>,
 }
 
-impl<'a, V: Html> Render for Navbar<'a, V> {
+impl Render for Navbar {
     fn render(&self) -> Markup {
         html! {
             nav .flex-column {
@@ -56,7 +55,6 @@ impl<'a, V: Html> Render for Navbar<'a, V> {
                 }
             }
 
-            main { (self.page.full()) }
         }
     }
 }

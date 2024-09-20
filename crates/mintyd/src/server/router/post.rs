@@ -6,7 +6,7 @@ use super::{
 };
 
 use crate::server::{
-    content::{Content, ImageViewer, Post, PostEdit, SavedChanges},
+    content::{Content, ObjectViewer, Post, PostEdit, SavedChanges},
     query, Accept,
 };
 
@@ -200,10 +200,10 @@ async fn edit_post(
 async fn get_objects(
     State(AppState { repo }): State<AppState>,
     Path(id): Path<Uuid>,
-    Query(query): Query<query::ImageViewer>,
+    Query(query): Query<query::ObjectViewer>,
     accept: Accept,
     OptionalUser(user): OptionalUser,
-) -> Result<Content<ImageViewer>> {
+) -> Result<Content<ObjectViewer>> {
     let objects = repo
         .optional_user(user.clone())?
         .post(id)
@@ -213,7 +213,7 @@ async fn get_objects(
     Ok(Content {
         accept,
         user,
-        data: ImageViewer::new(objects, query.img_index),
+        data: ObjectViewer::new(objects, query.index),
     })
 }
 
