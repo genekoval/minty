@@ -1,18 +1,23 @@
-use super::{Html, ImageViewer};
+use super::{AvPlayer, Html, ImageViewer};
 
 use maud::{html, Markup, Render};
-use minty::ObjectPreview;
+use minty::{ObjectPreview, PostPreview};
 use serde::Serialize;
 use std::borrow::Cow;
 
 #[derive(Debug, Serialize)]
 pub struct ObjectViewer {
+    post: PostPreview,
     objects: Vec<ObjectPreview>,
     index: usize,
 }
 
 impl ObjectViewer {
-    pub fn new(objects: Vec<ObjectPreview>, index: usize) -> Self {
+    pub fn new(
+        post: PostPreview,
+        objects: Vec<ObjectPreview>,
+        index: usize,
+    ) -> Self {
         let object = objects.get(index).expect("index should be valid");
 
         let id = object.id;
@@ -25,7 +30,11 @@ impl ObjectViewer {
 
         let index = objects.iter().position(|object| object.id == id).unwrap();
 
-        Self { objects, index }
+        Self {
+            post,
+            objects,
+            index,
+        }
     }
 }
 
@@ -54,6 +63,12 @@ impl Html for ObjectViewer {
         let ty = first.r#type.as_str();
 
         match ty {
+            "audio" => AvPlayer {
+                post: &self.post,
+                items: &self.objects,
+                index: self.index,
+            }
+            .render(),
             "image" => ImageViewer::new(&self.objects, self.index).render(),
             _ => html! {
                 h1 { (format!("Objects of type '{ty}' are not supported.")) }

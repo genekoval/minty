@@ -37,7 +37,7 @@ impl<'a> Render for ObjectPreview<'a> {
         html! {
             @if let Some(preview) = self.preview() {
                 img src=(preview)
-                    .max-width-full
+                    .scaled-to-fit
                     .rounded-corners[self.rounded_corners];
             } @else {
                 .flex-row .center {

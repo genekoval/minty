@@ -204,16 +204,14 @@ async fn get_objects(
     accept: Accept,
     OptionalUser(user): OptionalUser,
 ) -> Result<Content<ObjectViewer>> {
-    let objects = repo
-        .optional_user(user.clone())?
-        .post(id)
-        .await?
-        .get_objects()?;
+    let post = repo.optional_user(user.clone())?.post(id).await?;
+    let preview = post.preview()?;
+    let objects = post.get_objects()?;
 
     Ok(Content {
         accept,
         user,
-        data: ObjectViewer::new(objects, query.index),
+        data: ObjectViewer::new(preview, objects, query.index),
     })
 }
 
