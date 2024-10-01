@@ -66,19 +66,23 @@ main {
 
 #av-player {
     grid-area: player;
-    display: flex;
-    padding: 0.5rem;
-    align-items: center;
-    gap: 1rem;
-    justify-content: space-between;
     border-top: thin solid var(--divider);
 }
 
-.av-player-section {
-    display: flex;
+#av-player minty-audio {
     height: 100%;
-    gap: 1rem;
-    align-items: center;
+}
+
+#track-info {
+    display: flex;
+    gap: 0.5rem;
+    height: 100%;
+}
+
+#track-info > :last-child {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 button.plain {

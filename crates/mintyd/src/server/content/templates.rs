@@ -10,9 +10,11 @@ macro_rules! style {
 
 use style;
 
+mod minty_audio;
 mod minty_menu;
 mod minty_select;
 
+use minty_audio::MintyAudio;
 use minty_menu::MintyMenu;
 use minty_select::MintySelect;
 
@@ -23,6 +25,7 @@ pub struct Templates;
 impl Render for Templates {
     fn render(&self) -> Markup {
         html! {
+            (MintyAudio)
             (MintyMenu)
             (MintySelect)
         }

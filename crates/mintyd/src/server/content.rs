@@ -1,4 +1,5 @@
 mod av_player;
+mod av_player_footer;
 mod comment;
 mod css;
 mod date_time;
@@ -39,6 +40,7 @@ pub use user::User;
 pub use user_preview::UserPreview;
 
 use av_player::AvPlayer;
+use av_player_footer::AvPlayerFooter;
 use comment::Comments;
 use css::Css;
 use date_time::DateTime;
@@ -115,12 +117,7 @@ where
 
                         main { (self.data.full()) }
 
-                        footer
-                            #av-player
-                            style="display: none;"
-                            _="on closePlayer hide me then put '' into me \
-                                then remove .with-player from body"
-                        {}
+                        (AvPlayerFooter)
                     } @else {
                         (self.data.full())
                     }

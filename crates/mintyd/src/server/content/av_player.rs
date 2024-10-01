@@ -1,4 +1,4 @@
-use super::{icon, ObjectPreview};
+use super::ObjectPreview;
 
 use maud::{html, Markup, Render};
 use minty::{http::ObjectExt, PostPreview};
@@ -26,23 +26,18 @@ impl<'a> Render for AvPlayer<'a> {
         let item = self.items.get(self.index).unwrap();
 
         html! {
-            .av-player-section {
-                @if let Some(preview) = &self.post.preview {
-                    (ObjectPreview::new(preview).rounded_corners())
+            minty-audio autoplay src=(item.data_path()) {
+                #track-info {
+                    @if let Some(preview) = &self.post.preview {
+                        (ObjectPreview::new(preview).rounded_corners())
+                    }
+
+                    div {
+                        a href=(format!("/post/{}", self.post.id)) .block {
+                            (self.title())
+                        }
+                    }
                 }
-
-                a href=(format!("/post/{}", self.post.id)) .block .secondary {
-                    (self.title())
-                }
-            }
-
-            audio autoplay controls src=(item.data_path()) {}
-
-            .av-player-section {
-                button
-                    .plain
-                    _="on click trigger closePlayer"
-                { (icon::X) }
             }
         }
     }
