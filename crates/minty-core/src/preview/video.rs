@@ -76,7 +76,7 @@ fn find_preview_frame(video: Bytes) -> result::Result<Bytes, String> {
 }
 
 pub async fn generate_preview(bucket: &Bucket, object: &Object) -> Result {
-    let (_, bytes) = bucket
+    let bytes = bucket
         .get_object_bytes(object.id)
         .await
         .map_err(|err| format!("failed to retrieve video data: {err}"))?;

@@ -5,15 +5,15 @@ use super::{
 
 use axum::{
     extract::{Path, Request, State},
-    http::header::{CONTENT_LENGTH, CONTENT_TYPE},
-    response::{IntoResponse, Response},
     routing::{get, post},
     Json,
 };
-use axum_extra::body::AsyncReadBody;
-use minty::{Object, ObjectPreview, ObjectSummary, Uuid};
+use axum_extra::TypedHeader;
+use fstore::http::{ProxyMethod, ProxyResponse, Range};
+use minty::{Object, ObjectPreview, Uuid};
+use minty_core::{Bytes, Stream};
+use std::io;
 use sync_wrapper::SyncStream;
-use tokio_util::io::StreamReader;
 
 async fn add_object(
     State(AppState { repo }): State<AppState>,
@@ -37,28 +37,43 @@ async fn get_object(
     Ok(Json(object))
 }
 
-async fn get_object_data(
+async fn proxy(
+    method: ProxyMethod,
     State(AppState { repo }): State<AppState>,
     OptionalUser(user): OptionalUser,
+    id: Uuid,
+    range: Option<TypedHeader<Range>>,
+) -> Result<ProxyResponse<impl Stream<Item = io::Result<Bytes>>>> {
+    let range = range.map(|TypedHeader(range)| range);
+
+    Ok(repo
+        .optional_user(user)?
+        .object(id)
+        .proxy(method, range)
+        .await?)
+}
+
+async fn proxy_get(
+    state: State<AppState>,
+    user: OptionalUser,
     Path((id, _name)): Path<(Uuid, String)>,
-) -> Result<Response> {
-    let (ObjectSummary { media_type, size }, stream) =
-        repo.optional_user(user)?.object(id).get_data().await?;
+    range: Option<TypedHeader<Range>>,
+) -> Result<ProxyResponse<impl Stream<Item = io::Result<Bytes>>>> {
+    proxy(ProxyMethod::Get, state, user, id, range).await
+}
 
-    let headers = [
-        (CONTENT_LENGTH, size.to_string()),
-        (CONTENT_TYPE, media_type),
-    ];
-
-    let reader = StreamReader::new(stream);
-    let body = AsyncReadBody::new(reader);
-
-    Ok((headers, body).into_response())
+async fn proxy_head(
+    state: State<AppState>,
+    user: OptionalUser,
+    Path((id, _name)): Path<(Uuid, String)>,
+    range: Option<TypedHeader<Range>>,
+) -> Result<ProxyResponse<impl Stream<Item = io::Result<Bytes>>>> {
+    proxy(ProxyMethod::Head, state, user, id, range).await
 }
 
 pub fn routes() -> Router {
     Router::new()
         .route("/", post(add_object))
         .route("/:id", get(get_object))
-        .route("/:id/:name", get(get_object_data))
+        .route("/:id/:name", get(proxy_get).head(proxy_head))
 }

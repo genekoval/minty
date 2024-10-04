@@ -25,10 +25,12 @@ dashmap = "6"
 dmon = { version = "0.1", registry = "genya" }
 elasticsearch = "8.5.0-alpha.1"
 ffmpeg-sys-next = "6"
-fstore = { version = "0.4", registry = "fstore" }
+# fstore = { version = "0.4", registry = "fstore" }
+fstore = { path = "../fstore/crates/fstore" }
 futures = "0.3"
 futures-core = "0.3"
 graphicsmagick-sys = "0.6"
+headers = "0.4"
 jsonwebtoken = "9"
 log = "0.4"
 lru = "0.12"

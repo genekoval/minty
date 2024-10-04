@@ -33,7 +33,7 @@ fn find_embedded_image(audio: Bytes) -> result::Result<Option<Bytes>, String> {
 }
 
 pub async fn generate_preview(bucket: &Bucket, object: &Object) -> Result {
-    let (_, bytes) = bucket
+    let bytes = bucket
         .get_object_bytes(object.id)
         .await
         .map_err(|err| format!("failed to retrieve audio data: {err}"))?;

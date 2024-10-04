@@ -16,6 +16,7 @@ pub use auth::{Base64DecodeError, SessionId};
 pub use cache::{Cached, Session, User};
 pub use error::{Error, Result};
 pub use model::{About, SessionInfo};
+pub use obj::{Bytes, Stream};
 pub use repo::Repo;
 pub use task::Task;
 

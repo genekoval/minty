@@ -70,7 +70,7 @@ pub fn make_thumbnail(image: &mut Image) -> result::Result<Bytes, String> {
 }
 
 pub async fn generate_preview(bucket: &Bucket, object: &Object) -> Result {
-    let (_, bytes) = bucket
+    let bytes = bucket
         .get_object_bytes(object.id)
         .await
         .map_err(|err| format!("failed to retrieve image data: {err}"))?;

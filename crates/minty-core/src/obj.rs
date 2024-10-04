@@ -1,11 +1,15 @@
 use crate::{conf::BucketConfig, Error, Result};
 
-use bytes::Bytes;
-use fstore::{http::Client, Object, RemoveResult};
-use futures::Stream;
+pub use bytes::Bytes;
+pub use futures::Stream;
+
+use fstore::{
+    http::{Client, ProxyMethod, ProxyResponse, Range},
+    Object, RemoveResult,
+};
 use futures_core::TryStream;
-use minty::{ObjectSummary, Uuid};
-use std::{error, io, result};
+use minty::Uuid;
+use std::{error, io, ops::RangeBounds, result};
 
 #[derive(Clone, Debug)]
 pub struct Bucket {
@@ -49,26 +53,17 @@ impl Bucket {
         Ok(self.bucket.get_objects(objects).await?)
     }
 
-    pub async fn get_object_bytes(
-        &self,
-        id: Uuid,
-    ) -> Result<(ObjectSummary, Bytes)> {
-        let (summary, bytes) = self.bucket.get_object_bytes(id).await?;
-        let summary = ObjectSummary {
-            media_type: summary.media_type,
-            size: summary.size,
-        };
-
-        Ok((summary, bytes))
+    pub async fn get_object_bytes(&self, id: Uuid) -> Result<Bytes> {
+        Ok(self.bucket.get_object_bytes(id).await?)
     }
 
     pub async fn get_object_stream(
         &self,
         id: Uuid,
-    ) -> Result<(ObjectSummary, impl Stream<Item = io::Result<Bytes>>)> {
-        let (summary, stream) = self
-            .bucket
-            .get_object_stream(id)
+        range: impl RangeBounds<u64>,
+    ) -> Result<impl Stream<Item = io::Result<Bytes>>> {
+        self.bucket
+            .get_object_stream_range(id, range)
             .await
             .map_err(|err| match err.kind() {
                 fstore::ErrorKind::NotFound => Error::NotFound {
@@ -76,14 +71,24 @@ impl Bucket {
                     id,
                 },
                 _ => err.into(),
-            })?;
+            })
+    }
 
-        let summary = ObjectSummary {
-            media_type: summary.media_type,
-            size: summary.size,
-        };
-
-        Ok((summary, stream))
+    pub async fn proxy(
+        &self,
+        object: Uuid,
+        method: ProxyMethod,
+        range: Option<Range>,
+    ) -> Result<ProxyResponse<impl Stream<Item = io::Result<Bytes>>>> {
+        self.bucket
+            .proxy(object, method, range)
+            .await
+            .map_err(|err| {
+                Error::Internal(format!(
+                    "failed to proxy {method} request for object '{object}': \
+                    {err}"
+                ))
+            })
     }
 
     pub async fn remove_objects(
