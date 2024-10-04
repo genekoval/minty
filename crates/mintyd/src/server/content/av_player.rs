@@ -31,7 +31,7 @@ impl<'a> Render for AvPlayer<'a> {
                     (ObjectPreview::new(item).rounded_corners())
 
                     div {
-                        a href=(format!("/post/{}", self.post.id)) .block {
+                        a href=(format!("/post/{}", self.post.id)) {
                             (self.title())
                         }
                     }
