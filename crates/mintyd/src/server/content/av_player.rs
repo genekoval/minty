@@ -28,9 +28,7 @@ impl<'a> Render for AvPlayer<'a> {
         html! {
             minty-audio autoplay src=(item.data_path()) {
                 #track-info {
-                    @if let Some(preview) = &self.post.preview {
-                        (ObjectPreview::new(preview).rounded_corners())
-                    }
+                    (ObjectPreview::new(item).rounded_corners())
 
                     div {
                         a href=(format!("/post/{}", self.post.id)) .block {
