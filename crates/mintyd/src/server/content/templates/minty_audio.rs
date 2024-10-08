@@ -42,6 +42,8 @@ impl Render for MintyAudio {
                 }
 
                 #secondary-controls {
+                    minty-volume {}
+
                     button type="button" #close { (icon::X) }
                 }
             }

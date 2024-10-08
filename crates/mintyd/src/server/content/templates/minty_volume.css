@@ -1,0 +1,30 @@
+:host {
+    display: flex;
+    width: 100%;
+    gap: 0.75rem;
+}
+
+button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text);
+    cursor: pointer;
+    width: 1.75rem;
+}
+
+button .lucide {
+    display: none;
+}
+
+button[data-state='low'] .lucide-volume-1 {
+    display: block;
+}
+
+button[data-state='high'] .lucide-volume-2 {
+    display: block;
+}
+
+button[data-state='mute'] .lucide-volume-x {
+    display: block;
+}

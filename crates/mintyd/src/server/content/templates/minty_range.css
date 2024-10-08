@@ -31,13 +31,13 @@
 
 :host(:hover) #fill,
 :host(:focus) #fill,
-#track.seeking ~ #fill {
+:host(.seeking) #fill {
     background: var(--accent);
 }
 
 :host(:hover) #thumb,
 :host(:focus) #thumb,
-#track.seeking ~ #thumb {
+:host(.seeking) #thumb {
     background: var(--accent);
     transform: translateX(-8px) scale(1);
 }

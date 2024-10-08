@@ -14,11 +14,13 @@ mod minty_audio;
 mod minty_menu;
 mod minty_range;
 mod minty_select;
+mod minty_volume;
 
 use minty_audio::MintyAudio;
 use minty_menu::MintyMenu;
 use minty_range::MintyRange;
 use minty_select::MintySelect;
+use minty_volume::MintyVolume;
 
 use maud::{html, Markup, Render};
 
@@ -31,6 +33,7 @@ impl Render for Templates {
             (MintyMenu)
             (MintyRange)
             (MintySelect)
+            (MintyVolume)
         }
     }
 }

@@ -1,4 +1,4 @@
-import { clamp, debounce } from './functions';
+import { clamp } from './functions';
 import WebComponent from './web-component';
 
 const NAME = 'minty-range';
@@ -12,10 +12,10 @@ export default class MintyRange extends WebComponent {
 
     set seeking(val) {
         if (val == true) {
-            this.track.classList.add('seeking');
+            this.classList.add('seeking');
             this.dispatchEvent(new Event('seeking'));
         } else if (val == false) {
-            this.track.classList.remove('seeking');
+            this.classList.remove('seeking');
             this.dispatchEvent(new Event('seeked'));
         }
     }
@@ -26,7 +26,7 @@ export default class MintyRange extends WebComponent {
 
     set value(val) {
         this._value = val;
-        this.updateDebounced();
+        this.update();
     }
 
     constructor() {
@@ -35,7 +35,6 @@ export default class MintyRange extends WebComponent {
         this.track = this.shadowRoot.getElementById('track');
         this.fill = this.shadowRoot.getElementById('fill');
         this.thumb = this.shadowRoot.getElementById('thumb');
-        this.updateDebounced = debounce(() => this.update(), 1000);
     }
 
     attributeChangedCallback(name, _oldValue, newValue) {
@@ -76,6 +75,7 @@ export default class MintyRange extends WebComponent {
             document.removeEventListener('mousemove', onMousemove);
             document.removeEventListener('mouseup', onMouseup);
 
+            this.dispatchEvent(new Event('input', { bubbles: true }));
             this.dispatchEvent(new Event('change', { bubbles: true }));
         };
 
@@ -94,8 +94,7 @@ export default class MintyRange extends WebComponent {
         const pos = (pageX - rect.left) / this.offsetWidth;
         const value = clamp(pos * max, min, max);
 
-        this._value = value;
-        this.update();
+        this.value = value;
     }
 
     /**

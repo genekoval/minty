@@ -65,4 +65,7 @@ icon!(ROTATE_CW, "rotate-cw");
 icon!(SETTINGS, "settings");
 icon!(SQUARE_PEN, "square-pen");
 icon!(USER_CIRCLE, "user_circle");
+icon!(VOLUME_1, "volume-1");
+icon!(VOLUME_2, "volume-2");
+icon!(VOLUME_X, "volume-x");
 icon!(X, "x");

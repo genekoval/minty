@@ -1,3 +1,4 @@
+import { debounce } from './functions';
 import WebComponent from './web-component';
 
 const NAME = 'minty-audio';
@@ -8,6 +9,10 @@ export default class MintyAudio extends WebComponent {
     constructor() {
         super(NAME);
 
+        this.updateProgress = debounce(
+            (value) => (this.range.value = value),
+            1000,
+        );
         this.seeking = false;
         this.audio = this.shadowRoot.querySelector('audio');
         this.range = this.shadowRoot.getElementById('range');
@@ -16,6 +21,7 @@ export default class MintyAudio extends WebComponent {
         this.playpause = this.shadowRoot.getElementById('playpause');
         this.time = this.shadowRoot.getElementById('time');
         this.duration = this.shadowRoot.getElementById('duration');
+        this.volume = this.shadowRoot.querySelector('minty-volume');
         this.close = this.shadowRoot.getElementById('close');
     }
 
@@ -60,6 +66,10 @@ export default class MintyAudio extends WebComponent {
         this.range.addEventListener('seeking', () => (this.seeking = true));
         this.range.addEventListener('seeked', () => (this.seeking = false));
 
+        this.volume.addEventListener('change', () => {
+            this.audio.volume = this.volume.value;
+        });
+
         this.close.addEventListener('click', () => {
             this.dispatchEvent(new Event('close', { bubbles: true }));
         });
@@ -101,7 +111,7 @@ export default class MintyAudio extends WebComponent {
     }
 
     setTime(seconds) {
-        if (!this.seeking) this.range.value = seconds;
+        if (!this.seeking) this.updateProgress(seconds);
 
         let hours = Math.floor(seconds / 3600);
         seconds %= 3600;
