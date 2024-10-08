@@ -12,10 +12,12 @@ use style;
 
 mod minty_audio;
 mod minty_menu;
+mod minty_range;
 mod minty_select;
 
 use minty_audio::MintyAudio;
 use minty_menu::MintyMenu;
+use minty_range::MintyRange;
 use minty_select::MintySelect;
 
 use maud::{html, Markup, Render};
@@ -27,6 +29,7 @@ impl Render for Templates {
         html! {
             (MintyAudio)
             (MintyMenu)
+            (MintyRange)
             (MintySelect)
         }
     }

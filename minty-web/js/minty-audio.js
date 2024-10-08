@@ -8,8 +8,9 @@ export default class MintyAudio extends WebComponent {
     constructor() {
         super(NAME);
 
+        this.seeking = false;
         this.audio = this.shadowRoot.querySelector('audio');
-        this.progress = this.shadowRoot.querySelector('progress');
+        this.range = this.shadowRoot.getElementById('range');
         this.primaryControls =
             this.shadowRoot.getElementById('primary-controls');
         this.playpause = this.shadowRoot.getElementById('playpause');
@@ -27,13 +28,17 @@ export default class MintyAudio extends WebComponent {
             this.primaryControls.setAttribute('data-state', 'pause');
         });
 
+        this.audio.addEventListener('ended', () => {
+            this.range.setPercentage(100);
+        });
+
         this.audio.addEventListener('loadedmetadata', () => {
             this.setDuration();
         });
 
         this.audio.addEventListener('timeupdate', () => {
             this.setDuration();
-            this.setTime();
+            if (!this.seeking) this.setTime(this.audio.currentTime);
         });
 
         this.playpause.addEventListener('click', () => {
@@ -43,6 +48,17 @@ export default class MintyAudio extends WebComponent {
                 this.audio.pause();
             }
         });
+
+        this.range.addEventListener('input', () => {
+            if (this.seeking) this.setTime(this.range.value);
+        });
+
+        this.range.addEventListener('change', () => {
+            this.audio.currentTime = this.range.value;
+        });
+
+        this.range.addEventListener('seeking', () => (this.seeking = true));
+        this.range.addEventListener('seeked', () => (this.seeking = false));
 
         this.close.addEventListener('click', () => {
             this.dispatchEvent(new Event('close', { bubbles: true }));
@@ -54,13 +70,13 @@ export default class MintyAudio extends WebComponent {
     }
 
     setDuration() {
-        if (this.progress.getAttribute('max')) {
+        if (this.range.getAttribute('max')) {
             return;
         }
 
         let seconds = this.audio.duration;
 
-        this.progress.setAttribute('max', seconds);
+        this.range.setAttribute('max', seconds);
 
         this.hours = Math.floor(seconds / 3600);
         seconds %= 3600;
@@ -84,10 +100,8 @@ export default class MintyAudio extends WebComponent {
         this.duration.innerText = duration;
     }
 
-    setTime() {
-        let seconds = this.audio.currentTime;
-
-        this.progress.value = seconds;
+    setTime(seconds) {
+        if (!this.seeking) this.range.value = seconds;
 
         let hours = Math.floor(seconds / 3600);
         seconds %= 3600;

@@ -1,0 +1,51 @@
+:host {
+    width: 100%;
+    position: relative;
+    cursor: pointer;
+}
+
+:host > * {
+    position: absolute;
+}
+
+#track {
+    background: var(--secondary-background);
+}
+
+#fill {
+    background: var(--text);
+    transition: background 250ms;
+}
+
+#thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--text);
+    clip-path: circle();
+    top: calc(50% - 8px);
+    transform: translateX(-8px) scale(0);
+    transition:
+        transform 250ms,
+        background 250ms;
+}
+
+:host(:hover) #fill,
+:host(:focus) #fill,
+#track.seeking ~ #fill {
+    background: var(--accent);
+}
+
+:host(:hover) #thumb,
+:host(:focus) #thumb,
+#track.seeking ~ #thumb {
+    background: var(--accent);
+    transform: translateX(-8px) scale(1);
+}
+
+.track {
+    height: 5px;
+    border-radius: 16px;
+    left: 0;
+    right: 0;
+    top: calc(50% - 2px);
+}

@@ -33,7 +33,7 @@ impl Render for MintyAudio {
                             (TIME_PLACEHOLDER)
                         }
 
-                        progress value="0" min="0" {}
+                        minty-range #range value="0" min="0" {}
 
                         span #duration .time {
                             (TIME_PLACEHOLDER)
