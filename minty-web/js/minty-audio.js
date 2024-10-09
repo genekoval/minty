@@ -80,7 +80,7 @@ export default class MintyAudio extends WebComponent {
     }
 
     setDuration() {
-        if (this.range.getAttribute('max')) {
+        if (this.range.getAttribute('max') || !this.audio.duration) {
             return;
         }
 
