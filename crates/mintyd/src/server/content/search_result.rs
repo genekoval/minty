@@ -101,8 +101,7 @@ impl PostSearchResult {
         html! {
             form
                 hx-get=(self.0.path)
-                hx-trigger=
-                    "submit, change find minty-select, change find minty-switch"
+                hx-trigger="change, submit"
                 hx-target="#post-search-results"
                 .search-controls
                 .flex-row
