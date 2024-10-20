@@ -1,3 +1,5 @@
+use super::{icon, Label};
+
 use maud::{html, Markup, Render};
 use minty::{Post, Visibility};
 
@@ -20,7 +22,9 @@ impl<'a> Render for PostBanner<'a> {
     fn render(&self) -> Markup {
         html! {
             .draft-banner {
-                span .bold .secondary { "Draft" }
+                span .bold .secondary {
+                    (Label::icon("Draft", icon::SQUARE_PEN))
+                }
 
                 span #saved .font-smaller {}
 
