@@ -32,16 +32,4 @@ pub trait View: Sized {
         self.classes_mut().push(class);
         self
     }
-
-    fn color(self, color: Color) -> Self {
-        self.class(format!("fg-{}", color.0))
-    }
-}
-
-pub struct Color(&'static str);
-
-pub mod color {
-    use super::Color;
-
-    pub const PURPLE: Color = Color("purple");
 }

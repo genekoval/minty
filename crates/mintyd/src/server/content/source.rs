@@ -7,7 +7,7 @@ pub struct Source<'a>(pub &'a minty::Source);
 impl<'a> Render for Source<'a> {
     fn render(&self) -> Markup {
         html! {
-            a href=(self.0.url) target="_blank" .fit-content .hover-underline {
+            a href=(self.0.url) target="_blank" .navlink .fit-content {
                 (Label::new(
                     self.0.url.to_string(),
                     self.0

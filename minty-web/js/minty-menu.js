@@ -14,6 +14,7 @@ export default class MintyMenu extends WebComponent {
 
         const slot = this.menu.querySelector('slot');
 
+        /*
         slot.addEventListener('slotchange', (event) => {
             const elements = event.target.assignedElements();
 
@@ -29,6 +30,7 @@ export default class MintyMenu extends WebComponent {
 
             htmx.process(this.shadowRoot);
         });
+        */
     }
 
     connectedCallback() {

@@ -24,6 +24,7 @@ impl<'a> AvPlayer<'a> {
 impl<'a> Render for AvPlayer<'a> {
     fn render(&self) -> Markup {
         let item = self.items.get(self.index).unwrap();
+        let post = format!("/post/{}", self.post.id);
 
         html! {
             minty-audio autoplay src=(item.data_path()) {
@@ -31,7 +32,11 @@ impl<'a> Render for AvPlayer<'a> {
                     (ObjectPreview::new(item).rounded_corners())
 
                     div {
-                        a href=(format!("/post/{}", self.post.id)) {
+                        a href=(post)
+                            hx-get=(post)
+                            hx-trigger="click"
+                            hx-target="main"
+                        {
                             (self.title())
                         }
                     }

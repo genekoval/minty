@@ -1,4 +1,4 @@
-use super::{Classes, Icon, View};
+use super::Icon;
 
 use maud::{html, Markup, Render};
 use minty::Uuid;
@@ -22,8 +22,20 @@ impl From<Uuid> for LabelIcon {
     }
 }
 
+impl Render for LabelIcon {
+    fn render(&self) -> Markup {
+        html! {
+            @match self {
+                Self::Icon(icon) => (icon.inline()),
+                Self::Object(id) => {
+                    img src=(format!("/object/{id}/data")) .inline-icon;
+                }
+            }
+        }
+    }
+}
+
 pub struct Label<'a> {
-    classes: Classes,
     icon: LabelIcon,
     text: Cow<'a, str>,
 }
@@ -34,7 +46,6 @@ impl<'a> Label<'a> {
         T: Into<Cow<'a, str>>,
     {
         Self {
-            classes: Classes::default(),
             icon,
             text: text.into(),
         }
@@ -48,25 +59,11 @@ impl<'a> Label<'a> {
     }
 }
 
-impl<'a> View for Label<'a> {
-    fn classes_mut(&mut self) -> &mut Classes {
-        &mut self.classes
-    }
-}
-
 impl<'a> Render for Label<'a> {
     fn render(&self) -> Markup {
         html! {
-            span class=[self.classes.get()] {
-                @match self.icon {
-                    LabelIcon::Icon(icon) => (icon.inline()),
-                    LabelIcon::Object(id) => {
-                        img src=(format!("/object/{id}/data")) .inline-icon;
-                    }
-                }
-
-                span .label-text { (self.text) }
-            }
+            (self.icon)
+            span .label-text { (self.text) }
         }
     }
 }

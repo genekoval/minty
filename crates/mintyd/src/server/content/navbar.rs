@@ -1,4 +1,4 @@
-use super::icon;
+use super::{icon, Label, NavigationLink};
 
 use maud::{html, Markup, Render};
 use minty::UserPreview;
@@ -13,15 +13,15 @@ impl Render for Navbar {
         html! {
             nav .flex-column {
                 .nav-primary .nav-section {
-                    a href="/" { (icon::HOME) }
+                    (NavigationLink::new("/", icon::HOME))
 
                     minty-menu {
                         span slot="menu-button" { (icon::PLUS) }
 
-                        a href="/post" {
-                            minty-icon { (icon::FILE_IMAGE) }
-                            minty-title { "New Post" }
-                        }
+                        (NavigationLink::new(
+                            "/post",
+                            Label::icon("New Post", icon::FILE_IMAGE)
+                        ))
                     }
                 }
 
@@ -32,19 +32,21 @@ impl Render for Navbar {
                                 (icon::CIRCLE_USER_ROUND)
                             }
 
-                            a href=(format!("/user/{}", user.id)) {
-                                minty-icon { (icon::CIRCLE_USER_ROUND) }
-                                minty-title { (user.name) }
-                            }
+                            (NavigationLink::new(
+                                format!("/user/{}", user.id),
+                                Label::icon(
+                                    &user.name,
+                                    icon::CIRCLE_USER_ROUND,
+                                ),
+                            ))
 
-                            a href=(format!("/posts?vis=draft")) {
-                                minty-icon { (icon::SQUARE_PEN) }
-                                minty-title { "Drafts" }
-                            }
+                            (NavigationLink::new(
+                                "/posts?vis=draft",
+                                Label::icon("Drafts", icon::SQUARE_PEN),
+                            ))
 
                             button hx-delete="/user/session" {
-                                minty-icon { (icon::LOG_OUT) }
-                                minty-title { "Sign Out" }
+                                (Label::icon("Sign Out", icon::LOG_OUT))
                             }
                         }
                     } @else {

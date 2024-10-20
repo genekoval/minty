@@ -8,6 +8,7 @@ mod icon;
 mod image_viewer;
 mod label;
 mod navbar;
+mod navigation_link;
 mod object_grid;
 mod object_preview;
 mod object_viewer;
@@ -48,6 +49,7 @@ use icon::Icon;
 use image_viewer::ImageViewer;
 use label::*;
 use navbar::Navbar;
+use navigation_link::NavigationLink;
 use object_grid::ObjectGrid;
 use object_preview::ObjectPreview;
 use post_banner::PostBanner;
@@ -115,7 +117,7 @@ where
                             user: self.user.and_then(|user| user.preview()),
                         })
 
-                        main { (self.data.full()) }
+                        main hx-history-elt { (self.data.full()) }
 
                         (AvPlayerFooter)
                     } @else {

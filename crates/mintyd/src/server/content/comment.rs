@@ -42,7 +42,7 @@ fn render_threads(iter: &mut Peekable<Iter<CommentData>>) -> Markup {
             (Comment(comment))
 
             @if next > Some(comment.level) {
-                a href=(format!("#{id}")) .block .comment-indent {}
+                a href=(format!("#{id}")) .comment-indent {}
 
                 .comment-replies {
                     (render_threads(iter))

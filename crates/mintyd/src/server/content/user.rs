@@ -1,7 +1,4 @@
-use super::{
-    color::PURPLE, icon, DateTime, Html, Label, PostSearchResult, SourceList,
-    View,
-};
+use super::{icon, DateTime, Html, Label, PostSearchResult, SourceList};
 
 use maud::{html, Markup, Render};
 use serde::{Serialize, Serializer};
@@ -14,14 +11,22 @@ pub struct User {
 }
 
 impl User {
-    fn admin(&self) -> Option<impl Render> {
-        self.user
-            .admin
-            .then(|| Label::icon("Admin", icon::BADGE_CHECK).color(PURPLE))
+    fn admin(&self) -> Option<Markup> {
+        self.user.admin.then(|| {
+            html! {
+                span .fg-purple {
+                    (Label::icon("Admin", icon::BADGE_CHECK))
+                }
+            }
+        })
     }
 
-    fn email(&self) -> impl Render + '_ {
-        Label::icon(&self.user.email, icon::ENVELOPE)
+    fn email(&self) -> Markup {
+        html! {
+            span {
+                (Label::icon(&self.user.email, icon::ENVELOPE))
+            }
+        }
     }
 
     fn created(&self) -> impl Render {
@@ -30,7 +35,7 @@ impl User {
             .prefix("Joined")
     }
 
-    fn comment_count(&self) -> impl Render {
+    fn comment_count(&self) -> Markup {
         let count = format!(
             "{} Comment{}",
             self.user.comment_count,
@@ -40,10 +45,14 @@ impl User {
             }
         );
 
-        Label::icon(count, icon::COMMENT)
+        html! {
+            span {
+                (Label::icon(count, icon::COMMENT))
+            }
+        }
     }
 
-    fn post_count(&self) -> impl Render {
+    fn post_count(&self) -> Markup {
         let count = format!(
             "{} Post{}",
             self.user.post_count,
@@ -53,10 +62,14 @@ impl User {
             }
         );
 
-        Label::icon(count, icon::FILE_IMAGE)
+        html! {
+            span {
+                (Label::icon(count, icon::FILE_IMAGE))
+            }
+        }
     }
 
-    fn tag_count(&self) -> impl Render {
+    fn tag_count(&self) -> Markup {
         let count = format!(
             "{} Tag{}",
             self.user.tag_count,
@@ -66,7 +79,11 @@ impl User {
             }
         );
 
-        Label::icon(count, icon::HASH)
+        html! {
+            span {
+                (Label::icon(count, icon::HASH))
+            }
+        }
     }
 }
 

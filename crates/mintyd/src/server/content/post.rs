@@ -1,6 +1,6 @@
 use super::{
-    icon, Comments, DateTime, Html, Label, ObjectGrid, PostBanner, PostPreview,
-    UserPreview,
+    icon, Comments, DateTime, Html, Label, NavigationLink, ObjectGrid,
+    PostBanner, PostPreview, UserPreview,
 };
 
 use maud::{html, Markup, Render};
@@ -87,9 +87,10 @@ impl Post {
             @if !self.post.tags.is_empty() {
                 .tags .flex-row .flex-wrap {
                     @for tag in &self.post.tags {
-                        a href=(format!("/tag/{}", tag.id)) {
-                            (Label::icon(&tag.name, icon::HASH))
-                        }
+                        (NavigationLink::new(
+                            format!("/tag/{}", tag.id),
+                            Label::icon(&tag.name, icon::HASH)
+                        ))
                     }
                 }
             }

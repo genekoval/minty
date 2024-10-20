@@ -69,7 +69,9 @@ impl Html for Tag {
             .margin-bottom
             {
                 (self.created())
-                (Label::icon(self.post_count(), icon::FILE_IMAGE))
+                span {
+                    (Label::icon(self.post_count(), icon::FILE_IMAGE))
+                }
             }
 
             @if let Some(posts) = &self.posts {

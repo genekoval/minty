@@ -1,6 +1,6 @@
 use super::{
     icon::{self, Icon},
-    Label,
+    Label, NavigationLink, View,
 };
 
 use maud::{html, Markup, Render};
@@ -9,10 +9,8 @@ const USER_ICON: Icon = icon::USER_CIRCLE;
 
 fn deleted() -> Markup {
     html! {
-        span {
-            (USER_ICON)
-            span .italic .label-text { "Deleted" }
-        }
+        (USER_ICON)
+        span .italic .label-text { "Deleted" }
     }
 }
 
@@ -31,11 +29,9 @@ impl<'a> UserPreviewInner<'a> {
 
 impl<'a> Render for UserPreviewInner<'a> {
     fn render(&self) -> Markup {
-        html! {
-            a href=(self.path()) {
-                (self.as_label())
-            }
-        }
+        NavigationLink::new(self.path(), self.as_label())
+            .class("navlink")
+            .render()
     }
 }
 
@@ -49,10 +45,12 @@ impl<'a> UserPreview<'a> {
 
     pub fn as_label(&self) -> Markup {
         html! {
-            @if let Some(user) = &self.0 {
-                (user.as_label())
-            } @else {
-                (deleted())
+            span {
+                @if let Some(user) = &self.0 {
+                    (user.as_label())
+                } @else {
+                    (deleted())
+                }
             }
         }
     }

@@ -1,6 +1,8 @@
 import { debounce } from './functions';
 import WebComponent from './web-component';
 
+import htmx from 'htmx.org';
+
 const NAME = 'minty-audio';
 
 export default class MintyAudio extends WebComponent {
@@ -73,6 +75,8 @@ export default class MintyAudio extends WebComponent {
         this.close.addEventListener('click', () => {
             this.dispatchEvent(new Event('close', { bubbles: true }));
         });
+
+        htmx.process(this.shadowRoot);
     }
 
     attributeChangedCallback(name, _oldValue, newValue) {

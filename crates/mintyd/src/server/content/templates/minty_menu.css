@@ -5,7 +5,6 @@
 button {
     padding: 0.4rem;
     font-size: 1rem;
-    height: 100%;
     color: var(--text);
     background: none;
     border: none;
@@ -40,37 +39,34 @@ button {
     display: none;
 }
 
-.menu > * {
-    display: flex;
-    gap: 0.5rem;
-    color: var(--text);
+.menu > ::slotted(*) {
+    display: block;
     padding: 0.5rem;
-    cursor: pointer;
     border-radius: calc(0.5rem - 2px);
-
-    &:hover {
-        background: var(--divider);
-    }
-
-    &:focus {
-        background: var(--secondary);
-        outline: none;
-    }
 }
 
-.menu > button {
+.menu > ::slotted(a:link),
+.menu > ::slotted(a:visited) {
+    color: var(--text);
+    text-decoration: none;
+}
+
+.menu > ::slotted(button) {
+    display: flex;
     width: 100%;
+    font-size: 1rem;
+    color: var(--text);
+    background: none;
+    border: none;
+    outline: none;
+    cursor: pointer;
 }
 
-minty-icon {
-    width: 1rem;
-    height: 1rem;
+.menu > ::slotted(*:hover) {
+    background: var(--divider);
 }
 
-a:link {
-    text-decoration: none;
-}
-
-a:visited {
-    text-decoration: none;
+.menu > ::slotted(*:focus) {
+    background: var(--secondary);
+    outline: none;
 }
